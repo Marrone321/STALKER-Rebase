@@ -1,5 +1,3 @@
-GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
-
 //TODO: someone please get rid of this shit
 /datum/datacore
 	var/list/medical = list()
@@ -19,60 +17,15 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 	var/list/fields = list()
 
 /datum/data/record/Destroy()
-	GLOB.data_core.medical -= src
-	GLOB.data_core.security -= src
-	GLOB.data_core.general -= src
-	GLOB.data_core.locked -= src
+	if(src in GLOB.data_core.medical)
+		GLOB.data_core.medical -= src
+	if(src in GLOB.data_core.security)
+		GLOB.data_core.security -= src
+	if(src in GLOB.data_core.general)
+		GLOB.data_core.general -= src
+	if(src in GLOB.data_core.locked)
+		GLOB.data_core.locked -= src
 	. = ..()
-
-/// A helper proc to get the front photo of a character from the record.
-/// Handles calling `get_photo()`, read its documentation for more information.
-/datum/data/record/proc/get_front_photo()
-	return get_photo("photo_front", SOUTH)
-
-/// A helper proc to get the side photo of a character from the record.
-/// Handles calling `get_photo()`, read its documentation for more information.
-/datum/data/record/proc/get_side_photo()
-	return get_photo("photo_side", WEST)
-
-/**
- * You shouldn't be calling this directly, use `get_front_photo()` or `get_side_photo()`
- * instead.
- *
- * This is the proc that handles either fetching (if it was already generated before) or
- * generating (if it wasn't) the specified photo from the specified record. This is only
- * intended to be used by records that used to try to access `fields["photo_front"]` or
- * `fields["photo_side"]`, and will return an empty icon if there isn't any of the necessary
- * fields.
- *
- * Arguments:
- * * field_name - The name of the key in the `fields` list, of the record itself.
- * * orientation - The direction in which you want the character appearance to be rotated
- * in the outputed photo.
- *
- * Returns an empty `/icon` if there was no `character_appearance` entry in the `fields` list,
- * returns the generated/cached photo otherwise.
- */
-/datum/data/record/proc/get_photo(field_name, orientation)
-	if(fields[field_name])
-		return fields[field_name]
-
-	if(!fields["character_appearance"])
-		return new /icon()
-
-	var/mutable_appearance/character_appearance = fields["character_appearance"]
-	character_appearance.setDir(orientation)
-
-	var/icon/picture_image = getFlatIcon(character_appearance)
-
-	var/datum/picture/picture = new
-	picture.picture_name = "[fields["name"]]"
-	picture.picture_desc = "This is [fields["name"]]."
-	picture.picture_image = picture_image
-
-	var/obj/item/photo/photo = new(null, picture)
-	fields[field_name] = photo
-	return photo
 
 /datum/data/crime
 	name = "crime"
@@ -112,15 +65,7 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 					return
 
 /datum/datacore/proc/payCitation(id, cDataId, amount)
-	for(var/datum/data/record/R in security)
-		if(R.fields["id"] == id)
-			var/list/crimes = R.fields["citation"]
-			for(var/datum/data/crime/crime in crimes)
-				if(crime.dataId == text2num(cDataId))
-					crime.paid = crime.paid + amount
-					var/datum/bank_account/D = SSeconomy.get_dep_account(ACCOUNT_SEC)
-					D.adjust_money(amount)
-					return
+	return
 
 /**
  * Adds crime to security record.
@@ -178,58 +123,37 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 		if(N.new_character)
 			log_manifest(N.ckey,N.new_character.mind,N.new_character)
 		if(ishuman(N.new_character))
-			manifest_inject(N.new_character)
+			manifest_inject(N.new_character, N.client)
 		CHECK_TICK
 
-/datum/datacore/proc/manifest_modify(name, assignment, trim)
+/datum/datacore/proc/manifest_modify(name, assignment)
 	var/datum/data/record/foundrecord = find_record("name", name, GLOB.data_core.general)
 	if(foundrecord)
 		foundrecord.fields["rank"] = assignment
-		foundrecord.fields["trim"] = trim
 
 
 /datum/datacore/proc/get_manifest()
 	// First we build up the order in which we want the departments to appear in.
 	var/list/manifest_out = list()
-	for(var/datum/job_department/department as anything in SSjob.joinable_departments)
+	for(var/datum/job_department/department as anything in SSjob.main_jobs.joinable_departments)
 		manifest_out[department.department_name] = list()
 	manifest_out[DEPARTMENT_UNASSIGNED] = list()
 
-	var/list/departments_by_type = SSjob.joinable_departments_by_type
 	for(var/datum/data/record/record as anything in GLOB.data_core.general)
 		var/name = record.fields["name"]
-		var/rank = record.fields["rank"] // user-visible job
-		var/trim = record.fields["trim"] // internal jobs by trim type
-		var/datum/job/job = SSjob.GetJob(trim)
-		if(!job || !(job.job_flags & JOB_CREW_MANIFEST) || !LAZYLEN(job.departments_list)) // In case an unlawful custom rank is added.
-			var/list/misc_list = manifest_out[DEPARTMENT_UNASSIGNED]
-			misc_list[++misc_list.len] = list(
-				"name" = name,
-				"rank" = rank,
-				)
-			continue
-		for(var/department_type as anything in job.departments_list)
-			var/datum/job_department/department = departments_by_type[department_type]
-			if(!department)
-				stack_trace("get_manifest() failed to get job department for [department_type] of [job.type]")
-				continue
-			var/list/entry = list(
-				"name" = name,
-				"rank" = rank,
-				)
-			var/list/department_list = manifest_out[department.department_name]
-			if(istype(job, department.department_head))
-				department_list.Insert(1, null)
-				department_list[1] = entry
-			else
-				department_list[++department_list.len] = entry
-
+		var/rank = record.fields["rank"]
+		var/list/misc_list = manifest_out[DEPARTMENT_UNASSIGNED]
+		misc_list[++misc_list.len] = list(
+			"name" = name,
+			"rank" = rank,
+			)
 	// Trim the empty categories.
 	for (var/department in manifest_out)
 		if(!length(manifest_out[department]))
 			manifest_out -= department
 
 	return manifest_out
+
 
 /datum/datacore/proc/get_manifest_html(monochrome = FALSE)
 	var/list/manifest = get_manifest()
@@ -260,7 +184,7 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 	return dat
 
 
-/datum/datacore/proc/manifest_inject(mob/living/carbon/human/H)
+/datum/datacore/proc/manifest_inject(mob/living/carbon/human/H, client/C)
 	set waitfor = FALSE
 	var/static/list/show_directions = list(SOUTH, WEST)
 	if(H.mind?.assigned_role.job_flags & JOB_CREW_MANIFEST)
@@ -268,9 +192,9 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 
 		var/static/record_id_num = 1001
 		var/id = num2hex(record_id_num++,6)
-		// We need to compile the overlays now, otherwise we're basically copying an empty icon.
-		COMPILE_OVERLAYS(H)
-		var/mutable_appearance/character_appearance = new(H.appearance)
+		if(!C)
+			C = H.client
+		var/image = get_id_photo(H, C, show_directions)
 
 		//These records should ~really~ be merged or something
 		//General Record
@@ -278,21 +202,18 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 		G.fields["id"] = id
 		G.fields["name"] = H.real_name
 		G.fields["rank"] = assignment
-		G.fields["trim"] = assignment
-		G.fields["initial_rank"] = assignment
 		G.fields["age"] = H.age
 		G.fields["species"] = H.dna.species.name
-		G.fields["fingerprint"] = md5(H.dna.unique_identity)
+		G.fields["fingerprint"] = md5(H.dna.uni_identity)
 		G.fields["p_stat"] = "Active"
 		G.fields["m_stat"] = "Stable"
 		G.fields["gender"] = H.gender
 		if(H.gender == "male")
-			G.fields["gender"] = "Male"
+			G.fields["gender"]  = "Male"
 		else if(H.gender == "female")
-			G.fields["gender"] = "Female"
+			G.fields["gender"]  = "Female"
 		else
-			G.fields["gender"] = "Other"
-		G.fields["character_appearance"] = character_appearance
+			G.fields["gender"]  = "Other"
 		general += G
 
 		//Medical Record
@@ -326,71 +247,29 @@ GLOBAL_DATUM_INIT(data_core, /datum/datacore, new)
 		L.fields["id"] = md5("[H.real_name][assignment]") //surely this should just be id, like the others?
 		L.fields["name"] = H.real_name
 		L.fields["rank"] = assignment
-		L.fields["trim"] = assignment
-		G.fields["initial_rank"] = assignment
 		L.fields["age"] = H.age
 		L.fields["gender"] = H.gender
 		if(H.gender == "male")
-			G.fields["gender"] = "Male"
+			G.fields["gender"]  = "Male"
 		else if(H.gender == "female")
-			G.fields["gender"] = "Female"
+			G.fields["gender"]  = "Female"
 		else
-			G.fields["gender"] = "Other"
+			G.fields["gender"]  = "Other"
 		L.fields["blood_type"] = H.dna.blood_type
 		L.fields["b_dna"] = H.dna.unique_enzymes
-		L.fields["identity"] = H.dna.unique_identity
+		L.fields["identity"] = H.dna.uni_identity
 		L.fields["species"] = H.dna.species.type
 		L.fields["features"] = H.dna.features
-		L.fields["character_appearance"] = character_appearance
+		L.fields["image"] = image
 		L.fields["mindref"] = H.mind
 		locked += L
 	return
 
-//Todo: Add citations to the prinout - you get them from sec record's "citation" field, same as "crim" (which is frankly a terrible fucking field name)
-///Standardized printed records. SPRs. Like SATs but for bad guys who probably didn't actually finish school. Input the records and out comes a paper.
-/proc/print_security_record(datum/data/record/general_data, datum/data/record/security, atom/location)
-	if(!istype(general_data) && !istype(security))
-		stack_trace("called without any datacores! this may or may not be intentional!")
-	if(!isatom(location)) //can't drop the paper if we didn't get passed an atom.
-		CRASH("NO VALID LOCATION PASSED.")
-
-	GLOB.data_core.securityPrintCount++ //just alters the name of the paper.
-	var/obj/item/paper/printed_paper = new(location)
-	var/final_paper_text = "<CENTER><B>Security Record - (SR-[GLOB.data_core.securityPrintCount])</B></CENTER><BR>"
-	if((istype(general_data, /datum/data/record) && GLOB.data_core.general.Find(general_data)))
-		final_paper_text += text("Name: [] ID: []<BR>\nGender: []<BR>\nAge: []<BR>", general_data.fields["name"], general_data.fields["id"], general_data.fields["gender"], general_data.fields["age"])
-		final_paper_text += "\nSpecies: [general_data.fields["species"]]<BR>"
-		final_paper_text += text("\nFingerprint: []<BR>\nPhysical Status: []<BR>\nMental Status: []<BR>", general_data.fields["fingerprint"], general_data.fields["p_stat"], general_data.fields["m_stat"])
-	else
-		final_paper_text += "<B>General Record Lost!</B><BR>"
-	if((istype(security, /datum/data/record) && GLOB.data_core.security.Find(security)))
-		final_paper_text += text("<BR>\n<CENTER><B>Security Data</B></CENTER><BR>\nCriminal Status: []", security.fields["criminal"])
-
-		final_paper_text += "<BR>\n<BR>\nCrimes:<BR>\n"
-		final_paper_text +={"<table style="text-align:center;" border="1" cellspacing="0" width="100%">
-<tr>
-<th>Crime</th>
-<th>Details</th>
-<th>Author</th>
-<th>Time Added</th>
-</tr>"}
-		for(var/datum/data/crime/c in security.fields["crim"])
-			final_paper_text += "<tr><td>[c.crimeName]</td>"
-			final_paper_text += "<td>[c.crimeDetails]</td>"
-			final_paper_text += "<td>[c.author]</td>"
-			final_paper_text += "<td>[c.time]</td>"
-			final_paper_text += "</tr>"
-		final_paper_text += "</table>"
-
-		final_paper_text += text("<BR>\nImportant Notes:<BR>\n\t[]<BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", security.fields["notes"])
-		var/counter = 1
-		while(security.fields[text("com_[]", counter)])
-			final_paper_text += text("[]<BR>", security.fields[text("com_[]", counter)])
-			counter++
-		printed_paper.name = text("SR-[] '[]'", GLOB.data_core.securityPrintCount, general_data.fields["name"])
-	else //if no security record
-		final_paper_text += "<B>Security Record Lost!</B><BR>"
-		printed_paper.name = text("SR-[] '[]'", GLOB.data_core.securityPrintCount, "Record Lost")
-	final_paper_text += "</TT>"
-	printed_paper.add_raw_text(final_paper_text)
-	printed_paper.update_appearance() //make sure we make the paper look like it has writing on it.
+/datum/datacore/proc/get_id_photo(mob/living/carbon/human/H, client/C, show_directions = list(SOUTH))
+	var/datum/job/J = H.mind.assigned_role
+	var/datum/preferences/P
+	if(!C)
+		C = H.client
+	if(C)
+		P = C.prefs
+	return get_flat_human_icon(null, J, P, DUMMY_HUMAN_SLOT_MANIFEST, show_directions)

@@ -14,7 +14,7 @@
 	if(istype(E))
 		E.vehicle_entered_target = src
 
-/obj/vehicle/sealed/MouseDrop_T(atom/dropping, mob/M)
+/obj/vehicle/sealed/mouse_dropped(atom/dropping, mob/M, params)
 	if(!istype(dropping) || !istype(M))
 		return ..()
 	if(M == dropping)
@@ -29,10 +29,6 @@
 // so that we can check the access of the vehicle's occupants. Ridden vehicles do this in the riding component, but these don't have that
 /obj/vehicle/sealed/Bump(atom/A)
 	. = ..()
-	if(istype(A, /obj/machinery/door))
-		var/obj/machinery/door/conditionalwall = A
-		for(var/occupant in occupants)
-			conditionalwall.bumpopen(occupant)
 
 /obj/vehicle/sealed/after_add_occupant(mob/M)
 	. = ..()
@@ -47,24 +43,21 @@
 /obj/vehicle/sealed/proc/mob_try_enter(mob/M)
 	if(!istype(M))
 		return FALSE
-	if(do_after(M, get_enter_delay(M), src, timed_action_flags = IGNORE_HELD_ITEM, extra_checks = CALLBACK(src, .proc/enter_checks, M)))
+	if(occupant_amount() >= max_occupants)
+		return FALSE
+	if(do_after(M, get_enter_delay(M), src, timed_action_flags = IGNORE_HELD_ITEM))
 		mob_enter(M)
 		return TRUE
 	return FALSE
 
-/// returns enter do_after delay for the given mob in ticks
 /obj/vehicle/sealed/proc/get_enter_delay(mob/M)
 	return enter_delay
-
-///Extra checks to perform during the do_after to enter the vehicle
-/obj/vehicle/sealed/proc/enter_checks(mob/M)
-	return occupant_amount() < max_occupants
 
 /obj/vehicle/sealed/proc/mob_enter(mob/M, silent = FALSE)
 	if(!istype(M))
 		return FALSE
 	if(!silent)
-		M.visible_message(span_notice("[M] climbs into \the [src]!"))
+		M.visible_message(SPAN_NOTICE("[M] climbs into \the [src]!"))
 	M.forceMove(src)
 	add_occupant(M)
 	return TRUE
@@ -77,14 +70,13 @@
 	if(!istype(M))
 		return FALSE
 	remove_occupant(M)
-	if(!isAI(M))//This is the ONE mob we dont want to be moved to the vehicle that should be handeled when used
-		M.forceMove(exit_location(M))
+	M.forceMove(exit_location(M))
 	if(randomstep)
 		var/turf/target_turf = get_step(exit_location(M), pick(GLOB.cardinals))
 		M.throw_at(target_turf, 5, 10)
 
 	if(!silent)
-		M.visible_message(span_notice("[M] drops out of \the [src]!"))
+		M.visible_message(SPAN_NOTICE("[M] drops out of \the [src]!"))
 	return TRUE
 
 /obj/vehicle/sealed/proc/exit_location(M)
@@ -93,23 +85,23 @@
 /obj/vehicle/sealed/attackby(obj/item/I, mob/user, params)
 	if(key_type && !is_key(inserted_key) && is_key(I))
 		if(user.transferItemToLoc(I, src))
-			to_chat(user, span_notice("You insert [I] into [src]."))
+			to_chat(user, SPAN_NOTICE("You insert [I] into [src]."))
 			if(inserted_key) //just in case there's an invalid key
 				inserted_key.forceMove(drop_location())
 			inserted_key = I
 		else
-			to_chat(user, span_warning("[I] seems to be stuck to your hand!"))
+			to_chat(user, SPAN_WARNING("[I] seems to be stuck to your hand!"))
 		return
 	return ..()
 
 /obj/vehicle/sealed/proc/remove_key(mob/user)
 	if(!inserted_key)
-		to_chat(user, span_warning("There is no key in [src]!"))
+		to_chat(user, SPAN_WARNING("There is no key in [src]!"))
 		return
 	if(!is_occupant(user) || !(occupants[user] & VEHICLE_CONTROL_DRIVE))
-		to_chat(user, span_warning("You must be driving [src] to remove [src]'s key!"))
+		to_chat(user, SPAN_WARNING("You must be driving [src] to remove [src]'s key!"))
 		return
-	to_chat(user, span_notice("You remove [inserted_key] from [src]."))
+	to_chat(user, SPAN_NOTICE("You remove [inserted_key] from [src]."))
 	inserted_key.forceMove(drop_location())
 	if(!HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		user.put_in_hands(inserted_key)

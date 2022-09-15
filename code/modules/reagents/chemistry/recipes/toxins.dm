@@ -309,7 +309,7 @@
 /datum/chemical_reaction/heparin
 	results = list(/datum/reagent/toxin/heparin = 4)
 	required_reagents = list(/datum/reagent/toxin/formaldehyde = 1, /datum/reagent/sodium = 1, /datum/reagent/chlorine = 1, /datum/reagent/lithium = 1)
-	mix_message = "<span class='danger'>The mixture thins and loses all color.</span>"
+	mix_message = SPAN_DANGER("The mixture thins and loses all color.")
 	is_cold_recipe = FALSE
 	required_temp = 100
 	optimal_temp = 450
@@ -329,7 +329,7 @@
 /datum/chemical_reaction/rotatium
 	results = list(/datum/reagent/toxin/rotatium = 3)
 	required_reagents = list(/datum/reagent/toxin/mindbreaker = 1, /datum/reagent/teslium = 1, /datum/reagent/toxin/fentanyl = 1)
-	mix_message = "<span class='danger'>After sparks, fire, and the smell of mindbreaker, the mix is constantly spinning with no stop in sight.</span>"
+	mix_message = SPAN_DANGER("After sparks, fire, and the smell of mindbreaker, the mix is constantly spinning with no stop in sight.")
 	is_cold_recipe = FALSE
 	required_temp = 100
 	optimal_temp = 450
@@ -366,30 +366,10 @@
 	reaction_flags = REACTION_PH_VOL_CONSTANT
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_TOXIN | REACTION_TAG_OTHER
 
-/datum/chemical_reaction/mimesbane
-	results = list(/datum/reagent/toxin/mimesbane = 3)
-	required_reagents = list(/datum/reagent/uranium/radium = 1, /datum/reagent/toxin/mutetoxin = 1, /datum/reagent/consumable/nothing = 1)
-	mix_message = "The mixture turns into an indescribable white."
-	is_cold_recipe = FALSE
-	required_temp = 100
-	optimal_temp = 450
-	overheat_temp = 900
-	optimal_ph_min = 0
-	optimal_ph_max = 8
-	determin_ph_range = 4
-	temp_exponent_factor = 1.5
-	ph_exponent_factor = 3
-	thermic_constant = -400
-	H_ion_release = -2
-	rate_up_lim = 15
-	purity_min = 0.5
-	reaction_flags = REACTION_PH_VOL_CONSTANT
-	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_OTHER
-
 /datum/chemical_reaction/bonehurtingjuice
 	results = list(/datum/reagent/toxin/bonehurtingjuice = 5)
 	required_reagents = list(/datum/reagent/toxin/mutagen = 1, /datum/reagent/toxin/itching_powder = 3, /datum/reagent/consumable/milk = 1)
-	mix_message = "<span class='danger'>The mixture suddenly becomes clear and looks a lot like water. You feel a strong urge to drink it.</span>"
+	mix_message = SPAN_DANGER("The mixture suddenly becomes clear and looks a lot like water. You feel a strong urge to drink it.")
 	is_cold_recipe = FALSE
 	required_temp = 100
 	optimal_temp = 450

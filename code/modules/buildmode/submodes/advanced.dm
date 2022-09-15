@@ -6,15 +6,15 @@
 // of the currently selected path
 
 /datum/buildmode_mode/advanced/show_help(client/c)
-	to_chat(c, span_notice("***********************************************************"))
-	to_chat(c, span_notice("Right Mouse Button on buildmode button = Set object type"))
-	to_chat(c, span_notice("Left Mouse Button + alt on turf/obj    = Copy object type"))
-	to_chat(c, span_notice("Left Mouse Button on turf/obj          = Place objects"))
-	to_chat(c, span_notice("Right Mouse Button                     = Delete objects"))
+	to_chat(c, SPAN_NOTICE("***********************************************************"))
+	to_chat(c, SPAN_NOTICE("Right Mouse Button on buildmode button = Set object type"))
+	to_chat(c, SPAN_NOTICE("Left Mouse Button + alt on turf/obj    = Copy object type"))
+	to_chat(c, SPAN_NOTICE("Left Mouse Button on turf/obj          = Place objects"))
+	to_chat(c, SPAN_NOTICE("Right Mouse Button                     = Delete objects"))
 	to_chat(c, "")
-	to_chat(c, span_notice("Use the button in the upper left corner to"))
-	to_chat(c, span_notice("change the direction of built objects."))
-	to_chat(c, span_notice("***********************************************************"))
+	to_chat(c, SPAN_NOTICE("Use the button in the upper left corner to"))
+	to_chat(c, SPAN_NOTICE("change the direction of built objects."))
+	to_chat(c, SPAN_NOTICE("***********************************************************"))
 
 /datum/buildmode_mode/advanced/change_settings(client/c)
 	var/target_path = input(c, "Enter typepath:", "Typepath", "/obj/structure/closet")
@@ -36,11 +36,11 @@
 	var/alt_click = LAZYACCESS(modifiers, ALT_CLICK)
 
 	if(left_click && alt_click)
-		if (istype(object, /turf) || isobj(object) || istype(object, /mob))
+		if (istype(object, /turf) || istype(object, /obj) || istype(object, /mob))
 			objholder = object.type
-			to_chat(c, span_notice("[initial(object.name)] ([object.type]) selected."))
+			to_chat(c, SPAN_NOTICE("[initial(object.name)] ([object.type]) selected."))
 		else
-			to_chat(c, span_notice("[initial(object.name)] is not a turf, object, or mob! Please select again."))
+			to_chat(c, SPAN_NOTICE("[initial(object.name)] is not a turf, object, or mob! Please select again."))
 	else if(left_click)
 		if(ispath(objholder,/turf))
 			var/turf/T = get_turf(object)
@@ -56,7 +56,7 @@
 			A.setDir(BM.build_dir)
 			log_admin("Build Mode: [key_name(c)] modified [A]'s [COORD(A)] dir to [BM.build_dir]")
 		else
-			to_chat(c, span_warning("Select object type first."))
+			to_chat(c, SPAN_WARNING("Select object type first."))
 	else if(right_click)
 		if(isobj(object))
 			log_admin("Build Mode: [key_name(c)] deleted [object] at [AREACOORD(object)]")

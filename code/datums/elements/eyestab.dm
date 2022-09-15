@@ -43,15 +43,11 @@
 		return
 
 	if (target.is_eyes_covered())
-		to_chat(user, span_warning("You failed to stab [target.p_their()] eyes, you need to remove [target.p_their()] eye protection first!"))
-		return
-
-	if (isalien(target))
-		to_chat(user, span_warning("You cannot locate any eyes on this creature!"))
+		to_chat(user, SPAN_WARNING("You failed to stab [target.p_their()] eyes, you need to remove [target.p_their()] eye protection first!"))
 		return
 
 	if (isbrain(target))
-		to_chat(user, span_warning("You cannot locate any organic eyes on this brain!"))
+		to_chat(user, SPAN_WARNING("You cannot locate any organic eyes on this brain!"))
 		return
 
 	item.add_fingerprint(user)
@@ -62,13 +58,13 @@
 
 	if (target == user)
 		user.visible_message(
-			span_danger("[user] stabs [user.p_them()]self in the eyes with [item]!"),
-			span_userdanger("You stab yourself in the eyes with [item]!"),
+			SPAN_DANGER("[user] stabs [user.p_them()]self in the eyes with [item]!"),
+			SPAN_USERDANGER("You stab yourself in the eyes with [item]!"),
 		)
 	else
 		target.visible_message(
-			span_danger("[user] stabs [target] in the eye with [item]!"),
-			span_userdanger("[user] stabs you in the eye with [item]!"),
+			SPAN_DANGER("[user] stabs [target] in the eye with [item]!"),
+			SPAN_USERDANGER("[user] stabs you in the eye with [item]!"),
 		)
 
 	if (target_limb)
@@ -76,11 +72,9 @@
 	else
 		target.take_bodypart_damage(damage)
 
-	target.add_mood_event("eye_stab", /datum/mood_event/eye_stab)
-
 	log_combat(user, target, "attacked", "[item.name]", "(Combat mode: [user.combat_mode ? "On" : "Off"])")
 
-	var/obj/item/organ/internal/eyes/eyes = target.getorganslot(ORGAN_SLOT_EYES)
+	var/obj/item/organ/eyes/eyes = target.getorganslot(ORGAN_SLOT_EYES)
 	if (!eyes)
 		return
 
@@ -92,23 +86,23 @@
 
 	target.adjust_blurriness(15)
 	if (target.stat != DEAD)
-		to_chat(target, span_danger("Your eyes start to bleed profusely!"))
+		to_chat(target, SPAN_DANGER("Your eyes start to bleed profusely!"))
 
 	if (!target.is_blind() && !HAS_TRAIT(target, TRAIT_NEARSIGHT))
-		to_chat(target, span_danger("You become nearsighted!"))
+		to_chat(target, SPAN_DANGER("You become nearsighted!"))
 
 	target.become_nearsighted(EYE_DAMAGE)
 
 	if (prob(50))
 		if (target.stat != DEAD && target.drop_all_held_items())
-			to_chat(target, span_danger("You drop what you're holding and clutch at your eyes!"))
+			to_chat(target, SPAN_DANGER("You drop what you're holding and clutch at your eyes!"))
 		target.adjust_blurriness(10)
 		target.Unconscious(20)
 		target.Paralyze(40)
 
 	if (prob(eyes.damage - EYESTAB_BLEEDING_THRESHOLD + 1))
 		target.become_blind(EYE_DAMAGE)
-		to_chat(target, span_danger("You go blind!"))
+		to_chat(target, SPAN_DANGER("You go blind!"))
 
 #undef CLUMSY_ATTACK_SELF_CHANCE
 #undef EYESTAB_BLEEDING_THRESHOLD

@@ -2,12 +2,18 @@
 	name = "gloves"
 	gender = PLURAL //Carn: for grammarically correct text-parsing
 	w_class = WEIGHT_CLASS_SMALL
-	icon = 'icons/obj/clothing/gloves.dmi'
+	icon = 'icons/obj/clothing/hands/hands.dmi'
+	worn_icon = 'icons/mob/clothing/hands/hands.dmi'
 	siemens_coefficient = 0.5
 	body_parts_covered = HANDS
 	slot_flags = ITEM_SLOT_GLOVES
 	attack_verb_continuous = list("challenges")
 	attack_verb_simple = list("challenge")
+	fitted_bodytypes = NONE
+	worn_template_bodytypes = BODYTYPE_TESHARI
+	greyscale_config_worn_template = /datum/greyscale_config/worn_template_gloves
+	worn_template_greyscale_color = "#AAAAAA"
+	var/transfer_prints = FALSE
 	strip_delay = 20
 	equip_delay_other = 40
 	// Path variable. If defined, will produced the type through interaction with wirecutters.
@@ -22,7 +28,7 @@
 		return TRUE
 
 /obj/item/clothing/gloves/suicide_act(mob/living/carbon/user)
-	user.visible_message(span_suicide("\the [src] are forcing [user]'s hands around [user.p_their()] neck! It looks like the gloves are possessed!"))
+	user.visible_message(SPAN_SUICIDE("\the [src] are forcing [user]'s hands around [user.p_their()] neck! It looks like the gloves are possessed!"))
 	return OXYLOSS
 
 /obj/item/clothing/gloves/worn_overlays(mutable_appearance/standing, isinhands = FALSE)
@@ -32,31 +38,25 @@
 
 	if(damaged_clothes)
 		. += mutable_appearance('icons/effects/item_damage.dmi', "damagedgloves")
-	if(GET_ATOM_BLOOD_DNA_LENGTH(src))
+	if(HAS_BLOOD_DNA(src))
 		. += mutable_appearance('icons/effects/blood.dmi', "bloodyhands")
 
 /obj/item/clothing/gloves/update_clothes_damaged_state(damaged_state = CLOTHING_DAMAGED)
 	..()
 	if(ismob(loc))
 		var/mob/M = loc
-		M.update_worn_gloves()
-		
-/obj/item/clothing/gloves/proc/can_cut_with(obj/item/tool)
-	if(!cut_type)
-		return FALSE
-	if(icon_state != initial(icon_state))
-		return FALSE // We don't want to cut dyed gloves.
-	return TRUE
+		M.update_inv_gloves()
 
-/obj/item/clothing/gloves/attackby(obj/item/tool, mob/user, params)
-	if(tool.tool_behaviour != TOOL_WIRECUTTER && !tool.get_sharpness())
+// Called just before an attack_hand(), in mob/UnarmedAttack()
+/obj/item/clothing/gloves/proc/Touch(atom/A, proximity, mouseparams)
+	return FALSE // return 1 to cancel attack_hand()
+
+/obj/item/clothing/gloves/wirecutter_act(mob/living/user, obj/item/I)
+	. = ..()
+	if(!cut_type)
 		return
-	if (!can_cut_with(tool))
-		return
-	balloon_alert(user, "cutting off fingertips...")
-	
-	if(!do_after(user, 3 SECONDS, target=src, extra_checks = CALLBACK(src, .proc/can_cut_with, tool)))
-		return
-	balloon_alert(user, "cut fingertips off")
+	if(icon_state != initial(icon_state))
+		return // We don't want to cut dyed gloves.
+	new cut_type(drop_location())
 	qdel(src)
-	user.put_in_hands(new cut_type)
+	return TRUE

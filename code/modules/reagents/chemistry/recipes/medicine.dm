@@ -8,6 +8,8 @@
 	purity_min = 0.1
 	rate_up_lim = 35
 	reaction_tags = REACTION_TAG_HEALING | REACTION_TAG_EASY
+	pollutant_type = /datum/pollutant/chemical_vapors
+	pollutant_amount = 0.2
 
 /datum/chemical_reaction/medicine/leporazine
 	results = list(/datum/reagent/medicine/leporazine = 2)
@@ -59,27 +61,27 @@
 	mix_message = "The mixture sputters loudly and becomes a light grey color!"
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_ORGAN
 	//Fermichem vars
-	required_temp = 300
+	required_temp = 200
 	optimal_temp = 400
-	overheat_temp = 500
-	optimal_ph_min = 5
-	optimal_ph_max = 10
+	overheat_temp = 450
+	optimal_ph_min = 2
+	optimal_ph_max = 5
 	determin_ph_range = 10
-	temp_exponent_factor = 0.35
+	temp_exponent_factor = 3
 	ph_exponent_factor = 0.5
-	thermic_constant = 20
-	H_ion_release = 1.5
-	rate_up_lim = 3
+	thermic_constant = 200
+	H_ion_release = 0.05
+	rate_up_lim = 50
 	purity_min = 0.25
 
 ///Calls it over and over
 /datum/chemical_reaction/medicine/inacusiate/overheated(datum/reagents/holder, datum/equilibrium/equilibrium, vol_added)
-	holder.my_atom.audible_message(span_notice("[icon2html(holder.my_atom, viewers(DEFAULT_MESSAGE_RANGE, src))]The [holder.my_atom] suddenly gives out a loud bang!"))
+	holder.my_atom.audible_message(SPAN_NOTICE("[icon2html(holder.my_atom, viewers(DEFAULT_MESSAGE_RANGE, src))]The [holder.my_atom] suddenly gives out a loud bang!"))
 	explode_deafen(holder, equilibrium, 0.5, 10, 3)
 
 /datum/chemical_reaction/medicine/inacusiate/overly_impure(datum/reagents/holder, datum/equilibrium/equilibrium, vol_added)
 	var/power = equilibrium.reacted_vol/10
-	holder.my_atom.audible_message(span_notice("[icon2html(holder.my_atom, viewers(DEFAULT_MESSAGE_RANGE, src))]The [holder.my_atom] suddenly gives out an ear-crushingly loud bang!"))
+	holder.my_atom.audible_message(SPAN_NOTICE("[icon2html(holder.my_atom, viewers(DEFAULT_MESSAGE_RANGE, src))]The [holder.my_atom] suddenly gives out an ear-crushingly loud bang!"))
 	explode_deafen(holder, equilibrium, power/2, power*2, max(power/2, 3))
 	clear_products(holder)
 
@@ -293,11 +295,6 @@
 	required_reagents = list(/datum/reagent/stable_plasma = 1, /datum/reagent/acetone = 1, /datum/reagent/toxin/mutagen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_PLANT | REACTION_TAG_BRUTE |REACTION_TAG_BURN | REACTION_TAG_TOXIN | REACTION_TAG_OXY | REACTION_TAG_CLONE
 
-/datum/chemical_reaction/medicine/pyroxadone
-	results = list(/datum/reagent/medicine/pyroxadone = 2)
-	required_reagents = list(/datum/reagent/medicine/cryoxadone = 1, /datum/reagent/toxin/slimejelly = 1)
-	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_BRUTE |REACTION_TAG_BURN | REACTION_TAG_TOXIN | REACTION_TAG_OXY | REACTION_TAG_CLONE
-
 /datum/chemical_reaction/medicine/clonexadone
 	results = list(/datum/reagent/medicine/clonexadone = 2)
 	required_reagents = list(/datum/reagent/medicine/cryoxadone = 1, /datum/reagent/sodium = 1)
@@ -308,11 +305,6 @@
 	results = list(/datum/reagent/medicine/haloperidol = 5)
 	required_reagents = list(/datum/reagent/chlorine = 1, /datum/reagent/fluorine = 1, /datum/reagent/aluminium = 1, /datum/reagent/medicine/potass_iodide = 1, /datum/reagent/fuel/oil = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_OTHER
-
-/datum/chemical_reaction/medicine/regen_jelly
-	results = list(/datum/reagent/medicine/regen_jelly = 2)
-	required_reagents = list(/datum/reagent/medicine/omnizine = 1, /datum/reagent/toxin/slimejelly = 1)
-	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_BRUTE |REACTION_TAG_BURN | REACTION_TAG_TOXIN | REACTION_TAG_OXY
 
 /datum/chemical_reaction/medicine/higadrite
 	results = list(/datum/reagent/medicine/higadrite = 3)
@@ -350,7 +342,7 @@
 
 /datum/chemical_reaction/medicine/medsuture/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
 	var/location = get_turf(holder.my_atom)
-	for(var/i in 1 to created_volume)
+	for(var/i = 1, i <= created_volume, i++)
 		new /obj/item/stack/medical/suture/medicated(location)
 
 /datum/chemical_reaction/medicine/medmesh
@@ -359,7 +351,7 @@
 
 /datum/chemical_reaction/medicine/medmesh/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
 	var/location = get_turf(holder.my_atom)
-	for(var/i in 1 to created_volume)
+	for(var/i = 1, i <= created_volume, i++)
 		new /obj/item/stack/medical/mesh/advanced(location)
 
 /datum/chemical_reaction/medicine/poultice
@@ -375,3 +367,18 @@
 	results = list(/datum/reagent/consumable/sugar = 1)
 	required_reagents = list(/datum/reagent/medicine/coagulant/seraka_extract = 1, /datum/reagent/lye = 1)
 	reaction_tags = REACTION_TAG_EASY
+
+/datum/chemical_reaction/system_cleaner
+	results = list(/datum/reagent/medicine/system_cleaner = 4)
+	required_reagents = list(/datum/reagent/consumable/ethanol = 1, /datum/reagent/chlorine = 1, /datum/reagent/phenol = 2, /datum/reagent/potassium = 1)
+
+/datum/chemical_reaction/liquid_solder
+	results = list(/datum/reagent/medicine/liquid_solder = 3)
+	required_reagents = list(/datum/reagent/consumable/ethanol = 1, /datum/reagent/copper = 1, /datum/reagent/silver = 1)
+	required_temp = 370
+	mix_message = "The mixture becomes a metallic slurry."
+
+/datum/chemical_reaction/nanite_slurry
+	results = list(/datum/reagent/medicine/nanite_slurry = 3)
+	required_reagents = list(/datum/reagent/foaming_agent = 1, /datum/reagent/gold = 1, /datum/reagent/iron = 1)
+	mix_message = "The mixture becomes a metallic slurry."

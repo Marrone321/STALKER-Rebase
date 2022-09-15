@@ -12,10 +12,10 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	typepath = /datum/round_event/immovable_rod
 	min_players = 15
 	max_occurrences = 5
+	track = EVENT_TRACK_MODERATE
+	tags = list(TAG_DESTRUCTIVE)
 	var/atom/special_target
 	var/force_looping = FALSE
-	category = EVENT_CATEGORY_SPACE
-	description = "The station passes through an immovable rod."
 
 /datum/round_event_control/immovable_rod/admin_setup()
 	if(!check_rights(R_FUN))
@@ -37,13 +37,13 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	priority_announce("What the fuck was that?!", "General Alert")
 
 /datum/round_event/immovable_rod/start()
-	var/datum/round_event_control/immovable_rod/our_controller = control
+	var/datum/round_event_control/immovable_rod/C = control
 	var/startside = pick(GLOB.cardinals)
-	var/turf/end_turf = get_edge_target_turf(get_random_station_turf(), turn(startside, 180))
-	var/turf/start_turf = spaceDebrisStartLoc(startside, end_turf.z)
-	var/atom/rod = new /obj/effect/immovablerod(start_turf, end_turf, our_controller.special_target, our_controller.force_looping)
-	our_controller.special_target = null //Cleanup for future event rolls.
-	our_controller.force_looping = FALSE
+	var/datum/virtual_level/vlevel = pick(SSmapping.virtual_levels_by_trait(ZTRAIT_STATION))
+	var/turf/startT = vlevel.get_side_turf(startside)
+	var/turf/endT = vlevel.get_side_turf(REVERSE_DIR(startside))
+	var/atom/rod = new /obj/effect/immovablerod(startT, endT, C.special_target, C.force_looping)
+	C.special_target = null //Cleanup for future event rolls.
 	announce_to_ghosts(rod)
 
 /obj/effect/immovablerod
@@ -59,9 +59,9 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	anchored = TRUE
 	flags_1 = PREVENT_CONTENTS_EXPLOSION_1
 	movement_type = PHASING | FLYING
-	/// The turf we're looking to coast to.
-	var/turf/destination_turf
-	/// Whether we notify ghosts.
+	var/mob/living/wizard
+	var/z_original = 0
+	var/destination
 	var/notify = TRUE
 	///We can designate a specific target to aim for, in which case we'll try to snipe them rather than just flying in a random direction
 	var/atom/special_target
@@ -76,29 +76,28 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	/// Whether the rod can loop across other z-levels. The rod will still loop when the z-level is self-looping even if this is FALSE.
 	var/loopy_rod = FALSE
 
-/obj/effect/immovablerod/Initialize(mapload, atom/target_atom, atom/specific_target, force_looping = FALSE)
+/obj/effect/immovablerod/New(atom/start, atom/end, aimed_at, force_looping)
 	. = ..()
 	SSaugury.register_doom(src, 2000)
 
-	var/turf/real_destination = get_turf(target_atom)
-	destination_turf = real_destination
-	special_target = specific_target
-	loopy_rod ||= force_looping
+	destination = end
+	special_target = aimed_at
+	loopy_rod = force_looping
 
-	SSpoints_of_interest.make_point_of_interest(src)
+	AddElement(/datum/element/point_of_interest)
 
 	RegisterSignal(src, COMSIG_ATOM_ENTERING, .proc/on_entering_atom)
 
 	if(special_target)
-		SSmove_manager.home_onto(src, special_target)
+		walk_towards(src, special_target, 1)
 	else
-		SSmove_manager.move_towards(src, real_destination)
+		walk_towards(src, destination, 1)
 
 /obj/effect/immovablerod/Destroy(force)
 	UnregisterSignal(src, COMSIG_ATOM_ENTERING)
+	RemoveElement(/datum/element/point_of_interest)
 	SSaugury.unregister_doom(src)
-	destination_turf = null
-	special_target = null
+
 	return ..()
 
 /obj/effect/immovablerod/examine(mob/user)
@@ -107,7 +106,7 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 		return
 
 	if(!num_mobs_hit)
-		. += span_notice("So far, this rod has not hit any mobs.")
+		. += SPAN_NOTICE("So far, this rod has not hit any mobs.")
 		return
 
 	. += "\t<span class='notice'>So far, this rod has hit: \n\
@@ -126,12 +125,12 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	if((atom_crossed_over.density || isliving(atom_crossed_over)) && !QDELETED(atom_crossed_over))
 		Bump(atom_crossed_over)
 
-/obj/effect/immovablerod/proc/on_entering_atom(datum/source, atom/destination, atom/old_loc, list/atom/old_locs)
+/obj/effect/immovablerod/proc/on_entering_atom(datum/source, atom/destination, direction)
 	SIGNAL_HANDLER
 	if(destination.density && isturf(destination))
 		Bump(destination)
 
-/obj/effect/immovablerod/Moved(atom/old_loc, movement_dir, forced, list/old_locs, momentum_change = TRUE)
+/obj/effect/immovablerod/Moved()
 	if(!loc)
 		return ..()
 
@@ -150,15 +149,15 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 			var/direction = z_diff > 0 ? UP : DOWN
 			var/turf/target_z_turf = get_step_multiz(src, direction)
 
-			visible_message(span_danger("[src] phases out of reality."))
+			visible_message(SPAN_DANGER("[src] phases out of reality."))
 
 			if(!do_teleport(src, target_z_turf))
 				// We failed to teleport. Might as well admit defeat.
 				qdel(src)
 				return
 
-			visible_message(span_danger("[src] phases into reality."))
-			SSmove_manager.home_onto(src, special_target)
+			visible_message(SPAN_DANGER("[src] phases into reality."))
+			walk_towards(src, special_target, 1)
 
 		if(loc == target_turf)
 			complete_trajectory()
@@ -166,14 +165,15 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 		return ..()
 
 	// If we have a destination turf, let's make sure it's also still valid.
-	if(destination_turf)
+	if(destination)
+		var/turf/target_turf = get_turf(destination)
 
 		// If the rod is a loopy_rod, run complete_trajectory() to get a new edge turf to fly to.
 		// Otherwise, qdel the rod.
-		if(destination_turf.z != z)
+		if(target_turf.z != z)
 			if(loopy_rod)
 				complete_trajectory()
-				return ..()
+				return
 
 			qdel(src)
 			return
@@ -181,7 +181,7 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 		// Did we reach our destination? We're probably on Icebox. Let's get rid of ourselves.
 		// Ordinarily this won't happen as the average destination is the edge of the map and
 		// the rod will auto transition to a new z-level.
-		if(loc == destination_turf)
+		if(loc == get_turf(destination))
 			qdel(src)
 			return
 
@@ -192,35 +192,13 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	special_target = null
 	walk_in_direction(dir)
 
-/obj/effect/immovablerod/singularity_act()
-	return
-
-/obj/effect/immovablerod/singularity_pull()
-	return
-
-/obj/effect/immovablerod/Process_Spacemove(movement_dir = 0, continuous_move = FALSE)
-	return TRUE
-
 /obj/effect/immovablerod/Bump(atom/clong)
 	if(prob(10))
 		playsound(src, 'sound/effects/bang.ogg', 50, TRUE)
-		audible_message(span_danger("You hear a CLANG!"))
+		audible_message(SPAN_DANGER("You hear a CLANG!"))
 
 	if(special_target && clong == special_target)
 		complete_trajectory()
-
-	// If rod meets rod, they collapse into a singularity. Yes, this means that if two wizard rods collide,
-	// they ALSO collapse into a singulo.
-	if(istype(clong, /obj/effect/immovablerod))
-		visible_message(span_danger("[src] collides with [clong]! This cannot end well."))
-		var/datum/effect_system/fluid_spread/smoke/smoke = new
-		smoke.set_up(2, holder = src, location = get_turf(src))
-		smoke.start()
-		var/obj/singularity/bad_luck = new(get_turf(src))
-		bad_luck.energy = 800
-		qdel(clong)
-		qdel(src)
-		return
 
 	// If we Bump into a turf, turf go boom.
 	if(isturf(clong))
@@ -245,7 +223,7 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 	CRASH("[src] Bump()ed into non-atom thing [clong] ([clong.type])")
 
 /obj/effect/immovablerod/proc/penetrate(mob/living/smeared_mob)
-	smeared_mob.visible_message(span_danger("[smeared_mob] is penetrated by an immovable rod!") , span_userdanger("The rod penetrates you!") , span_danger("You hear a CLANG!"))
+	smeared_mob.visible_message(SPAN_DANGER("[smeared_mob] is penetrated by an immovable rod!") , SPAN_USERDANGER("The rod penetrates you!") , SPAN_DANGER("You hear a CLANG!"))
 
 	if(smeared_mob.stat != DEAD)
 		num_mobs_hit++
@@ -264,52 +242,19 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 		penetrated_chest?.receive_damage(60, wound_bonus = 20, sharpness=SHARP_POINTY)
 
 	if(smeared_mob.density || prob(10))
-		EX_ACT(smeared_mob, EXPLODE_HEAVY)
-
-/obj/effect/immovablerod/attack_hand(mob/living/user, list/modifiers)
-	. = ..()
-	if(.)
-		return
-
-	if(!(HAS_TRAIT(user, TRAIT_ROD_SUPLEX) || (user.mind && HAS_TRAIT(user.mind, TRAIT_ROD_SUPLEX))))
-		return
-
-	playsound(src, 'sound/effects/meteorimpact.ogg', 100, TRUE)
-	for(var/mob/living/nearby_mob in urange(8, src))
-		if(nearby_mob.stat != CONSCIOUS)
-			continue
-		shake_camera(nearby_mob, 2, 3)
-
-	return suplex_rod(user)
-
-/**
- * Called when someone manages to suplex the rod.
- *
- * Arguments
- * * strongman - the suplexer of the rod.
- */
-/obj/effect/immovablerod/proc/suplex_rod(mob/living/strongman)
-	strongman.client?.give_award(/datum/award/achievement/misc/feat_of_strength, strongman)
-	strongman.visible_message(
-		span_boldwarning("[strongman] suplexes [src] into the ground!"),
-		span_warning("You suplex [src] into the ground!")
-		)
-	new /obj/structure/festivus/anchored(drop_location())
-	new /obj/effect/anomaly/flux(drop_location())
-	qdel(src)
-	return TRUE
+		smeared_mob.ex_act(EXPLODE_HEAVY)
 
 /* Below are a couple of admin helper procs when dealing with immovable rod memes. */
 /**
  * Stops your rod's automated movement. Sit... Stay... Good rod!
  */
 /obj/effect/immovablerod/proc/sit_stay_good_rod()
-	SSmove_manager.stop_looping(src)
+	walk(src, 0)
 
 /**
  * Allows your rod to release restraint level zero and go for a walk.
  *
- * If walkies_location is set, rod will move towards the location, chasing it across z-levels if necessary.
+ * If walkies_location is set, rod will walk_towards the location, chasing it across z-levels if necessary.
  * If walkies_location is not set, rod will call complete_trajectory() and follow the logic from that proc.
  *
  * Arguments:
@@ -318,13 +263,10 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
 /obj/effect/immovablerod/proc/go_for_a_walk(walkies_location = null)
 	if(walkies_location)
 		special_target = walkies_location
-		SSmove_manager.home_onto(src, special_target)
+		walk_towards(src, special_target, 1)
 		return
 
 	complete_trajectory()
-
-/obj/effect/immovablerod/deadchat_plays(mode = DEMOCRACY_MODE, cooldown = 6 SECONDS)
-	return AddComponent(/datum/component/deadchat_control/immovable_rod, mode, list(), cooldown)
 
 /**
  * Rod will walk towards edge turf in the specified direction.
@@ -333,5 +275,5 @@ In my current plan for it, 'solid' will be defined as anything with density == 1
  * * direction - The direction to walk the rod towards: NORTH, SOUTH, EAST, WEST.
  */
 /obj/effect/immovablerod/proc/walk_in_direction(direction)
-	destination_turf = get_edge_target_turf(src, direction)
-	SSmove_manager.move_towards(src, destination_turf)
+	destination = get_edge_target_turf(src, direction)
+	walk_towards(src, destination, 1)

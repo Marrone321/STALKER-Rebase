@@ -49,13 +49,10 @@
 	/// The sound that's going to accompany our message.
 	var/played_sound = DEFAULT_ANNOUNCEMENT_SOUND
 	/// A static list of preset names that can be chosen.
-	var/list/preset_names = list(CENTCOM_PRESET, SYNDICATE_PRESET, WIZARD_PRESET, CUSTOM_PRESET)
+	var/static/list/preset_names = list(CENTCOM_PRESET, SYNDICATE_PRESET, WIZARD_PRESET, CUSTOM_PRESET)
 
 /datum/command_report_menu/New(mob/user)
 	ui_user = user
-	if(command_name() != CENTCOM_PRESET)
-		command_name = command_name()
-		preset_names.Insert(1, command_name())
 
 /datum/command_report_menu/ui_state(mob/user)
 	return GLOB.admin_state
@@ -99,18 +96,19 @@
 				custom_name = FALSE
 
 			command_name = params["updated_name"]
+		if("update_report_contents")
+			command_report_content = params["updated_contents"]
 		if("set_report_sound")
 			played_sound = params["picked_sound"]
 		if("toggle_announce")
 			announce_contents = !announce_contents
 		if("submit_report")
 			if(!command_name)
-				to_chat(ui_user, span_danger("You can't send a report with no command name."))
+				to_chat(ui_user, SPAN_DANGER("You can't send a report with no command name."))
 				return
-			if(!params["report"])
-				to_chat(ui_user, span_danger("You can't send a report with no contents."))
+			if(!command_report_content)
+				to_chat(ui_user, SPAN_DANGER("You can't send a report with no contents."))
 				return
-			command_report_content = params["report"]
 			send_announcement()
 
 	return TRUE
@@ -132,7 +130,6 @@
 
 	if(announce_contents)
 		priority_announce(command_report_content, null, report_sound, has_important_message = TRUE)
-	print_command_report(command_report_content, "[announce_contents ? "" : "Classified "][command_name] Update", !announce_contents)
 
 	change_command_name(original_command_name)
 

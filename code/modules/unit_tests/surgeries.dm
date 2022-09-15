@@ -73,24 +73,6 @@
 	TEST_ASSERT(!surgery_step.initiate(user, patient_one, BODY_ZONE_CHEST, scalpel, surgery_for_one), "Was allowed to start a second surgery without the rod of asclepius")
 	TEST_ASSERT(!surgery_for_one.step_in_progress, "Surgery for patient one is somehow in progress, despite not initiating")
 
-	user.apply_status_effect(/datum/status_effect/hippocratic_oath)
-	INVOKE_ASYNC(surgery_step, /datum/surgery_step/proc/initiate, user, patient_one, BODY_ZONE_CHEST, scalpel, surgery_for_one)
-	TEST_ASSERT(surgery_for_one.step_in_progress, "Surgery on patient one was not initiated, despite having rod of asclepius")
-
-/// Ensures that the tend wounds surgery can be started
-/datum/unit_test/start_tend_wounds
-
-/datum/unit_test/start_tend_wounds/Run()
-	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human)
-	var/mob/living/carbon/human/user = allocate(/mob/living/carbon/human)
-
-	var/datum/surgery/surgery = new /datum/surgery/healing/brute/basic
-
-	if (!surgery.can_start(user, patient))
-		TEST_FAIL("Can't start basic tend wounds!")
-
-	qdel(surgery)
-
 /datum/unit_test/tend_wounds/Run()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human)
 	patient.take_overall_damage(100, 100)
@@ -111,7 +93,7 @@
 	naked_patient.take_overall_damage(100)
 
 	var/mob/living/carbon/human/clothed_patient = allocate(/mob/living/carbon/human)
-	clothed_patient.equipOutfit(/datum/outfit/job/doctor, TRUE)
+	clothed_patient.equipOutfit(/datum/outfit/job/stalker, TRUE)
 	clothed_patient.take_overall_damage(100)
 
 	basic_brute_heal.success(user, naked_patient, BODY_ZONE_CHEST)

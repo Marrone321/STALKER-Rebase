@@ -72,9 +72,7 @@
  * * silent - deletes the component without sending a [COMSIG_COMPONENT_REMOVING] signal
  */
 /datum/component/Destroy(force=FALSE, silent=FALSE)
-	if(!parent)
-		return ..()
-	if(!force)
+	if(!force && parent)
 		_RemoveFromParent()
 	if(!silent)
 		SEND_SIGNAL(parent, COMSIG_COMPONENT_REMOVING, src)
@@ -123,24 +121,20 @@
  * Internal proc to handle behaviour when being removed from a parent
  */
 /datum/component/proc/_RemoveFromParent()
-	var/datum/parent = src.parent
-	var/list/parents_components = parent.datum_components
+	var/datum/P = parent
+	var/list/dc = P.datum_components
 	for(var/I in _GetInverseTypeList())
-		var/list/components_of_type = parents_components[I]
-
+		var/list/components_of_type = dc[I]
 		if(length(components_of_type)) //
 			var/list/subtracted = components_of_type - src
-
 			if(subtracted.len == 1) //only 1 guy left
-				parents_components[I] = subtracted[1] //make him special
+				dc[I] = subtracted[1] //make him special
 			else
-				parents_components[I] = subtracted
-
+				dc[I] = subtracted
 		else //just us
-			parents_components -= I
-
-	if(!parents_components.len)
-		parent.datum_components = null
+			dc -= I
+	if(!dc.len)
+		P.datum_components = null
 
 	UnregisterFromParent()
 
@@ -381,10 +375,12 @@
  * * c_type The component type path
  */
 /datum/proc/GetComponents(c_type)
-	var/list/components = datum_components?[c_type]
-	if(!components)
-		return list()
-	return islist(components) ? components : list(components)
+	var/list/dc = datum_components
+	if(!dc)
+		return null
+	. = dc[c_type]
+	if(!length(.))
+		return list(.)
 
 /**
  * Creates an instance of `new_type` in the datum and attaches to it as parent
@@ -419,7 +415,7 @@
 
 	raw_args[1] = src
 
-	if(dm != COMPONENT_DUPE_ALLOWED && dm != COMPONENT_DUPE_SELECTIVE)
+	if(dm != COMPONENT_DUPE_ALLOWED)
 		if(!dt)
 			old_comp = GetExactComponent(nt)
 		else
@@ -445,19 +441,19 @@
 						old_comp.InheritComponent(arglist(arguments))
 					else
 						old_comp.InheritComponent(new_comp, TRUE)
+				if(COMPONENT_DUPE_SELECTIVE)
+					var/list/arguments = raw_args.Copy()
+					arguments[1] = new_comp
+					var/make_new_component = TRUE
+					for(var/datum/component/existing_component as anything in GetComponents(new_type))
+						if(existing_component.CheckDupeComponent(arglist(arguments)))
+							make_new_component = FALSE
+							QDEL_NULL(new_comp)
+							break
+					if(!new_comp && make_new_component)
+						new_comp = new nt(raw_args)
 		else if(!new_comp)
 			new_comp = new nt(raw_args) // There's a valid dupe mode but there's no old component, act like normal
-	else if(dm == COMPONENT_DUPE_SELECTIVE)
-		var/list/arguments = raw_args.Copy()
-		arguments[1] = new_comp
-		var/make_new_component = TRUE
-		for(var/datum/component/existing_component as anything in GetComponents(new_type))
-			if(existing_component.CheckDupeComponent(arglist(arguments)))
-				make_new_component = FALSE
-				QDEL_NULL(new_comp)
-				break
-		if(!new_comp && make_new_component)
-			new_comp = new nt(raw_args)
 	else if(!new_comp)
 		new_comp = new nt(raw_args) // Dupes are allowed, act like normal
 
@@ -482,9 +478,8 @@
 
 /**
  * Removes the component from parent, ends up with a null parent
- * Used as a helper proc by the component transfer proc, does not clean up the component like Destroy does
  */
-/datum/component/proc/ClearFromParent()
+/datum/component/proc/RemoveComponent()
 	if(!parent)
 		return
 	var/datum/old_parent = parent
@@ -505,7 +500,7 @@
 	if(!target || target.parent == src)
 		return
 	if(target.parent)
-		target.ClearFromParent()
+		target.RemoveComponent()
 	target.parent = src
 	var/result = target.PostTransfer()
 	switch(result)

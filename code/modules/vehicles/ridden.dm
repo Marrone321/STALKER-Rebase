@@ -10,9 +10,9 @@
 	. = ..()
 	if(key_type)
 		if(!inserted_key)
-			. += span_notice("Put a key inside it by clicking it with the key.")
+			. += SPAN_NOTICE("Put a key inside it by clicking it with the key.")
 		else
-			. += span_notice("Alt-click [src] to remove the key.")
+			. += SPAN_NOTICE("Alt-click [src] to remove the key.")
 
 /obj/vehicle/ridden/generate_action_type(actiontype)
 	var/datum/action/vehicle/ridden/A = ..()
@@ -31,21 +31,26 @@
 /obj/vehicle/ridden/attackby(obj/item/I, mob/user, params)
 	if(!key_type || is_key(inserted_key) || !is_key(I))
 		return ..()
+	if(key_id)
+		var/obj/item/key/key_item = I
+		if(key_item.key_id != key_id)
+			to_chat(user, SPAN_WARNING("This key does not fit!"))
+			return
 	if(!user.transferItemToLoc(I, src))
-		to_chat(user, span_warning("[I] seems to be stuck to your hand!"))
+		to_chat(user, SPAN_WARNING("[I] seems to be stuck to your hand!"))
 		return
-	to_chat(user, span_notice("You insert \the [I] into \the [src]."))
+	to_chat(user, SPAN_NOTICE("You insert \the [I] into \the [src]."))
 	if(inserted_key) //just in case there's an invalid key
 		inserted_key.forceMove(drop_location())
 	inserted_key = I
 
 /obj/vehicle/ridden/AltClick(mob/user)
-	if(!inserted_key || !user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY, FALSE, !issilicon(user)))
+	if(!inserted_key || !user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY, FALSE))
 		return ..()
 	if(!is_occupant(user))
-		to_chat(user, span_warning("You must be riding the [src] to remove [src]'s key!"))
+		to_chat(user, SPAN_WARNING("You must be riding the [src] to remove [src]'s key!"))
 		return
-	to_chat(user, span_notice("You remove \the [inserted_key] from \the [src]."))
+	to_chat(user, SPAN_NOTICE("You remove \the [inserted_key] from \the [src]."))
 	inserted_key.forceMove(drop_location())
 	user.put_in_hands(inserted_key)
 	inserted_key = null
@@ -58,11 +63,6 @@
 /obj/vehicle/ridden/buckle_mob(mob/living/M, force = FALSE, check_loc = TRUE)
 	if(!force && occupant_amount() >= max_occupants)
 		return FALSE
-
-	var/response = SEND_SIGNAL(M, COMSIG_VEHICLE_RIDDEN, src)
-	if(response & EJECT_FROM_VEHICLE)
-		return FALSE
-
 	return ..()
 
 /obj/vehicle/ridden/zap_act(power, zap_flags)

@@ -14,10 +14,9 @@
 	growing_icon = 'icons/obj/hydroponics/growing_vegetables.dmi'
 	icon_grow = "potato-grow"
 	icon_dead = "potato-dead"
-	genes = list(/datum/plant_gene/trait/battery, /datum/plant_gene/trait/one_bite)
+	genes = list(/datum/plant_gene/trait/one_bite)
 	mutatelist = list(/obj/item/seeds/potato/sweet)
 	reagents_add = list(/datum/reagent/consumable/nutriment/vitamin = 0.04, /datum/reagent/consumable/nutriment = 0.1)
-	graft_gene = /datum/plant_gene/trait/battery
 
 /obj/item/food/grown/potato
 	seed = /obj/item/seeds/potato
@@ -36,7 +35,7 @@
 
 /obj/item/food/grown/potato/attackby(obj/item/W, mob/user, params)
 	if(W.get_sharpness())
-		to_chat(user, span_notice("You cut the potato into wedges with [W]."))
+		to_chat(user, SPAN_NOTICE("You cut the potato into wedges with [W]."))
 		var/obj/item/food/grown/potato/wedges/Wedges = new /obj/item/food/grown/potato/wedges
 		remove_item_from_storage(user)
 		qdel(src)
@@ -53,7 +52,7 @@
 	species = "sweetpotato"
 	plantname = "Sweet Potato Plants"
 	product = /obj/item/food/grown/potato/sweet
-	mutatelist = null
+	mutatelist = list()
 	reagents_add = list(/datum/reagent/consumable/nutriment/vitamin = 0.1, /datum/reagent/consumable/sugar = 0.1, /datum/reagent/consumable/nutriment = 0.1)
 
 /obj/item/food/grown/potato/sweet
@@ -62,6 +61,3 @@
 	desc = "It's sweet."
 	icon_state = "sweetpotato"
 	distill_reagent = /datum/reagent/consumable/ethanol/sbiten
-
-/obj/item/food/grown/potato/sweet/MakeBakeable()
-	AddComponent(/datum/component/bakeable, /obj/item/food/yakiimo, rand(15 SECONDS, 35 SECONDS), TRUE, TRUE)

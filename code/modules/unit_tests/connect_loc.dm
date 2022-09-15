@@ -38,7 +38,7 @@
 	SEND_SIGNAL(current_turf, COMSIG_MOCK_SIGNAL)
 	TEST_ASSERT_EQUAL(watcher.times_called, 2, "After changing turf, connect_loc didn't reconnect it")
 
-	current_turf.ChangeTurf(/turf/open/floor/carpet)
+	current_turf.ChangeTurf(/turf/open/floor/grass)
 	SEND_SIGNAL(current_turf, COMSIG_MOCK_SIGNAL)
 	TEST_ASSERT_EQUAL(watcher.times_called, 3, "After changing turf a second time, connect_loc didn't reconnect it")
 
@@ -59,14 +59,14 @@
 /obj/item/watches_mock_calls
 	var/times_called
 
-/obj/item/watches_mock_calls/Initialize(mapload)
+/obj/item/watches_mock_calls/Initialize()
 	. = ..()
 
 	var/static/list/connections = list(
 		COMSIG_MOCK_SIGNAL = .proc/on_receive_mock_signal,
 	)
 
-	AddElement(/datum/element/connect_loc, connections)
+	AddElement(/datum/element/connect_loc, src, connections)
 
 /obj/item/watches_mock_calls/proc/on_receive_mock_signal(datum/source)
 	SIGNAL_HANDLER

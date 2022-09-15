@@ -46,7 +46,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		toggles |= SOUND_ENDOFROUND
 
 	if(current_version < 34)
-		write_preference(/datum/preference/toggle/auto_fit_viewport, TRUE)
+		auto_fit_viewport = TRUE
 
 	if(current_version < 35) //makes old keybinds compatible with #52040, sets the new default
 		var/newkey = FALSE
@@ -70,8 +70,8 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 			key_bindings["ShiftQ"] = list("quick_equip_suit_storage")
 
 	if(current_version < 37)
-		if(read_preference(/datum/preference/numeric/fps) == 0)
-			write_preference(GLOB.preference_entries[/datum/preference/numeric/fps], -1)
+		if(clientfps == 0)
+			clientfps = -1
 
 	if (current_version < 38)
 		var/found_block_movement = FALSE
@@ -93,41 +93,36 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 	if (current_version < 40)
 		LAZYADD(key_bindings["Space"], "hold_throw_mode")
 
-	if (current_version < 41)
-		migrate_preferences_to_tgui_prefs_menu()
-
-/datum/preferences/proc/update_character(current_version, savefile/savefile)
-	if (current_version < 41)
-		migrate_character_to_tgui_prefs_menu()
-
-	if (current_version < 42)
-		migrate_body_types(savefile)
+/datum/preferences/proc/update_character(current_version, savefile/S)
+	if(current_version < 41)
+		migrate_loadout(S)
+	if(current_version < 42)
+		job_preferences = list()
 
 /// checks through keybindings for outdated unbound keys and updates them
 /datum/preferences/proc/check_keybindings()
 	if(!parent)
 		return
-	var/list/binds_by_key = get_key_bindings_by_key(key_bindings)
+	var/list/user_binds = list()
+	for (var/key in key_bindings)
+		for(var/kb_name in key_bindings[key])
+			user_binds[kb_name] += list(key)
 	var/list/notadded = list()
 	for (var/name in GLOB.keybindings_by_name)
 		var/datum/keybinding/kb = GLOB.keybindings_by_name[name]
-		if(kb.name in key_bindings)
+		if(length(user_binds[kb.name]))
 			continue // key is unbound and or bound to something
-
 		var/addedbind = FALSE
-		key_bindings[kb.name] = list()
-
-		if(parent.hotkeys)
+		if(hotkeys)
 			for(var/hotkeytobind in kb.hotkey_keys)
-				if(!length(binds_by_key[hotkeytobind]) && hotkeytobind != "Unbound") //Only bind to the key if nothing else is bound expect for Unbound
-					key_bindings[kb.name] |= hotkeytobind
+				if(!length(key_bindings[hotkeytobind]) || hotkeytobind == "Unbound") //Only bind to the key if nothing else is bound expect for Unbound
+					LAZYADD(key_bindings[hotkeytobind], kb.name)
 					addedbind = TRUE
 		else
 			for(var/classickeytobind in kb.classic_keys)
-				if(!length(binds_by_key[classickeytobind]) && classickeytobind != "Unbound") //Only bind to the key if nothing else is bound expect for Unbound
-					key_bindings[kb.name] |= classickeytobind
+				if(!length(key_bindings[classickeytobind]) || classickeytobind == "Unbound") //Only bind to the key if nothing else is bound expect for Unbound
+					LAZYADD(key_bindings[classickeytobind], kb.name)
 					addedbind = TRUE
-
 		if(!addedbind)
 			notadded += kb
 	save_preferences() //Save the players pref so that new keys that were set to Unbound as default are permanently stored
@@ -136,10 +131,13 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /datum/preferences/proc/announce_conflict(list/notadded)
 	to_chat(parent, "<span class='warningplain'><b><u>Keybinding Conflict</u></b></span>\n\
-					<span class='warningplain'><b>There are new <a href='?src=[REF(src)];open_keybindings=1'>keybindings</a> that default to keys you've already bound. The new ones will be unbound.</b></span>")
+					<span class='warningplain'><b>There are new <a href='?_src_=prefs;preference=tab;tab=3'>keybindings</a> that default to keys you've already bound. The new ones will be unbound.</b></span>")
 	for(var/item in notadded)
 		var/datum/keybinding/conflicted = item
-		to_chat(parent, span_danger("[conflicted.category]: [conflicted.full_name] needs updating"))
+		to_chat(parent, SPAN_DANGER("[conflicted.category]: [conflicted.full_name] needs updating"))
+		LAZYADD(key_bindings["Unbound"], conflicted.name) // set it to unbound to prevent this from opening up again in the future
+		save_preferences()
+
 
 
 /datum/preferences/proc/load_path(ckey,filename="preferences.sav")
@@ -166,20 +164,60 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		fcopy(S, bacpath) //byond helpfully lets you use a savefile for the first arg.
 		return FALSE
 
-	apply_all_client_preferences()
-
 	//general preferences
+	READ_FILE(S["asaycolor"], asaycolor)
+	READ_FILE(S["brief_outfit"], brief_outfit)
+	READ_FILE(S["ooccolor"], ooccolor)
+	READ_FILE(S["screentip_color"], screentip_color)
 	READ_FILE(S["lastchangelog"], lastchangelog)
+	READ_FILE(S["UI_style"], UI_style)
+	READ_FILE(S["hotkeys"], hotkeys)
+	READ_FILE(S["chat_on_map"], chat_on_map)
+	READ_FILE(S["max_chat_length"], max_chat_length)
+	READ_FILE(S["see_chat_non_mob"] , see_chat_non_mob)
+	READ_FILE(S["see_rc_emotes"] , see_rc_emotes)
+	READ_FILE(S["broadcast_login_logout"] , broadcast_login_logout)
 
+	READ_FILE(S["tgui_fancy"], tgui_fancy)
+	READ_FILE(S["tgui_lock"], tgui_lock)
+	READ_FILE(S["buttons_locked"], buttons_locked)
+	READ_FILE(S["windowflash"], windowflashing)
 	READ_FILE(S["be_special"] , be_special)
 
 
 	READ_FILE(S["default_slot"], default_slot)
 	READ_FILE(S["chat_toggles"], chat_toggles)
 	READ_FILE(S["toggles"], toggles)
+	READ_FILE(S["hear_storyteller"], hear_storyteller)
+	READ_FILE(S["ghost_form"], ghost_form)
+	READ_FILE(S["ghost_orbit"], ghost_orbit)
+	READ_FILE(S["ghost_accs"], ghost_accs)
+	READ_FILE(S["ghost_others"], ghost_others)
+	READ_FILE(S["preferred_map"], preferred_map)
 	READ_FILE(S["ignoring"], ignoring)
+	READ_FILE(S["ghost_hud"], ghost_hud)
+	READ_FILE(S["inquisitive_ghost"], inquisitive_ghost)
+	READ_FILE(S["uses_glasses_colour"], uses_glasses_colour)
+	READ_FILE(S["clientfps"], clientfps)
+	READ_FILE(S["ambientocclusion"], ambientocclusion)
+	READ_FILE(S["balloon_alerts_pref"], balloon_alerts_pref)
+	READ_FILE(S["screentip_pref"], screentip_pref)
+	READ_FILE(S["itemoutline_pref"], itemoutline_pref)
+	READ_FILE(S["auto_fit_viewport"], auto_fit_viewport)
+	READ_FILE(S["widescreenpref"], widescreenpref)
+	READ_FILE(S["pixel_size"], pixel_size)
+	READ_FILE(S["scaling_method"], scaling_method)
+	READ_FILE(S["menuoptions"], menuoptions)
+	READ_FILE(S["enable_tips"], enable_tips)
+	READ_FILE(S["tip_delay"], tip_delay)
+	READ_FILE(S["pda_style"], pda_style)
+	READ_FILE(S["pda_color"], pda_color)
+	READ_FILE(S["interview_accepted"], interview_accepted)
 
-	// OOC commendations
+	// Custom hotkeys
+	READ_FILE(S["key_bindings"], key_bindings)
+	check_keybindings()
+	// hearted
 	READ_FILE(S["hearted_until"], hearted_until)
 	if(hearted_until > world.realtime)
 		hearted = TRUE
@@ -191,10 +229,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		var/datum/outfit/path = text2path(typetext)
 		if(ispath(path)) //whatever typepath fails this check probably doesn't exist anymore
 			parsed_favs += path
-	favorite_outfits = unique_list(parsed_favs)
-
-	// Custom hotkeys
-	READ_FILE(S["key_bindings"], key_bindings)
+	favorite_outfits = uniqueList(parsed_favs)
 
 	//try to fix any outdated data if necessary
 	if(needs_update >= 0)
@@ -204,16 +239,48 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		fcopy(S, bacpath) //byond helpfully lets you use a savefile for the first arg.
 		update_preferences(needs_update, S) //needs_update = savefile_version if we need an update (positive integer)
 
-	check_keybindings() // this apparently fails every time and overwrites any unloaded prefs with the default values, so don't load anything after this line or it won't actually save
-	key_bindings_by_key = get_key_bindings_by_key(key_bindings)
+
 
 	//Sanitize
+	asaycolor = sanitize_ooccolor(sanitize_hexcolor(asaycolor, 6, 1, initial(asaycolor)))
+	ooccolor = sanitize_ooccolor(sanitize_hexcolor(ooccolor, 6, 1, initial(ooccolor)))
+	screentip_color = sanitize_ooccolor(sanitize_hexcolor(screentip_color, 6, 1, initial(screentip_color)))
 	lastchangelog = sanitize_text(lastchangelog, initial(lastchangelog))
+	UI_style = sanitize_inlist(UI_style, GLOB.available_ui_styles, GLOB.available_ui_styles[1])
+	hotkeys = sanitize_integer(hotkeys, FALSE, TRUE, initial(hotkeys))
+	chat_on_map = sanitize_integer(chat_on_map, FALSE, TRUE, initial(chat_on_map))
+	max_chat_length = sanitize_integer(max_chat_length, 1, CHAT_MESSAGE_MAX_LENGTH, initial(max_chat_length))
+	see_chat_non_mob = sanitize_integer(see_chat_non_mob, FALSE, TRUE, initial(see_chat_non_mob))
+	see_rc_emotes = sanitize_integer(see_rc_emotes, FALSE, TRUE, initial(see_rc_emotes))
+	broadcast_login_logout = sanitize_integer(broadcast_login_logout, FALSE, TRUE, initial(broadcast_login_logout))
+	tgui_fancy = sanitize_integer(tgui_fancy, FALSE, TRUE, initial(tgui_fancy))
+	tgui_lock = sanitize_integer(tgui_lock, FALSE, TRUE, initial(tgui_lock))
+	buttons_locked = sanitize_integer(buttons_locked, FALSE, TRUE, initial(buttons_locked))
+	windowflashing = sanitize_integer(windowflashing, FALSE, TRUE, initial(windowflashing))
 	default_slot = sanitize_integer(default_slot, 1, max_save_slots, initial(default_slot))
 	toggles = sanitize_integer(toggles, 0, (2**24)-1, initial(toggles))
-	be_special = sanitize_be_special(SANITIZE_LIST(be_special))
+	clientfps = sanitize_integer(clientfps, -1, 1000, 40)
+	ambientocclusion	= sanitize_integer(ambientocclusion, FALSE, TRUE, initial(ambientocclusion))
+	balloon_alerts_pref = sanitize_integer(balloon_alerts_pref, BALLOON_ALERTS_NONE, BALLOON_ALERTS_BOTH, initial(balloon_alerts_pref))
+	screentip_pref	= sanitize_integer(screentip_pref, FALSE, TRUE, initial(screentip_pref))
+	itemoutline_pref = sanitize_integer(itemoutline_pref, FALSE, TRUE, initial(itemoutline_pref))
+	auto_fit_viewport	= sanitize_integer(auto_fit_viewport, FALSE, TRUE, initial(auto_fit_viewport))
+	widescreenpref  = sanitize_integer(widescreenpref, FALSE, TRUE, initial(widescreenpref))
+	pixel_size = sanitize_float(pixel_size, PIXEL_SCALING_AUTO, PIXEL_SCALING_3X, 0.5, initial(pixel_size))
+	scaling_method  = sanitize_text(scaling_method, initial(scaling_method))
+	ghost_form = sanitize_inlist(ghost_form, GLOB.ghost_forms, initial(ghost_form))
+	ghost_orbit = sanitize_inlist(ghost_orbit, GLOB.ghost_orbits, initial(ghost_orbit))
+	ghost_accs = sanitize_inlist(ghost_accs, GLOB.ghost_accs_options, GHOST_ACCS_DEFAULT_OPTION)
+	ghost_others = sanitize_inlist(ghost_others, GLOB.ghost_others_options, GHOST_OTHERS_DEFAULT_OPTION)
+	menuoptions = SANITIZE_LIST(menuoptions)
+	be_special = SANITIZE_LIST(be_special)
+	brief_outfit = sanitize_inlist(brief_outfit, subtypesof(/datum/outfit), null)
+	pda_style = sanitize_inlist(pda_style, GLOB.pda_styles, initial(pda_style))
+	pda_color = sanitize_hexcolor(pda_color, 6, 1, initial(pda_color))
 	key_bindings = sanitize_keybindings(key_bindings)
 	favorite_outfits = SANITIZE_LIST(favorite_outfits)
+	interview_accepted = sanitize_integer(interview_accepted, FALSE, TRUE, initial(interview_accepted))
+	hear_storyteller = sanitize_integer(hear_storyteller, FALSE, TRUE, initial(hear_storyteller))
 
 	if(needs_update >= 0) //save the updated version
 		var/old_default_slot = default_slot
@@ -245,41 +312,62 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 	WRITE_FILE(S["version"] , SAVEFILE_VERSION_MAX) //updates (or failing that the sanity checks) will ensure data is not invalid at load. Assume up-to-date
 
-	for (var/preference_type in GLOB.preference_entries)
-		var/datum/preference/preference = GLOB.preference_entries[preference_type]
-		if (preference.savefile_identifier != PREFERENCE_PLAYER)
-			continue
-
-		if (!(preference.type in recently_updated_keys))
-			continue
-
-		recently_updated_keys -= preference.type
-
-		if (preference_type in value_cache)
-			write_preference(preference, preference.serialize(value_cache[preference_type]))
-
 	//general preferences
+	WRITE_FILE(S["asaycolor"], asaycolor)
+	WRITE_FILE(S["brief_outfit"], brief_outfit)
+	WRITE_FILE(S["ooccolor"], ooccolor)
+	WRITE_FILE(S["screentip_color"], screentip_color)
 	WRITE_FILE(S["lastchangelog"], lastchangelog)
+	WRITE_FILE(S["UI_style"], UI_style)
+	WRITE_FILE(S["hotkeys"], hotkeys)
+	WRITE_FILE(S["chat_on_map"], chat_on_map)
+	WRITE_FILE(S["max_chat_length"], max_chat_length)
+	WRITE_FILE(S["see_chat_non_mob"], see_chat_non_mob)
+	WRITE_FILE(S["see_rc_emotes"], see_rc_emotes)
+	WRITE_FILE(S["broadcast_login_logout"], broadcast_login_logout)
+	WRITE_FILE(S["tgui_fancy"], tgui_fancy)
+	WRITE_FILE(S["tgui_lock"], tgui_lock)
+	WRITE_FILE(S["buttons_locked"], buttons_locked)
+	WRITE_FILE(S["windowflash"], windowflashing)
 	WRITE_FILE(S["be_special"], be_special)
 	WRITE_FILE(S["default_slot"], default_slot)
 	WRITE_FILE(S["toggles"], toggles)
+	WRITE_FILE(S["hear_storyteller"], hear_storyteller)
 	WRITE_FILE(S["chat_toggles"], chat_toggles)
+	WRITE_FILE(S["ghost_form"], ghost_form)
+	WRITE_FILE(S["ghost_orbit"], ghost_orbit)
+	WRITE_FILE(S["ghost_accs"], ghost_accs)
+	WRITE_FILE(S["ghost_others"], ghost_others)
+	WRITE_FILE(S["preferred_map"], preferred_map)
 	WRITE_FILE(S["ignoring"], ignoring)
+	WRITE_FILE(S["ghost_hud"], ghost_hud)
+	WRITE_FILE(S["inquisitive_ghost"], inquisitive_ghost)
+	WRITE_FILE(S["uses_glasses_colour"], uses_glasses_colour)
+	WRITE_FILE(S["clientfps"], clientfps)
+	WRITE_FILE(S["ambientocclusion"], ambientocclusion)
+	WRITE_FILE(S["balloon_alerts_pref"], balloon_alerts_pref)
+	WRITE_FILE(S["screentip_pref"], screentip_pref)
+	WRITE_FILE(S["itemoutline_pref"], itemoutline_pref)
+	WRITE_FILE(S["auto_fit_viewport"], auto_fit_viewport)
+	WRITE_FILE(S["widescreenpref"], widescreenpref)
+	WRITE_FILE(S["pixel_size"], pixel_size)
+	WRITE_FILE(S["scaling_method"], scaling_method)
+	WRITE_FILE(S["menuoptions"], menuoptions)
+	WRITE_FILE(S["enable_tips"], enable_tips)
+	WRITE_FILE(S["tip_delay"], tip_delay)
+	WRITE_FILE(S["pda_style"], pda_style)
+	WRITE_FILE(S["pda_color"], pda_color)
+	WRITE_FILE(S["interview_accepted"], interview_accepted)
 	WRITE_FILE(S["key_bindings"], key_bindings)
 	WRITE_FILE(S["hearted_until"], (hearted_until > world.realtime ? hearted_until : null))
 	WRITE_FILE(S["favorite_outfits"], favorite_outfits)
 	return TRUE
 
 /datum/preferences/proc/load_character(slot)
-	SHOULD_NOT_SLEEP(TRUE)
-
 	if(!path)
 		return FALSE
 	if(!fexists(path))
 		return FALSE
-
-	character_savefile = null
-
 	var/savefile/S = new /savefile(path)
 	if(!S)
 		return FALSE
@@ -296,18 +384,66 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 	if(needs_update == -2) //fatal, can't load any data
 		return FALSE
 
-	// Read everything into cache
-	for (var/preference_type in GLOB.preference_entries)
-		var/datum/preference/preference = GLOB.preference_entries[preference_type]
-		if (preference.savefile_identifier != PREFERENCE_CHARACTER)
-			continue
-
-		value_cache -= preference_type
-		read_preference(preference_type)
+	//Species
+	var/species_id
+	READ_FILE(S["species"], species_id)
+	if(species_id)
+		var/newtype = GLOB.species_list[species_id]
+		if(newtype)
+			pref_species = new newtype
 
 	//Character
-	READ_FILE(S["randomise"],  randomise)
+	READ_FILE(S["real_name"], real_name)
+	READ_FILE(S["gender"], gender)
+	READ_FILE(S["body_type"], body_type)
+	READ_FILE(S["age"], age)
+	READ_FILE(S["skin_tone"], skin_tone)
+	READ_FILE(S["playtime_reward_cloak"], playtime_reward_cloak)
+	READ_FILE(S["phobia"], phobia)
+	READ_FILE(S["dominant_hand"], dominant_hand)
 
+	READ_FILE(S["features"], features)
+	READ_FILE(S["body_markings"], body_markings)
+
+	READ_FILE(S["loadouts"], loadouts)
+	READ_FILE(S["loadout_slot"], loadout_slot)
+
+	READ_FILE(S["ooc_prefs"], ooc_prefs)
+	READ_FILE(S["general_record"], general_record)
+	READ_FILE(S["security_record"], security_record)
+	READ_FILE(S["medical_record"], medical_record)
+	READ_FILE(S["background_info"], background_info)
+	READ_FILE(S["exploitable_info"], exploitable_info)
+
+	READ_FILE(S["mismatched_customization"] , mismatched_customization)
+	READ_FILE(S["allow_advanced_colors"] , allow_advanced_colors)
+
+	READ_FILE(S["pref_culture"] , pref_culture)
+	READ_FILE(S["pref_location"] , pref_location)
+
+	READ_FILE(S["languages"] , languages)
+
+	READ_FILE(S["attributes"] , attributes)
+	READ_FILE(S["skills"] , skills)
+
+	READ_FILE(S["organ_entries"] , organ_entries)
+
+	switch(dominant_hand)
+		if(DOMINANT_HAND_LEFT, DOMINANT_HAND_RIGHT, DOMINANT_HAND_AMBI) // do nothing
+		else
+			dominant_hand = DOMINANT_HAND_AMBI
+
+	// This is the version when the random security department was removed.
+	// When the minimum is higher than that version, it's impossible for someone to have the "Random" department.
+	#if SAVEFILE_VERSION_MIN > 40
+	#warn The prefered_security_department check in preferences_savefile.dm is no longer necessary.
+	#endif
+
+	if (!(prefered_security_department in GLOB.security_depts_prefs))
+		prefered_security_department = SEC_DEPT_NONE
+
+	//Jobs
+	READ_FILE(S["joblessrole"], joblessrole)
 	//Load prefs
 	READ_FILE(S["job_preferences"], job_preferences)
 
@@ -320,22 +456,75 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		update_character(needs_update, S) //needs_update == savefile_version if we need an update (positive integer)
 
 	//Sanitize
-	randomise = SANITIZE_LIST(randomise)
+	real_name = reject_bad_name(real_name)
+	gender = sanitize_gender(gender)
+	body_type = sanitize_gender(body_type, FALSE, FALSE, gender)
+	if(!real_name)
+		real_name = random_unique_name(gender)
 
+	for(var/custom_name_id in GLOB.preferences_custom_names)
+		var/namedata = GLOB.preferences_custom_names[custom_name_id]
+		custom_names[custom_name_id] = reject_bad_name(custom_names[custom_name_id],namedata["allow_numbers"])
+		if(!custom_names[custom_name_id])
+			custom_names[custom_name_id] = get_default_name(custom_name_id)
 
-	//Validate job prefs
-	for(var/j in job_preferences)
-		if(job_preferences[j] != JP_LOW && job_preferences[j] != JP_MEDIUM && job_preferences[j] != JP_HIGH)
-			job_preferences -= j
+	age = sanitize_integer(age, AGE_MIN, AGE_MAX, initial(age))
+	skin_tone = sanitize_inlist(skin_tone, GLOB.skin_tones)
+	playtime_reward_cloak = sanitize_integer(playtime_reward_cloak)
+	persistent_scars = sanitize_integer(persistent_scars)
+	joblessrole = sanitize_integer(joblessrole, 1, 3, initial(joblessrole))
 
-	all_quirks = SSquirks.filter_invalid_quirks(SANITIZE_LIST(all_quirks))
+	all_quirks = SANITIZE_LIST(all_quirks)
 	validate_quirks()
+
+	languages = SANITIZE_LIST(languages)
+
+	if(!pref_culture || !GLOB.culture_cultures[pref_culture])
+		pref_culture = pref_species.cultures[1]
+	if(!pref_location || !GLOB.culture_locations[pref_location])
+		pref_location = pref_species.locations[1]
+
+	validate_languages()
+
+	features = SANITIZE_LIST(features)
+	body_markings = SANITIZE_LIST(body_markings)
+
+	loadouts = SANITIZE_LIST(loadouts)
+	var/temp_loadout_slot = sanitize_integer(loadout_slot, 1, MAX_LOADOUT_SLOTS, 1)
+	validate_loadouts()
+	set_loadout_slot(temp_loadout_slot, TRUE)
+
+	ooc_prefs = sanitize_text(ooc_prefs)
+
+	general_record = sanitize_text(general_record)
+	security_record = sanitize_text(security_record)
+	medical_record = sanitize_text(medical_record)
+	background_info = sanitize_text(background_info)
+	exploitable_info = sanitize_text(exploitable_info)
+
+	mismatched_customization = sanitize_integer(mismatched_customization, FALSE, TRUE, initial(mismatched_customization))
+	allow_advanced_colors = sanitize_integer(allow_advanced_colors, FALSE, TRUE, initial(allow_advanced_colors))
+
+	//Validating mandatory features
+	for(var/key in MANDATORY_FEATURE_LIST)
+		if(!features[key])
+			features[key] = MANDATORY_FEATURE_LIST[key]
+
+	//validating body markings
+	for(var/zone in body_markings)
+		for(var/name in body_markings[zone])
+			if(!(name in GLOB.body_markings_per_limb[zone]))
+				body_markings[zone] -= name
+
+	validate_attributes()
+
+	validate_organ_entries()
+
+	needs_update = TRUE
 
 	return TRUE
 
 /datum/preferences/proc/save_character()
-	SHOULD_NOT_SLEEP(TRUE)
-
 	if(!path)
 		return FALSE
 	var/savefile/S = new /savefile(path)
@@ -343,51 +532,80 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		return FALSE
 	S.cd = "/character[default_slot]"
 
-	for (var/datum/preference/preference as anything in get_preferences_in_priority_order())
-		if (preference.savefile_identifier != PREFERENCE_CHARACTER)
-			continue
-
-		if (!(preference.type in recently_updated_keys))
-			continue
-
-		recently_updated_keys -= preference.type
-
-		if (preference.type in value_cache)
-			write_preference(preference, preference.serialize(value_cache[preference.type]))
-
 	WRITE_FILE(S["version"] , SAVEFILE_VERSION_MAX) //load_character will sanitize any bad data, so assume up-to-date.)
 
-	// This is the version when the random security department was removed.
-	// When the minimum is higher than that version, it's impossible for someone to have the "Random" department.
-	#if SAVEFILE_VERSION_MIN > 40
-	#warn The prefered_security_department check in code/modules/client/preferences/security_department.dm is no longer necessary.
-	#endif
-
 	//Character
-	WRITE_FILE(S["randomise"] , randomise)
+	WRITE_FILE(S["real_name"] , real_name)
+	WRITE_FILE(S["gender"] , gender)
+	WRITE_FILE(S["body_type"] , body_type)
+	WRITE_FILE(S["age"] , age)
+	WRITE_FILE(S["skin_tone"] , skin_tone)
+	WRITE_FILE(S["playtime_reward_cloak"] , playtime_reward_cloak)
+	WRITE_FILE(S["phobia"], phobia)
+	WRITE_FILE(S["persistent_scars"], persistent_scars)
+	WRITE_FILE(S["dominant_hand"], dominant_hand)
 
+	//Custom names
+	for(var/custom_name_id in GLOB.preferences_custom_names)
+		var/savefile_slot_name = custom_name_id + "_name" //TODO remove this
+		WRITE_FILE(S[savefile_slot_name],custom_names[custom_name_id])
+
+	WRITE_FILE(S["preferred_ai_core_display"] ,  preferred_ai_core_display)
+	WRITE_FILE(S["prefered_security_department"] , prefered_security_department)
+
+	//Jobs
+	WRITE_FILE(S["joblessrole"] , joblessrole)
 	//Write prefs
 	WRITE_FILE(S["job_preferences"] , job_preferences)
 
 	//Quirks
 	WRITE_FILE(S["all_quirks"] , all_quirks)
 
+	//All the new horizon related stuff here
+	WRITE_FILE(S["features"] , features)
+	WRITE_FILE(S["body_markings"] , body_markings)
+
+	WRITE_FILE(S["loadouts"] , loadouts)
+	WRITE_FILE(S["loadout_slot"], loadout_slot)
+
+	WRITE_FILE(S["ooc_prefs"] , ooc_prefs)
+	WRITE_FILE(S["general_record"] , general_record)
+	WRITE_FILE(S["security_record"] , security_record)
+	WRITE_FILE(S["medical_record"] , medical_record)
+	WRITE_FILE(S["background_info"] , background_info)
+	WRITE_FILE(S["exploitable_info"] , exploitable_info)
+
+	WRITE_FILE(S["mismatched_customization"] , mismatched_customization)
+	WRITE_FILE(S["allow_advanced_colors"] , allow_advanced_colors)
+
+	WRITE_FILE(S["pref_culture"] , pref_culture)
+	WRITE_FILE(S["pref_location"] , pref_location)
+
+	WRITE_FILE(S["languages"] , languages)
+
+	WRITE_FILE(S["attributes"] , attributes)
+	WRITE_FILE(S["skills"] , skills)
+
+	WRITE_FILE(S["organ_entries"] , organ_entries)
+
 	return TRUE
 
-/datum/preferences/proc/sanitize_be_special(list/input_be_special)
-	var/list/output = list()
-
-	for (var/role in input_be_special)
-		if (role in GLOB.special_roles)
-			output += role
-
-	return output.len == input_be_special.len ? input_be_special : output
+/datum/preferences/proc/migrate_loadout(savefile/S)
+	var/list/old_loadout_list = S["loadout"]
+	if(isnull(old_loadout_list))
+		return
+	to_chat(parent, SPAN_USERDANGER("Your loadout items have been migrated to the new system, this may be lossy. Check your items and make sure everything is in order."))
+	loadouts = list()
+	set_loadout_slot(1)
+	for(var/loadout_item_type in old_loadout_list)
+		add_loadout_item(loadout_item_type)
 
 /proc/sanitize_keybindings(value)
 	var/list/base_bindings = sanitize_islist(value,list())
-	for(var/keybind_name in base_bindings)
-		if (!(keybind_name in GLOB.keybindings_by_name))
-			base_bindings -= keybind_name
+	for(var/key in base_bindings)
+		base_bindings[key] = base_bindings[key] & GLOB.keybindings_by_name
+		if(!length(base_bindings[key]))
+			base_bindings -= key
 	return base_bindings
 
 #undef SAVEFILE_VERSION_MAX

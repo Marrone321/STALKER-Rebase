@@ -1,7 +1,7 @@
 /obj/item/reagent_containers
 	name = "Container"
 	desc = "..."
-	icon = 'icons/obj/medical/chemical.dmi'
+	icon = 'icons/obj/chemical.dmi'
 	icon_state = null
 	w_class = WEIGHT_CLASS_TINY
 	var/amount_per_transfer_from_this = 5
@@ -11,8 +11,6 @@
 	var/volume = 30
 	var/reagent_flags
 	var/list/list_reagents = null
-	var/spawned_disease = null
-	var/disease_amount = 20
 	var/spillable = FALSE
 	var/list/fill_icon_thresholds = null
 	var/fill_icon_state = null // Optional custom name for reagent fill icon_state prefix
@@ -22,26 +20,21 @@
 	if(isnum(vol) && vol > 0)
 		volume = vol
 	create_reagents(volume, reagent_flags)
-	if(spawned_disease)
-		var/datum/disease/F = new spawned_disease()
-		var/list/data = list("viruses"= list(F))
-		reagents.add_reagent(/datum/reagent/blood, disease_amount, data)
-
 	add_initial_reagents()
 
 /obj/item/reagent_containers/examine()
 	. = ..()
 	if(possible_transfer_amounts.len > 1)
-		. += span_notice("Left-click or right-click in-hand to increase or decrease its transfer amount.")
+		. += SPAN_NOTICE("Left-click or right-click in-hand to increase or decrease its transfer amount.")
 	else if(possible_transfer_amounts.len)
-		. += span_notice("Left-click or right-click in-hand to view its transfer amount.")
+		. += SPAN_NOTICE("Left-click or right-click in-hand to view its transfer amount.")
 
 /obj/item/reagent_containers/create_reagents(max_vol, flags)
 	. = ..()
 	RegisterSignal(reagents, list(COMSIG_REAGENTS_NEW_REAGENT, COMSIG_REAGENTS_ADD_REAGENT, COMSIG_REAGENTS_DEL_REAGENT, COMSIG_REAGENTS_REM_REAGENT), .proc/on_reagent_change)
 	RegisterSignal(reagents, COMSIG_PARENT_QDELETING, .proc/on_reagents_del)
 
-/obj/item/reagent_containers/attack(mob/living/target_mob, mob/living/user, params)
+/obj/item/reagent_containers/attack(mob/living/M, mob/living/user, params)
 	if (!user.combat_mode)
 		return
 	return ..()
@@ -76,13 +69,11 @@
 		else
 			CRASH("change_transfer_amount() called with invalid direction value")
 	amount_per_transfer_from_this = possible_transfer_amounts[amount_list_position]
-	balloon_alert(user, "transferring [amount_per_transfer_from_this]u")
+	balloon_alert(user, "transferring [amount_per_transfer_from_this]u", SPAN_NOTICE("[src]'s transfer amount is now [amount_per_transfer_from_this] units."))
 	mode_change_message(user)
 
 /obj/item/reagent_containers/pre_attack_secondary(atom/target, mob/living/user, params)
 	if(HAS_TRAIT(target, DO_NOT_SPLASH))
-		return ..()
-	if(!user.combat_mode)
 		return ..()
 	if (try_splash(user, target))
 		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
@@ -101,17 +92,17 @@
 
 	var/reagent_text
 	user.visible_message(
-		span_danger("[user] splashes the contents of [src] onto [target][punctuation]"),
-		span_danger("You splash the contents of [src] onto [target][punctuation]"),
+		SPAN_DANGER("[user] splashes the contents of [src] onto [target][punctuation]"),
+		SPAN_DANGER("You splash the contents of [src] onto [target][punctuation]"),
 		ignored_mobs = target,
 	)
 
 	if (ismob(target))
 		var/mob/target_mob = target
 		target_mob.show_message(
-			span_userdanger("[user] splash the contents of [src] onto you!"),
+			SPAN_USERDANGER("[user] splash the contents of [src] onto you!"),
 			MSG_VISUAL,
-			span_userdanger("You feel drenched!"),
+			SPAN_USERDANGER("You feel drenched!"),
 		)
 
 	for(var/datum/reagent/reagent as anything in reagents.reagent_list)
@@ -139,7 +130,7 @@
 		covered = "mask"
 	if(covered)
 		var/who = (isnull(user) || eater == user) ? "your" : "[eater.p_their()]"
-		to_chat(user, span_warning("You have to remove [who] [covered] first!"))
+		to_chat(user, SPAN_WARNING("You have to remove [who] [covered] first!"))
 		return FALSE
 	return TRUE
 
@@ -154,19 +145,25 @@
 
 	return ..()
 
+/obj/item/reagent_containers/ex_act(severity)
+	if(reagents)
+		for(var/datum/reagent/R in reagents.reagent_list)
+			R.on_ex_act(severity)
+	if(!QDELETED(src))
+		return ..()
+
 /obj/item/reagent_containers/fire_act(exposed_temperature, exposed_volume)
 	reagents.expose_temperature(exposed_temperature)
 	..()
 
-/obj/item/reagent_containers/throw_impact(atom/hit_atom, datum/thrownthing/throwingdatum, do_splash = TRUE)
+/obj/item/reagent_containers/throw_impact(atom/hit_atom, datum/thrownthing/throwingdatum)
 	. = ..()
-	if(do_splash)
-		SplashReagents(hit_atom, TRUE)
+	SplashReagents(hit_atom, TRUE)
 
 /obj/item/reagent_containers/proc/bartender_check(atom/target)
 	. = FALSE
 	var/mob/thrown_by = thrownby?.resolve()
-	if(target.CanPass(src, get_dir(target, src)) && thrown_by && HAS_TRAIT(thrown_by, TRAIT_BOOZE_SLIDER))
+	if(target.CanPass(src, get_turf(src)) && thrown_by && HAS_TRAIT(thrown_by, TRAIT_BOOZE_SLIDER))
 		. = TRUE
 
 /obj/item/reagent_containers/proc/SplashReagents(atom/target, thrown = FALSE, override_spillable = FALSE)
@@ -179,8 +176,8 @@
 			reagents.total_volume *= rand(5,10) * 0.1 //Not all of it makes contact with the target
 		var/mob/M = target
 		var/R
-		target.visible_message(span_danger("[M] is splashed with something!"), \
-						span_userdanger("[M] is splashed with something!"))
+		target.visible_message(SPAN_DANGER("[M] is splashed with something!"), \
+						SPAN_USERDANGER("[M] is splashed with something!"))
 		for(var/datum/reagent/A in reagents.reagent_list)
 			R += "[A.type]  ([num2text(A.volume)]),"
 
@@ -189,24 +186,20 @@
 		reagents.expose(target, TOUCH)
 
 	else if(bartender_check(target) && thrown)
-		visible_message(span_notice("[src] lands onto the [target.name] without spilling a single drop."))
+		visible_message(SPAN_NOTICE("[src] lands onto the [target.name] without spilling a single drop."))
 		return
 
 	else
 		if(isturf(target) && reagents.reagent_list.len && thrown_by)
 			log_combat(thrown_by, target, "splashed (thrown) [english_list(reagents.reagent_list)]", "in [AREACOORD(target)]")
-			thrown_by.log_message("splashed (thrown) [english_list(reagents.reagent_list)] on [target].", LOG_ATTACK)
+			log_game("[key_name(thrown_by)] splashed (thrown) [english_list(reagents.reagent_list)] on [target] in [AREACOORD(target)].")
 			message_admins("[ADMIN_LOOKUPFLW(thrown_by)] splashed (thrown) [english_list(reagents.reagent_list)] on [target] in [ADMIN_VERBOSEJMP(target)].")
-		visible_message(span_notice("[src] spills its contents all over [target]."))
+		visible_message(SPAN_NOTICE("[src] spills its contents all over [target]."))
 		reagents.expose(target, TOUCH)
 		if(QDELETED(src))
 			return
 
 	reagents.clear_reagents()
-
-/obj/item/reagent_containers/microwave_act(obj/machinery/microwave/M)
-	reagents.expose_temperature(1000)
-	..()
 
 /obj/item/reagent_containers/fire_act(temperature, volume)
 	reagents.expose_temperature(temperature)

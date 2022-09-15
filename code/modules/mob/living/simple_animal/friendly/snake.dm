@@ -37,9 +37,6 @@
 		special_reagent = /datum/reagent/toxin
 	AddElement(/datum/element/venomous, special_reagent, 4)
 
-/mob/living/simple_animal/hostile/retaliate/snake/add_cell_sample()
-	AddElement(/datum/element/swabable, CELL_LINE_TABLE_SNAKE, CELL_VIRUS_TABLE_GENERIC_MOB, 1, 5)
-
 /mob/living/simple_animal/hostile/retaliate/snake/ListTargets(atom/the_target)
 	var/atom/target_from = GET_TARGETS_FROM(src)
 	. = oview(vision_range, target_from) //get list of things in vision range
@@ -47,7 +44,7 @@
 	var/list/mice = list()
 	for (var/HM in .)
 		//Yum a tasty mouse
-		if(ismouse(HM))
+		if(istype(HM, /mob/living/simple_animal/mouse))
 			mice += HM
 		if(isliving(HM))
 			living_mobs += HM
@@ -68,8 +65,8 @@
 	return  living_mobs & actual_enemies
 
 /mob/living/simple_animal/hostile/retaliate/snake/AttackingTarget()
-	if(ismouse(target))
-		visible_message(span_notice("[name] consumes [target] in a single gulp!"), span_notice("You consume [target] in a single gulp!"))
+	if(istype(target, /mob/living/simple_animal/mouse))
+		visible_message(SPAN_NOTICE("[name] consumes [target] in a single gulp!"), SPAN_NOTICE("You consume [target] in a single gulp!"))
 		QDEL_NULL(target)
 		adjustBruteLoss(-2)
 	else

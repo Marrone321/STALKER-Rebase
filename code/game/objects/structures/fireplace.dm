@@ -1,6 +1,6 @@
-#define LOG_BURN_TIMER 150
-#define PAPER_BURN_TIMER 5
-#define MAXIMUM_BURN_TIMER 3000
+#define LOG_BURN_TIMER 4500
+#define PAPER_BURN_TIMER 150
+#define MAXIMUM_BURN_TIMER 90000
 
 /obj/structure/fireplace
 	name = "fireplace"
@@ -16,8 +16,8 @@
 	var/fuel_added = 0
 	var/flame_expiry_timer
 
-/obj/structure/fireplace/Initialize(mapload)
-	. = ..()
+/obj/structure/fireplace/New()
+	..()
 	START_PROCESSING(SSobj, src)
 
 /obj/structure/fireplace/Destroy()
@@ -26,10 +26,10 @@
 
 /obj/structure/fireplace/proc/try_light(obj/item/O, mob/user)
 	if(lit)
-		to_chat(user, span_warning("It's already lit!"))
+		to_chat(user, SPAN_WARNING("It's already lit!"))
 		return FALSE
 	if(!fuel_added)
-		to_chat(user, span_warning("[src] needs some fuel to burn!"))
+		to_chat(user, SPAN_WARNING("[src] needs some fuel to burn!"))
 		return FALSE
 	var/msg = O.ignition_effect(src, user)
 	if(msg)
@@ -38,13 +38,11 @@
 		return TRUE
 
 /obj/structure/fireplace/attackby(obj/item/T, mob/user)
-	if(istype(T, /obj/item/stack/sheet/mineral/wood))
-		var/obj/item/stack/sheet/mineral/wood/wood = T
-		var/space_remaining = MAXIMUM_BURN_TIMER - burn_time_remaining()
-		var/space_for_logs = round(space_remaining / LOG_BURN_TIMER)
-		if(space_for_logs < 1)
-			to_chat(user, span_warning("You can't fit any more of [T] in [src]!"))
+	if(istype(T, /obj/item/stack/sheet/wood))
+		var/space_for_logs = space_for_wood(T, user)
+		if(!space_for_logs)
 			return
+		var/obj/item/stack/sheet/wood/wood = T
 		var/logs_used = min(space_for_logs, wood.amount)
 		wood.use(logs_used)
 		adjust_fuel_timer(LOG_BURN_TIMER * logs_used)
@@ -64,10 +62,29 @@
 			</span>")
 		adjust_fuel_timer(PAPER_BURN_TIMER)
 		qdel(T)
+	else if (istype(T, /obj/item/grown/log))
+		var/obj/item/grown/log/log = T
+		var/plank_amount = log.get_plank_amount()
+		if(!space_for_wood(T, user, plank_amount))
+			return
+		adjust_fuel_timer(LOG_BURN_TIMER * plank_amount)
+		qdel(log)
+		user.visible_message("<span class='notice'>[user] tosses a \
+			log into [src].</span>", "<span class='notice'>You add \
+			a log to [src].</span>")
 	else if(try_light(T,user))
 		return
 	else
 		. = ..()
+
+/// Returns 0 if there isn't enough space for wood, or the amount of space worth in planks if there is. Gives user feedback.
+/obj/structure/fireplace/proc/space_for_wood(obj/item/item, mob/user, log_amount = 1)
+	var/space_remaining = MAXIMUM_BURN_TIMER - burn_time_remaining()
+	var/space_for_logs = round(space_remaining / LOG_BURN_TIMER)
+	if(space_for_logs < log_amount)
+		to_chat(user, SPAN_WARNING("You can't fit any more of [item] in [src]!"))
+		return 0
+	return space_for_logs
 
 /obj/structure/fireplace/update_overlays()
 	. = ..()
@@ -111,7 +128,6 @@
 		put_out()
 		return
 
-	playsound(src, 'sound/effects/comfyfire.ogg',50,FALSE, FALSE, TRUE)
 	var/turf/T = get_turf(src)
 	T.hotspot_expose(700, 2.5 * delta_time)
 	update_appearance()
@@ -141,6 +157,7 @@
 
 /obj/structure/fireplace/proc/ignite()
 	lit = TRUE
+	set_ambience(AMBIENCE_FIRE)
 	desc = "A large stone brick fireplace, warm and cozy."
 	flame_expiry_timer = world.time + fuel_added
 	fuel_added = 0
@@ -149,6 +166,7 @@
 
 /obj/structure/fireplace/proc/put_out()
 	lit = FALSE
+	set_ambience(null)
 	update_appearance()
 	adjust_light()
 	desc = initial(desc)

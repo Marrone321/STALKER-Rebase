@@ -24,8 +24,8 @@
 	door = 0
 	grille = 0
 	mach = 0
-	for(var/Z in SSmapping.levels_by_trait(ZTRAIT_STATION))
-		for(var/turf/T in block(locate(1,1,Z), locate(world.maxx,world.maxy,Z)))
+	for(var/datum/virtual_level/vlevel in SSmapping.virtual_levels_by_trait(ZTRAIT_STATION))
+		for(var/turf/T as anything in vlevel.get_block())
 			// don't count shuttles since they may have just left
 			if(istype(T.loc, /area/shuttle))
 				continue
@@ -38,15 +38,11 @@
 					floor += 2
 
 			if(iswallturf(T))
-				wall += 1
-
-			if(istype(T, /turf/closed/wall/r_wall))
-				var/turf/closed/wall/r_wall/TRW = T
-				if(TRW.d_state == INTACT)
-					r_wall += 2
+				var/turf/closed/wall/TW = T
+				if(TW.intact)
+					wall += 2
 				else
-					r_wall += 1
-
+					wall += 1
 
 			for(var/obj/O in T.contents)
 				if(istype(O, /obj/structure/window))
@@ -55,10 +51,6 @@
 					var/obj/structure/grille/GR = O
 					if(!GR.broken)
 						grille += 1
-				else if(istype(O, /obj/machinery/door))
-					door += 1
-				else if(ismachinery(O))
-					mach += 1
 				CHECK_TICK
 			CHECK_TICK
 		CHECK_TICK

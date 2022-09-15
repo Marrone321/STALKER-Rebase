@@ -24,9 +24,7 @@
 		RegisterSignal(target, COMSIG_FOOD_CROSSED, .proc/food_crossed)
 	RegisterSignal(target, COMSIG_ITEM_ON_GRIND, .proc/generate_trash)
 	RegisterSignal(target, COMSIG_ITEM_ON_JUICE, .proc/generate_trash)
-	RegisterSignal(target, COMSIG_ITEM_USED_AS_INGREDIENT, .proc/generate_trash)
 	RegisterSignal(target, COMSIG_ITEM_ON_COMPOSTED, .proc/generate_trash)
-	RegisterSignal(target, COMSIG_ITEM_SOLD_TO_CUSTOMER, .proc/generate_trash)
 
 /datum/element/food_trash/Detach(datum/target)
 	. = ..()
@@ -45,7 +43,6 @@
 
 	if(isliving(edible_object.loc))
 		var/mob/living/food_holding_mob = edible_object.loc
-		food_holding_mob.dropItemToGround(edible_object)
 		food_holding_mob.put_in_hands(trash_item)
 
 /datum/element/food_trash/proc/food_crossed(datum/source, mob/crosser, bitecount)
@@ -59,7 +56,7 @@
 
 	playsound(source, 'sound/effects/chipbagpop.ogg', 100)
 
-	popper.visible_message(span_danger("[popper] steps on \the [source], popping the bag!"), span_danger("You step on \the [source], popping the bag!"), span_danger("You hear a sharp crack!"), COMBAT_MESSAGE_RANGE)
+	popper.visible_message(SPAN_DANGER("[popper] steps on \the [source], popping the bag!"), SPAN_DANGER("You step on \the [source], popping the bag!"), SPAN_DANGER("You hear a sharp crack!"), COMBAT_MESSAGE_RANGE)
 	INVOKE_ASYNC(src, .proc/async_generate_trash, source)
 	qdel(source)
 
@@ -67,7 +64,7 @@
 /datum/element/food_trash/proc/open_trash(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	to_chat(user, span_notice("You open the [source], revealing \a [initial(trash.name)]."))
+	to_chat(user, SPAN_NOTICE("You open the [source], revealing \a [initial(trash.name)]."))
 
 	INVOKE_ASYNC(src, .proc/async_generate_trash, source)
 	qdel(source)

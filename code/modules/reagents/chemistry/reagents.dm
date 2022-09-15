@@ -17,7 +17,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 /// A single reagent
 /datum/reagent
 	/// datums don't have names by default
-	var/name = ""
+	var/name = "Reagent"
 	/// nor do they have descriptions
 	var/description = ""
 	///J/(K*mol)
@@ -34,13 +34,11 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	var/glass_icon_state = null
 	/// used for shot glasses, mostly for alcohol
 	var/shot_glass_icon_state = null
-	/// fallback icon if  the reagent has no glass or shot glass icon state. Used for restaurants.
-	var/fallback_icon_state = null
 	/// reagent holder this belongs to
 	var/datum/reagents/holder = null
 	/// LIQUID, SOLID, GAS
 	var/reagent_state = LIQUID
-	/// Special data associated with the reagent that will be passed on upon transfer to a new holder.
+	/// special data associated with this like viruses etc
 	var/list/data
 	/// increments everytime on_mob_life is called
 	var/current_cycle = 0
@@ -80,11 +78,15 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	var/penetrates_skin = VAPOR
 	/// See fermi_readme.dm REAGENT_DEAD_PROCESS, REAGENT_DONOTSPLIT, REAGENT_INVISIBLE, REAGENT_SNEAKYNAME, REAGENT_SPLITRETAINVOL, REAGENT_CANSYNTH, REAGENT_IMPURE
 	var/chemical_flags = NONE
+	///impure chem values (see fermi_readme.dm for more details on impure/inverse/failed mechanics):
+	/// What chemical path is made when metabolised as a function of purity
+	var/impure_chem = /datum/reagent/impurity
 	/// If the impurity is below 0.5, replace ALL of the chem with inverse_chem upon metabolising
 	var/inverse_chem_val = 0.25
 	/// What chem is metabolised when purity is below inverse_chem_val
 	var/inverse_chem = /datum/reagent/inverse
 	///what chem is made at the end of a reaction IF the purity is below the recipies purity_min at the END of a reaction only
+	var/failed_chem = /datum/reagent/consumable/failed_reaction
 	///Thermodynamic vars
 	///How hot this reagent burns when it's on fire - null means it can't burn
 	var/burning_temperature = null
@@ -92,9 +94,12 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	var/burning_volume = 0.5
 	///Assoc list with key type of addiction this reagent feeds, and value amount of addiction points added per unit of reagent metabolzied (which means * REAGENTS_METABOLISM every life())
 	var/list/addiction_types = null
-	///The amount a robot will pay for a glass of this (20 units but can be higher if you pour more, be frugal!)
-	var/glass_price
-
+	///What can process this? REAGENT_ORGANIC, REAGENT_SYNTHETIC, or REAGENT_ORGANIC | REAGENT_SYNTHETIC?. We'll assume by default that it affects organics.
+	var/process_flags = REAGENT_ORGANIC
+	///The icon override used for glass sprites, needed for modularity
+	var/glass_icon
+	///How good of an accelerant is this reagent
+	var/accelerant_quality = 0
 
 /datum/reagent/New()
 	SHOULD_CALL_PARENT(TRUE)
@@ -102,8 +107,6 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 
 	if(material)
 		material = GET_MATERIAL_REF(material)
-	if(glass_price)
-		AddElement(/datum/element/venue_price, glass_price)
 	if(!mass)
 		mass = rand(10, 800)
 
@@ -170,7 +173,6 @@ Primarily used in reagents/reaction_agents
 
 /// Called when this reagent is removed while inside a mob
 /datum/reagent/proc/on_mob_delete(mob/living/L)
-	L.clear_mood_event("[type]_overdose")
 	return
 
 /// Called when this reagent first starts being metabolized by a liver
@@ -196,8 +198,7 @@ Primarily used in reagents/reaction_agents
 
 /// Called after add_reagents creates a new reagent.
 /datum/reagent/proc/on_new(data)
-	if(data)
-		src.data = data
+	return
 
 /// Called when two reagents of the same are mixing.
 /datum/reagent/proc/on_merge(data, amount)
@@ -207,24 +208,18 @@ Primarily used in reagents/reaction_agents
 /datum/reagent/proc/on_update(atom/A)
 	return
 
+/// Called when the reagent container is hit by an explosion
+/datum/reagent/proc/on_ex_act(severity)
+	return
+
 /// Called if the reagent has passed the overdose threshold and is set to be triggering overdose effects
 /datum/reagent/proc/overdose_process(mob/living/M, delta_time, times_fired)
 	return
 
 /// Called when an overdose starts
 /datum/reagent/proc/overdose_start(mob/living/M)
-	to_chat(M, span_userdanger("You feel like you took too much of [name]!"))
-	M.add_mood_event("[type]_overdose", /datum/mood_event/overdose, name)
+	to_chat(M, SPAN_USERDANGER("You feel like you took too much of [name]!"))
 	return
-
-/**
- * New, standardized method for chemicals to affect hydroponics trays.
- * Defined on a per-chem level as opposed to by the tray.
- * Can affect plant's health, stats, or cause the plant to react in certain ways.
- */
-/datum/reagent/proc/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
-	if(!mytray)
-		return
 
 /// Should return a associative list where keys are taste descriptions and values are strength ratios
 /datum/reagent/proc/get_taste_description(mob/living/taster)

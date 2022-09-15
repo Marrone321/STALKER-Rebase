@@ -1,13 +1,10 @@
 /datum/map_template/shelter
 	var/shelter_id
 	var/description
-	var/list/blacklisted_turfs
-	var/list/whitelisted_turfs
-	var/list/banned_areas
-	var/list/banned_objects
-	has_ceiling = TRUE
-	ceiling_turf = /turf/open/floor/engine/hull
-	ceiling_baseturfs = list(/turf/open/floor/plating)
+	var/blacklisted_turfs
+	var/whitelisted_turfs
+	var/banned_areas
+	var/banned_objects
 
 /datum/map_template/shelter/New()
 	. = ..()
@@ -54,7 +51,6 @@
 /datum/map_template/shelter/alpha/New()
 	. = ..()
 	whitelisted_turfs = typecacheof(/turf/closed/mineral)
-	banned_objects = typecacheof(/obj/structure/stone_tile)
 
 /datum/map_template/shelter/beta
 	name = "Shelter Beta"
@@ -69,7 +65,6 @@
 /datum/map_template/shelter/beta/New()
 	. = ..()
 	whitelisted_turfs = typecacheof(/turf/closed/mineral)
-	banned_objects = typecacheof(/obj/structure/stone_tile)
 
 /datum/map_template/shelter/charlie
 	name = "Shelter Charlie"
@@ -84,4 +79,3 @@
 /datum/map_template/shelter/charlie/New()
 	. = ..()
 	whitelisted_turfs = typecacheof(/turf/closed/mineral)
-	banned_objects = typecacheof(/obj/structure/stone_tile)

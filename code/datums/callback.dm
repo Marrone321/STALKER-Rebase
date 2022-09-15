@@ -111,8 +111,8 @@
 			var/mob/M = W.resolve()
 			if(M)
 				if (length(args))
-					return world.push_usr(arglist(list(M, src) + args))
-				return world.push_usr(M, src)
+					return world.PushUsr(arglist(list(M, src) + args))
+				return world.PushUsr(M, src)
 
 	if (!object)
 		return
@@ -124,8 +124,6 @@
 		else
 			calling_arguments = args
 	if(datum_flags & DF_VAR_EDITED)
-		if(usr && usr != GLOB.AdminProcCallHandler && !usr.client?.ckey) //This ONLY happens when usr's client switches mobs just before the callback gets invoked.
-			return HandleUserlessProcCall(usr, object, delegate, calling_arguments)
 		return WrapAdminProcCall(object, delegate, calling_arguments)
 	if (object == GLOBAL_PROC)
 		return call(delegate)(arglist(calling_arguments))
@@ -148,8 +146,8 @@
 			var/mob/M = W.resolve()
 			if(M)
 				if (length(args))
-					return world.push_usr(arglist(list(M, src) + args))
-				return world.push_usr(M, src)
+					return world.PushUsr(arglist(list(M, src) + args))
+				return world.PushUsr(M, src)
 
 	if (!object)
 		return
@@ -161,8 +159,6 @@
 		else
 			calling_arguments = args
 	if(datum_flags & DF_VAR_EDITED)
-		if(usr != GLOB.AdminProcCallHandler && !usr?.client?.ckey) //This happens when a timer invokes a callback
-			return HandleUserlessProcCall(usr, object, delegate, calling_arguments)
 		return WrapAdminProcCall(object, delegate, calling_arguments)
 	if (object == GLOBAL_PROC)
 		return call(delegate)(arglist(calling_arguments))
@@ -224,3 +220,6 @@
 	while(CS.pendingcount)
 		sleep(resolution*world.tick_lag)
 	return CS.finished
+
+/proc/___callbacknew(typepath, arguments)
+	new typepath(arglist(arguments))

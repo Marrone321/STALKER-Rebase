@@ -5,7 +5,7 @@
 	var/image/areaimage
 
 /datum/buildmode_mode/area_edit/New()
-	areaimage = image('icons/area/areas_misc.dmi', null, "yellow")
+	areaimage = image('icons/turf/areas.dmi', null, "yellow")
 	..()
 
 /datum/buildmode_mode/area_edit/enter_mode(datum/buildmode/BM)
@@ -22,12 +22,12 @@
 	return ..()
 
 /datum/buildmode_mode/area_edit/show_help(client/c)
-	to_chat(c, span_notice("***********************************************************"))
-	to_chat(c, span_notice("Left Mouse Button on obj/turf/mob = Select corner"))
+	to_chat(c, SPAN_NOTICE("***********************************************************"))
+	to_chat(c, SPAN_NOTICE("Left Mouse Button on obj/turf/mob = Select corner"))
 	to_chat(c, "<span class='notice'>Left Mouse Button + Alt on turf/obj/mob = Paint area/span>")
-	to_chat(c, span_notice("Right Mouse Button on obj/turf/mob = Select area to paint"))
-	to_chat(c, span_notice("Right Mouse Button on buildmode button = Create new area"))
-	to_chat(c, span_notice("***********************************************************"))
+	to_chat(c, SPAN_NOTICE("Right Mouse Button on obj/turf/mob = Select area to paint"))
+	to_chat(c, SPAN_NOTICE("Right Mouse Button on buildmode button = Create new area"))
+	to_chat(c, SPAN_NOTICE("***********************************************************"))
 
 /datum/buildmode_mode/area_edit/change_settings(client/c)
 	var/target_path = input(c, "Enter typepath:", "Typepath", "/area")
@@ -49,7 +49,7 @@
 
 	if(LAZYACCESS(modifiers, LEFT_CLICK))
 		if(!storedarea)
-			to_chat(c, span_warning("Configure or select the area you want to paint first!"))
+			to_chat(c, SPAN_WARNING("Configure or select the area you want to paint first!"))
 			return
 		if(LAZYACCESS(modifiers, ALT_CLICK))
 			var/turf/T = get_turf(object)

@@ -1,18 +1,11 @@
 /obj/effect/projectile
 	name = "pew"
-	icon = 'icons/obj/weapons/guns/projectiles.dmi'
+	icon = 'icons/obj/guns/projectiles.dmi'
 	icon_state = "nothing"
-	layer = HITSCAN_PROJECTILE_LAYER
-	plane = GAME_PLANE_FOV_HIDDEN
+	layer = ABOVE_MOB_LAYER
 	anchored = TRUE
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	appearance_flags = LONG_GLIDE
-
-/obj/effect/projectile/singularity_pull()
-	return
-
-/obj/effect/projectile/singularity_act()
-	return
+	appearance_flags = 0
 
 /obj/effect/projectile/proc/scale_to(nx,ny,override=TRUE)
 	var/matrix/M
@@ -39,7 +32,6 @@
 
 /obj/effect/projectile/proc/apply_vars(angle_override, p_x = 0, p_y = 0, color_override, scaling = 1, new_loc, increment = 0)
 	var/mutable_appearance/look = new(src)
-	look.plane = plane
 	look.pixel_x = p_x
 	look.pixel_y = p_y
 	if(color_override)

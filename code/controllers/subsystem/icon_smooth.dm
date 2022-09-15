@@ -11,10 +11,10 @@ SUBSYSTEM_DEF(icon_smooth)
 	var/list/deferred = list()
 
 /datum/controller/subsystem/icon_smooth/fire()
-	var/list/smooth_queue_cache = smooth_queue
-	while(length(smooth_queue_cache))
-		var/atom/smoothing_atom = smooth_queue_cache[length(smooth_queue_cache)]
-		smooth_queue_cache.len--
+	var/list/cached = smooth_queue
+	while(length(cached))
+		var/atom/smoothing_atom = cached[length(cached)]
+		cached.len--
 		if(QDELETED(smoothing_atom) || !(smoothing_atom.smoothing_flags & SMOOTH_QUEUED))
 			continue
 		if(smoothing_atom.flags_1 & INITIALIZED_1)
@@ -24,10 +24,10 @@ SUBSYSTEM_DEF(icon_smooth)
 		if (MC_TICK_CHECK)
 			return
 
-	if (!length(smooth_queue_cache))
+	if (!cached.len)
 		if (deferred.len)
 			smooth_queue = deferred
-			deferred = smooth_queue_cache
+			deferred = cached
 		else
 			can_fire = FALSE
 
@@ -46,15 +46,6 @@ SUBSYSTEM_DEF(icon_smooth)
 		smoothing_atom.smooth_icon()
 		CHECK_TICK
 
-	queue = blueprint_queue
-	blueprint_queue = null
-
-	for(var/atom/movable/movable_item as anything in queue)
-		if(!isturf(movable_item.loc))
-			continue
-		var/turf/item_loc = movable_item.loc
-		item_loc.add_blueprints(movable_item)
-
 	return ..()
 
 
@@ -69,6 +60,5 @@ SUBSYSTEM_DEF(icon_smooth)
 /datum/controller/subsystem/icon_smooth/proc/remove_from_queues(atom/thing)
 	thing.smoothing_flags &= ~SMOOTH_QUEUED
 	smooth_queue -= thing
-	if(blueprint_queue)
-		blueprint_queue -= thing
+	blueprint_queue -= thing
 	deferred -= thing

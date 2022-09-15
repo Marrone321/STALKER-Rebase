@@ -1,7 +1,7 @@
 /**
  * Venomous element; which makes the attacks of the simplemob attached poison the enemy.
  *
- * Used for spiders, frogs, and bees!
+ * Used for spiders and bees!
  */
 /datum/element/venomous
 	element_flags = ELEMENT_BESPOKE|ELEMENT_DETACH
@@ -14,11 +14,9 @@
 /datum/element/venomous/Attach(datum/target, poison_type, amount_added)
 	. = ..()
 
-	if(ismachinery(target) || isstructure(target) || isgun(target) || isprojectilespell(target))
-		RegisterSignal(target, COMSIG_PROJECTILE_ON_HIT, .proc/projectile_hit)
-	else if(isitem(target))
+	if(isitem(target))
 		RegisterSignal(target, COMSIG_ITEM_AFTERATTACK, .proc/item_afterattack)
-	else if(ishostile(target) || isbasicmob(target))
+	else if(ishostile(target))
 		RegisterSignal(target, COMSIG_HOSTILE_POST_ATTACKINGTARGET, .proc/hostile_attackingtarget)
 	else
 		return ELEMENT_INCOMPATIBLE

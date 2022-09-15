@@ -28,29 +28,8 @@
 	icon_state = "act_equip"
 
 /atom/movable/screen/human/equip/Click()
-	if(ismecha(usr.loc)) // stops inventory actions in a mech
-		return TRUE
 	var/mob/living/carbon/human/H = usr
 	H.quick_equip()
-
-/atom/movable/screen/ling
-	icon = 'icons/hud/screen_changeling.dmi'
-
-/atom/movable/screen/ling/chems
-	name = "chemical storage"
-	icon_state = "power_display"
-	screen_loc = ui_lingchemdisplay
-
-/atom/movable/screen/ling/sting
-	name = "current sting"
-	screen_loc = ui_lingstingdisplay
-	invisibility = INVISIBILITY_ABSTRACT
-
-/atom/movable/screen/ling/sting/Click()
-	if(isobserver(usr))
-		return
-	var/mob/living/carbon/carbon_user = usr
-	carbon_user.unset_sting()
 
 /datum/hud/human/New(mob/living/carbon/human/owner)
 	..()
@@ -63,12 +42,12 @@
 	using.hud = src
 	static_inventory += using
 
-	using = new/atom/movable/screen/navigate
+	using = new /atom/movable/screen/area_creator
 	using.icon = ui_style
 	using.hud = src
 	static_inventory += using
 
-	using = new /atom/movable/screen/area_creator
+	using = new /atom/movable/screen/craft
 	using.icon = ui_style
 	using.hud = src
 	static_inventory += using
@@ -94,7 +73,7 @@
 	static_inventory += using
 
 	inv_box = new /atom/movable/screen/inventory()
-	inv_box.name = "uniform"
+	inv_box.name = "i_clothing"
 	inv_box.icon = ui_style
 	inv_box.slot_id = ITEM_SLOT_ICLOTHING
 	inv_box.icon_state = "uniform"
@@ -103,7 +82,7 @@
 	toggleable_inventory += inv_box
 
 	inv_box = new /atom/movable/screen/inventory()
-	inv_box.name = "suit"
+	inv_box.name = "o_clothing"
 	inv_box.icon = ui_style
 	inv_box.slot_id = ITEM_SLOT_OCLOTHING
 	inv_box.icon_state = "suit"
@@ -164,7 +143,7 @@
 	static_inventory += inv_box
 
 	inv_box = new /atom/movable/screen/inventory()
-	inv_box.name = "left pocket"
+	inv_box.name = "storage1"
 	inv_box.icon = ui_style
 	inv_box.icon_state = "pocket"
 	inv_box.screen_loc = ui_storage1
@@ -173,7 +152,7 @@
 	static_inventory += inv_box
 
 	inv_box = new /atom/movable/screen/inventory()
-	inv_box.name = "right pocket"
+	inv_box.name = "storage2"
 	inv_box.icon = ui_style
 	inv_box.icon_state = "pocket"
 	inv_box.screen_loc = ui_storage2
@@ -275,21 +254,17 @@
 	rest_icon.hud = src
 	static_inventory += rest_icon
 
-	spacesuit = new /atom/movable/screen/spacesuit
-	spacesuit.hud = src
-	infodisplay += spacesuit
-
 	healths = new /atom/movable/screen/healths()
 	healths.hud = src
 	infodisplay += healths
 
-	healthdoll = new /atom/movable/screen/healthdoll()
-	healthdoll.hud = src
-	infodisplay += healthdoll
-
 	stamina = new /atom/movable/screen/stamina()
 	stamina.hud = src
 	infodisplay += stamina
+
+	healthdoll = new /atom/movable/screen/healthdoll()
+	healthdoll.hud = src
+	infodisplay += healthdoll
 
 	pull_icon = new /atom/movable/screen/pull()
 	pull_icon.icon = ui_style
@@ -298,7 +273,7 @@
 	pull_icon.hud = src
 	static_inventory += pull_icon
 
-	zone_select = new /atom/movable/screen/zone_sel()
+	zone_select =  new /atom/movable/screen/zone_sel()
 	zone_select.icon = ui_style
 	zone_select.hud = src
 	zone_select.update_appearance()

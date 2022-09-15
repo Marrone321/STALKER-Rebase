@@ -4,7 +4,7 @@
 	return GLOB.always_state
 
 /datum/crew_manifest/ui_status(mob/user, datum/ui_state/state)
-	return (isnewplayer(user) || isobserver(user) || isAI(user) || ispAI(user)) ? UI_INTERACTIVE : UI_CLOSE
+	return (isnewplayer(user) || isobserver(user)) ? UI_INTERACTIVE : UI_CLOSE
 
 /datum/crew_manifest/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)
@@ -19,7 +19,7 @@
 
 /datum/crew_manifest/ui_data(mob/user)
 	var/list/positions = list()
-	for(var/datum/job_department/department as anything in SSjob.joinable_departments)
+	for(var/datum/job_department/department as anything in SSjob.main_jobs.joinable_departments)
 		var/open = 0
 		var/list/exceptions = list()
 		for(var/datum/job/job as anything in department.department_jobs)

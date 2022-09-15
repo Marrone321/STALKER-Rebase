@@ -21,8 +21,6 @@
 		COMSIG_ATOM_ENTERED = .proc/on_entered,
 	)
 
-
-
 /datum/component/rot/Initialize(delay, scaling, severity)
 	if(!isatom(parent))
 		return COMPONENT_INCOMPATIBLE
@@ -39,7 +37,7 @@
 	RegisterSignal(parent, list(COMSIG_ATOM_HULK_ATTACK, COMSIG_ATOM_ATTACK_ANIMAL, COMSIG_ATOM_ATTACK_HAND), .proc/rot_react_touch)
 	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY, .proc/rot_hit_react)
 	if(ismovable(parent))
-		AddComponent(/datum/component/connect_loc_behalf, parent, loc_connections)
+		AddElement(/datum/element/connect_loc, parent, loc_connections)
 		RegisterSignal(parent, COMSIG_MOVABLE_BUMP, .proc/rot_react)
 	if(isliving(parent))
 		RegisterSignal(parent, COMSIG_LIVING_REVIVE, .proc/react_to_revive) //mobs stop this when they come to life
@@ -62,7 +60,7 @@
 /datum/component/rot/UnregisterFromParent()
 	. = ..()
 	if(ismovable(parent))
-		qdel(GetComponent(/datum/component/connect_loc_behalf))
+		RemoveElement(/datum/element/connect_loc, parent, loc_connections)
 
 ///One of two procs that modifies blockers, this one handles removing a blocker and potentially restarting the rot
 /datum/component/rot/proc/start_up(blocker_type)
@@ -95,7 +93,6 @@
 	start_up(REAGENT_BLOCKER)
 
 /datum/component/rot/proc/check_for_temperature(datum/source, old_temp, new_temp)
-	SIGNAL_HANDLER
 	if(new_temp <= T0C-10)
 		rest(TEMPERATURE_BLOCKER)
 		return
@@ -117,7 +114,7 @@
 	rot_react(source, react_to, pick(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM))
 
 /// Triggered when something enters the component's parent.
-/datum/component/rot/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+/datum/component/rot/proc/on_entered(datum/source, atom/movable/arrived, direction)
 	SIGNAL_HANDLER
 	rot_react(source, arrived)
 
@@ -125,12 +122,6 @@
 /datum/component/rot/proc/rot_react(source, mob/living/react_to, target_zone = null)
 	SIGNAL_HANDLER
 	if(!isliving(react_to))
-		return
-
-	// Don't infect if you're chilled (I'd like to link this with the signals, but I can't come up with a good way to pull it off)
-	var/atom/atom_parent = parent
-	var/datum/gas_mixture/our_mix = atom_parent.return_air()
-	if(our_mix?.temperature <= T0C-10)
 		return
 
 	if(!active)
@@ -145,11 +136,6 @@
 
 	if(!prob(strength * 1 * time_scaling))
 		return
-
-	//We're running just under the "worst disease", since we don't want these to be too strong
-	var/datum/disease/advance/random/rand_disease = new(rand(4 * strength * time_scaling), rand(strength * 5 * time_scaling))
-	rand_disease.name = "Unknown"
-	react_to.ContactContractDisease(rand_disease, target_zone)
 
 #undef REAGENT_BLOCKER
 #undef TEMPERATURE_BLOCKER

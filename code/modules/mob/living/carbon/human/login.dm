@@ -1,15 +1,13 @@
 /mob/living/carbon/human/Login()
 	. = ..()
-
-	dna?.species?.on_owner_login(src)
-
 	if(!LAZYLEN(afk_thefts))
 		return
 
 	var/list/print_msg = list()
-	print_msg += span_userdanger("As you snap back to consciousness, you recall people messing with your stuff...")
+	print_msg += SPAN_INFO("*---------*")
+	print_msg += SPAN_USERDANGER("As you snap back to consciousness, you recall people messing with your stuff...")
 
-	afk_thefts = reverse_range(afk_thefts)
+	afk_thefts = reverseRange(afk_thefts)
 
 	for(var/list/iter_theft as anything in afk_thefts)
 		if(!islist(iter_theft) || LAZYLEN(iter_theft) != AFK_THEFT_TIME)
@@ -21,12 +19,13 @@
 		var/time_since = world.time - iter_theft[AFK_THEFT_TIME]
 
 		if(time_since > AFK_THEFT_FORGET_DETAILS_TIME)
-			print_msg += "\t[span_danger("<b>Someone [theft_message], but it was at least [DisplayTimeText(AFK_THEFT_FORGET_DETAILS_TIME)] ago.</b>")]"
+			print_msg += "\t[SPAN_DANGER("<b>Someone [theft_message], but it was at least [DisplayTimeText(AFK_THEFT_FORGET_DETAILS_TIME)] ago.</b>")]"
 		else
-			print_msg += "\t[span_danger("<b>[thief_name] [theft_message] roughly [DisplayTimeText(time_since, 10)] ago.</b>")]"
+			print_msg += "\t[SPAN_DANGER("<b>[thief_name] [theft_message] roughly [DisplayTimeText(time_since, 10)] ago.</b>")]"
 
 	if(LAZYLEN(afk_thefts) >= AFK_THEFT_MAX_MESSAGES)
-		print_msg += span_warning("There may have been more, but that's all you can remember...")
+		print_msg += SPAN_WARNING("There may have been more, but that's all you can remember...")
+	print_msg += SPAN_INFO("*---------*")
 
-	to_chat(src, examine_block(print_msg.Join("\n")))
+	to_chat(src, print_msg.Join("\n"))
 	LAZYNULL(afk_thefts)

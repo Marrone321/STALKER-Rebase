@@ -1,3 +1,5 @@
+GLOBAL_LIST(gang_tags)
+
 /obj/effect/decal/cleanable/crayon
 	name = "rune"
 	desc = "Graffiti. Damn kids."
@@ -6,7 +8,6 @@
 	gender = NEUTER
 	plane = GAME_PLANE //makes the graffiti visible over a wall.
 	mergeable_decal = FALSE
-	flags_1 = ALLOW_DARK_PAINTS_1
 	var/do_icon_rotate = TRUE
 	var/rotation = 0
 	var/paint_colour = "#FFFFFF"
@@ -29,6 +30,5 @@
 	if(main)
 		paint_colour = main
 	add_atom_colour(paint_colour, FIXED_COLOUR_PRIORITY)
-
 /obj/effect/decal/cleanable/crayon/NeverShouldHaveComeHere(turf/T)
 	return isgroundlessturf(T)

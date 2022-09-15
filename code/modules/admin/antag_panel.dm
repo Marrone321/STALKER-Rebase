@@ -34,8 +34,9 @@ GLOBAL_VAR(antag_prototypes)
 	var/command_part = commands.Join(" | ")
 	var/data_part = antag_panel_data()
 	var/objective_part = antag_panel_objectives()
+	var/memory_part = antag_panel_memory()
 
-	var/list/parts = listtrim(list(command_part, data_part, objective_part))
+	var/list/parts = listtrim(list(command_part,data_part,objective_part,memory_part))
 
 	return parts.Join("<br>")
 
@@ -45,32 +46,23 @@ GLOBAL_VAR(antag_prototypes)
 		result += "EMPTY<br>"
 	else
 		var/obj_count = 1
-		for(var/datum/objective/objective as anything in objectives)
-			result += "<B>[obj_count]</B>: [objective.explanation_text] \
-				<a href='?src=[REF(owner)];obj_edit=[REF(objective)]'>Edit</a> \
-				<a href='?src=[REF(owner)];obj_delete=[REF(objective)]'>Delete</a> \
-				<a href='?src=[REF(owner)];obj_completed=[REF(objective)]'><font color=[objective.check_completion() ? "green" : "red"]>[objective.completed ? "Mark as incomplete" : "Mark as complete"]</font></a> \
-				<br>"
+		for(var/datum/objective/objective in objectives)
+			result += "<B>[obj_count]</B>: [objective.explanation_text] <a href='?src=[REF(owner)];obj_edit=[REF(objective)]'>Edit</a> <a href='?src=[REF(owner)];obj_delete=[REF(objective)]'>Delete</a> <a href='?src=[REF(owner)];obj_completed=[REF(objective)]'><font color=[objective.completed ? "green" : "red"]>[objective.completed ? "Mark as incomplete" : "Mark as complete"]</font></a><br>"
 			obj_count++
 	result += "<a href='?src=[REF(owner)];obj_add=1;target_antag=[REF(src)]'>Add objective</a><br>"
 	result += "<a href='?src=[REF(owner)];obj_announce=1'>Announce objectives</a><br>"
 	return result
 
+/datum/antagonist/proc/antag_panel_memory()
+	var/out = "<b>Memory:</b><br>"
+	out += antag_memory
+	out += "<br><a href='?src=[REF(src)];memory_edit=1'>Edit memory</a><br>"
+	return out
+
 /datum/mind/proc/get_common_admin_commands()
 	var/common_commands = "<span>Common Commands:</span>"
 	if(ishuman(current))
 		common_commands += "<a href='?src=[REF(src)];common=undress'>undress</a>"
-	else if(iscyborg(current))
-		var/mob/living/silicon/robot/R = current
-		if(R.emagged)
-			common_commands += "<a href='?src=[REF(src)];silicon=Unemag'>Unemag</a>"
-	else if(isAI(current))
-		var/mob/living/silicon/ai/A = current
-		if (A.connected_robots.len)
-			for (var/mob/living/silicon/robot/R in A.connected_robots)
-				if (R.emagged)
-					common_commands += "<a href='?src=[REF(src)];silicon=unemagcyborgs'>Unemag slaved cyborgs</a>"
-					break
 	return common_commands
 
 /datum/mind/proc/get_special_statuses()
@@ -79,11 +71,6 @@ GLOBAL_VAR(antag_prototypes)
 		result += "<span class='bad'>No body!</span>"
 	if(current && HAS_TRAIT(current, TRAIT_MINDSHIELD))
 		result += "<span class='good'>Mindshielded</span>"
-	//Move these to mob
-	if(iscyborg(current))
-		var/mob/living/silicon/robot/robot = current
-		if (robot.emagged)
-			result += "<span class='bad'>Emagged</span>"
 	return result.Join(" | ")
 
 /datum/mind/proc/traitor_panel()
@@ -96,8 +83,11 @@ GLOBAL_VAR(antag_prototypes)
 
 	var/out = "<B>[name]</B>[(current && (current.real_name!=name))?" (as [current.real_name])":""]<br>"
 	out += "Mind currently owned by key: [key] [active?"(synced)":"(not synced)"]<br>"
-	out += "Assigned role: [assigned_role.title]. <a href='?src=[REF(src)];role_edit=1'>Edit</a><br>"
+	out += "Assigned role: [assigned_role.title]."
 	out += "Faction and special role: <b><font color='red'>[special_role]</font></b><br>"
+
+	if(my_ambitions)
+		out += "<b>Ambitions:</b> <a href='?src=[REF(src)];ambitions=1'>View</a><br>"
 
 	var/special_statuses = get_special_statuses()
 	if(length(special_statuses))
@@ -143,7 +133,7 @@ GLOBAL_VAR(antag_prototypes)
 
 		if(!current_antag) //Show antagging options
 			if(possible_admin_antags.len)
-				antag_header_parts += span_highlight("None")
+				antag_header_parts += SPAN_HIGHLIGHT("None")
 				antag_header_parts += possible_admin_antags
 			else
 				//If there's no antags to show in this category skip the section completely
@@ -152,7 +142,6 @@ GLOBAL_VAR(antag_prototypes)
 			priority_sections |= antag_category
 			antag_header_parts += "<span class='bad'>[current_antag.name]</span>"
 			antag_header_parts += "<a href='?src=[REF(src)];remove_antag=[REF(current_antag)]'>Remove</a>"
-			antag_header_parts += "<a href='?src=[REF(src)];open_antag_vv=[REF(current_antag)]'>Open VV</a>"
 
 
 		//We aren't antag of this category, grab first prototype to check the prefs (This is pretty vague but really not sure how else to do this)
@@ -185,29 +174,11 @@ GLOBAL_VAR(antag_prototypes)
 		out += sections[s]
 
 	out += "<br>"
-
-	//Uplink
-	if(ishuman(current))
-		var/uplink_info = "<i><b>Uplink</b></i>:"
-		var/datum/component/uplink/U = find_syndicate_uplink()
-		if(U)
-			if(!U.uplink_handler.has_objectives)
-				uplink_info += "<a href='?src=[REF(src)];common=takeuplink'>take</a>"
-			if (check_rights(R_FUN, 0))
-				uplink_info += ", <a href='?src=[REF(src)];common=crystals'>[U.uplink_handler.telecrystals]</a> TC"
-				if(U.uplink_handler.has_progression)
-					uplink_info += ", <a href='?src=[REF(src)];common=progression'>[U.uplink_handler.progression_points]</a> PR"
-				if(U.uplink_handler.has_objectives)
-					uplink_info += ", <a href='?src=[REF(src)];common=give_objective'>Force Give Objective</a>"
-			else
-				uplink_info += ", [U.uplink_handler.telecrystals] TC"
-				if(U.uplink_handler.has_progression)
-					uplink_info += ", [U.uplink_handler.progression_points] PR"
-		else
-			uplink_info += "<a href='?src=[REF(src)];common=uplink'>give</a>"
-		uplink_info += "." //hiel grammar
-
-		out += uplink_info + "<br>"
+	//Common Memory
+	var/common_memory = "<span>Common Memory:</span>"
+	common_memory += memory
+	common_memory += "<a href='?src=[REF(src)];memory_edit=1'>Edit Memory</a>"
+	out += common_memory + "<br>"
 	//Other stuff
 	out += get_common_admin_commands()
 

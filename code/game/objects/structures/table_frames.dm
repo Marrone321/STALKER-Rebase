@@ -23,7 +23,7 @@
 
 
 /obj/structure/table_frame/wrench_act(mob/living/user, obj/item/I)
-	to_chat(user, span_notice("You start disassembling [src]..."))
+	to_chat(user, SPAN_NOTICE("You start disassembling [src]..."))
 	I.play_tool_sound(src)
 	if(!I.use_tool(src, user, 3 SECONDS))
 		return TRUE
@@ -37,23 +37,23 @@
 		var/obj/item/stack/material = I
 		if(material.tableVariant)
 			if(material.get_amount() < 1)
-				to_chat(user, span_warning("You need one [material.name] sheet to do this!"))
+				to_chat(user, SPAN_WARNING("You need one [material.name] sheet to do this!"))
 				return
 			if(locate(/obj/structure/table) in loc)
-				to_chat(user, span_warning("There's already a table built here!"))
+				to_chat(user, SPAN_WARNING("There's already a table built here!"))
 				return
-			to_chat(user, span_notice("You start adding [material] to [src]..."))
+			to_chat(user, SPAN_NOTICE("You start adding [material] to [src]..."))
 			if(!do_after(user, 2 SECONDS, target = src) || !material.use(1) || (locate(/obj/structure/table) in loc))
 				return
 			make_new_table(material.tableVariant)
 		else if(istype(material, /obj/item/stack/sheet))
 			if(material.get_amount() < 1)
-				to_chat(user, span_warning("You need one sheet to do this!"))
+				to_chat(user, SPAN_WARNING("You need one sheet to do this!"))
 				return
 			if(locate(/obj/structure/table) in loc)
-				to_chat(user, span_warning("There's already a table built here!"))
+				to_chat(user, SPAN_WARNING("There's already a table built here!"))
 				return
-			to_chat(user, span_notice("You start adding [material] to [src]..."))
+			to_chat(user, SPAN_NOTICE("You start adding [material] to [src]..."))
 			if(!do_after(user, 2 SECONDS, target = src) || !material.use(1) || (locate(/obj/structure/table) in loc))
 				return
 			var/list/material_list = list()
@@ -79,10 +79,6 @@
 	new framestack(get_turf(src), framestackamount)
 	qdel(src)
 
-/obj/structure/table_frame/narsie_act()
-	new /obj/structure/table_frame/wood(src.loc)
-	qdel(src)
-
 /*
  * Wooden Frames
  */
@@ -91,25 +87,20 @@
 	name = "wooden table frame"
 	desc = "Four wooden legs with four framing wooden rods for a wooden table. You could easily pass through this."
 	icon_state = "wood_frame"
-	framestack = /obj/item/stack/sheet/mineral/wood
+	framestack = /obj/item/stack/sheet/wood
 	framestackamount = 2
 	resistance_flags = FLAMMABLE
 
 /obj/structure/table_frame/wood/attackby(obj/item/I, mob/user, params)
-	if (isstack(I))
+	if (istype(I, /obj/item/stack))
 		var/obj/item/stack/material = I
 		var/toConstruct // stores the table variant
 		var/carpet_type // stores the carpet type used for construction in case of poker tables
-		if(istype(I, /obj/item/stack/sheet/mineral/wood))
-			toConstruct = /obj/structure/table/wood
-		else if(istype(I, /obj/item/stack/tile/carpet))
-			toConstruct = /obj/structure/table/wood/poker
-			carpet_type = I.type
 		if (toConstruct)
 			if(material.get_amount() < 1)
-				to_chat(user, span_warning("You need one [material.name] sheet to do this!"))
+				to_chat(user, SPAN_WARNING("You need one [material.name] sheet to do this!"))
 				return
-			to_chat(user, span_notice("You start adding [material] to [src]..."))
+			to_chat(user, SPAN_NOTICE("You start adding [material] to [src]..."))
 			if(do_after(user, 20, target = src) && material.use(1))
 				make_new_table(toConstruct, null, carpet_type)
 	else

@@ -15,7 +15,7 @@
 
 /datum/surgery/advanced/pacify/can_start(mob/user, mob/living/carbon/target)
 	. = ..()
-	var/obj/item/organ/internal/brain/target_brain = target.getorganslot(ORGAN_SLOT_BRAIN)
+	var/obj/item/organ/brain/target_brain = target.getorganslot(ORGAN_SLOT_BRAIN)
 	if(!target_brain)
 		return FALSE
 
@@ -26,28 +26,22 @@
 		TOOL_SCREWDRIVER = 35,
 		/obj/item/pen = 15)
 	time = 40
-	preop_sound = 'sound/surgery/hemostat1.ogg'
-	success_sound = 'sound/surgery/hemostat1.ogg'
-	failure_sound = 'sound/surgery/organ2.ogg'
 
 /datum/surgery_step/pacify/preop(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery)
-	display_results(user, target, span_notice("You begin to pacify [target]..."),
-		span_notice("[user] begins to fix [target]'s brain."),
-		span_notice("[user] begins to perform surgery on [target]'s brain."))
-	display_pain(target, "Your head pounds with unimaginable pain!")
+	display_results(user, target, SPAN_NOTICE("You begin to pacify [target]..."),
+		SPAN_NOTICE("[user] begins to fix [target]'s brain."),
+		SPAN_NOTICE("[user] begins to perform surgery on [target]'s brain."))
 
 /datum/surgery_step/pacify/success(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery, default_display_results = FALSE)
-	display_results(user, target, span_notice("You succeed in neurologically pacifying [target]."),
-		span_notice("[user] successfully fixes [target]'s brain!"),
-		span_notice("[user] completes the surgery on [target]'s brain."))
-	display_pain(target, "Your head pounds... the concept of violence flashes in your head, and nearly makes you hurl!")
+	display_results(user, target, SPAN_NOTICE("You succeed in neurologically pacifying [target]."),
+		SPAN_NOTICE("[user] successfully fixes [target]'s brain!"),
+		SPAN_NOTICE("[user] completes the surgery on [target]'s brain."))
 	target.gain_trauma(/datum/brain_trauma/severe/pacifism, TRAUMA_RESILIENCE_LOBOTOMY)
 	return ..()
 
 /datum/surgery_step/pacify/failure(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery)
-	display_results(user, target, span_notice("You screw up, rewiring [target]'s brain the wrong way around..."),
-			span_warning("[user] screws up, causing brain damage!"),
-			span_notice("[user] completes the surgery on [target]'s brain."))
-	display_pain(target, "Your head pounds, and it feels like it's getting worse!")
+	display_results(user, target, SPAN_NOTICE("You screw up, rewiring [target]'s brain the wrong way around..."),
+			SPAN_WARNING("[user] screws up, causing brain damage!"),
+			SPAN_NOTICE("[user] completes the surgery on [target]'s brain."))
 	target.gain_trauma_type(BRAIN_TRAUMA_SEVERE, TRAUMA_RESILIENCE_LOBOTOMY)
 	return FALSE

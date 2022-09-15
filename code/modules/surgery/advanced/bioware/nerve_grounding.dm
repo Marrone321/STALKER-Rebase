@@ -18,16 +18,14 @@
 	time = 155
 
 /datum/surgery_step/ground_nerves/preop(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery)
-	display_results(user, target, span_notice("You start rerouting [target]'s nerves."),
-		span_notice("[user] starts rerouting [target]'s nerves."),
-		span_notice("[user] starts manipulating [target]'s nervous system."))
-	display_pain(target, "Your entire body goes numb!")
+	display_results(user, target, SPAN_NOTICE("You start rerouting [target]'s nerves."),
+		SPAN_NOTICE("[user] starts rerouting [target]'s nerves."),
+		SPAN_NOTICE("[user] starts manipulating [target]'s nervous system."))
 
 /datum/surgery_step/ground_nerves/success(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery, default_display_results = FALSE)
-	display_results(user, target, span_notice("You successfully reroute [target]'s nervous system!"),
-		span_notice("[user] successfully reroutes [target]'s nervous system!"),
-		span_notice("[user] finishes manipulating [target]'s nervous system."))
-	display_pain(target, "You regain feeling in your body! You feel energzed!")
+	display_results(user, target, SPAN_NOTICE("You successfully reroute [target]'s nervous system!"),
+		SPAN_NOTICE("[user] successfully reroutes [target]'s nervous system!"),
+		SPAN_NOTICE("[user] finishes manipulating [target]'s nervous system."))
 	new /datum/bioware/grounded_nerves(target)
 	return ..()
 

@@ -1,55 +1,67 @@
 //Speech verbs.
 
-///what clients use to speak. when you type a message into the chat bar in say mode, this is the first thing that goes off serverside.
+///Say verb
 /mob/verb/say_verb(message as text)
 	set name = "Say"
 	set category = "IC"
-	set instant = TRUE
-
+	if(typing_indicator) //For async typing indicator
+		set_typing_indicator(FALSE)
 	if(GLOB.say_disabled) //This is here to try to identify lag problems
-		to_chat(usr, span_danger("Speech is currently admin-disabled."))
+		to_chat(usr, SPAN_DANGER("Speech is currently admin-disabled."))
 		return
-
-	//queue this message because verbs are scheduled to process after SendMaps in the tick and speech is pretty expensive when it happens.
-	//by queuing this for next tick the mc can compensate for its cost instead of having speech delay the start of the next tick
 	if(message)
-		QUEUE_OR_CALL_VERB_FOR(VERB_CALLBACK(src, /atom/movable/proc/say, message), SSspeech_controller)
+		say(message)
 
 ///Whisper verb
 /mob/verb/whisper_verb(message as text)
 	set name = "Whisper"
 	set category = "IC"
-	set instant = TRUE
-
+	if(typing_indicator) //For async typing indicator
+		set_typing_indicator(FALSE)
 	if(GLOB.say_disabled) //This is here to try to identify lag problems
-		to_chat(usr, span_danger("Speech is currently admin-disabled."))
+		to_chat(usr, SPAN_DANGER("Speech is currently admin-disabled."))
 		return
+	whisper(message)
 
-	if(message)
-		QUEUE_OR_CALL_VERB_FOR(VERB_CALLBACK(src, /mob/proc/whisper, message), SSspeech_controller)
-
-/**
- * Whisper a message.
- *
- * Basic level implementation just speaks the message, nothing else.
- */
-/mob/proc/whisper(message, bubble_type, list/spans = list(), sanitize = TRUE, datum/language/language, ignore_spam = FALSE, forced, filterproof)
-	if(!message)
-		return
-	say(message, language = language)
+///whisper a message
+/mob/proc/whisper(message, datum/language/language=null)
+	say(message, language) //only living mobs actually whisper, everything else just talks
 
 ///The me emote verb
 /mob/verb/me_verb(message as text)
 	set name = "Me"
 	set category = "IC"
-
+	if(typing_indicator) //For async typing indicator
+		set_typing_indicator(FALSE)
 	if(GLOB.say_disabled) //This is here to try to identify lag problems
-		to_chat(usr, span_danger("Speech is currently admin-disabled."))
+		to_chat(usr, SPAN_DANGER("Speech is currently admin-disabled."))
 		return
 
 	message = trim(copytext_char(sanitize(message), 1, MAX_MESSAGE_LEN))
 
-	QUEUE_OR_CALL_VERB_FOR(VERB_CALLBACK(src, /mob/proc/emote, "me", 1, message, TRUE), SSspeech_controller)
+	usr.emote("me",1,message,TRUE)
+
+/mob/verb/subtle_verb(message as text)
+	set name = "Subtle"
+	set category = "IC"
+	if(GLOB.say_disabled) //This is here to try to identify lag problems
+		to_chat(usr, SPAN_DANGER("Speech is currently admin-disabled."))
+		return
+
+	message = trim(copytext_char(sanitize(message), 1, MAX_MESSAGE_LEN))
+
+	usr.emote("subtle",1,message,TRUE)
+
+/mob/verb/subtler_verb(message as text)
+	set name = "Subtler Anti-Ghost"
+	set category = "IC"
+	if(GLOB.say_disabled) //This is here to try to identify lag problems
+		to_chat(usr, SPAN_DANGER("Speech is currently admin-disabled."))
+		return
+
+	message = trim(copytext_char(sanitize(message), 1, MAX_MESSAGE_LEN))
+
+	usr.emote("subtler",1,message,TRUE)
 
 ///Speak as a dead person (ghost etc)
 /mob/proc/say_dead(message)
@@ -57,7 +69,7 @@
 	var/alt_name = ""
 
 	if(GLOB.say_disabled) //This is here to try to identify lag problems
-		to_chat(usr, span_danger("Speech is currently admin-disabled."))
+		to_chat(usr, SPAN_DANGER("Speech is currently admin-disabled."))
 		return
 
 	var/jb = is_banned_from(ckey, "Deadchat")
@@ -65,19 +77,15 @@
 		return
 
 	if(jb)
-		to_chat(src, span_danger("You have been banned from deadchat."))
+		to_chat(src, SPAN_DANGER("You have been banned from deadchat."))
 		return
+
+
 
 	if (src.client)
 		if(src.client.prefs.muted & MUTE_DEADCHAT)
-			to_chat(src, span_danger("You cannot talk in deadchat (muted)."))
+			to_chat(src, SPAN_DANGER("You cannot talk in deadchat (muted)."))
 			return
-
-		if(SSlag_switch.measures[SLOWMODE_SAY] && !HAS_TRAIT(src, TRAIT_BYPASS_MEASURES) && src == usr)
-			if(!COOLDOWN_FINISHED(client, say_slowmode))
-				to_chat(src, span_warning("Message not sent due to slowmode. Please wait [SSlag_switch.slowmode_cooldown/10] seconds between messages.\n\"[message]\""))
-				return
-			COOLDOWN_START(client, say_slowmode, SSlag_switch.slowmode_cooldown)
 
 		if(src.client.handle_spam_prevention(message,MUTE_DEADCHAT))
 			return
@@ -93,7 +101,7 @@
 		if(name != real_name)
 			alt_name = " (died as [real_name])"
 
-	var/spanned = say_quote(say_emphasis(message))
+	var/spanned = say_quote(message)
 	var/source = "<span class='game'><span class='prefix'>DEAD:</span> <span class='name'>[name]</span>[alt_name]"
 	var/rendered = " <span class='message'>[emoji_parse(spanned)]</span></span>"
 	log_talk(message, LOG_SAY, tag="DEAD")
@@ -116,19 +124,6 @@
 
 ///The amount of items we are looking for in the message
 #define MESSAGE_MODS_LENGTH 6
-
-/mob/proc/check_for_custom_say_emote(message, list/mods)
-	var/customsaypos = findtext(message, "*")
-	if(!customsaypos)
-		return message
-	if (is_banned_from(ckey, "Emote"))
-		return copytext(message, customsaypos + 1)
-	mods[MODE_CUSTOM_SAY_EMOTE] = lowertext(copytext_char(message, 1, customsaypos))
-	message = copytext(message, customsaypos + 1)
-	if (!message)
-		mods[MODE_CUSTOM_SAY_ERASE_INPUT] = TRUE
-		message = "an interesting thing to say"
-	return message
 /**
  * Extracts and cleans message of any extenstions at the begining of the message
  * Inserts the info into the passed list, returns the cleaned message

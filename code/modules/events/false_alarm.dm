@@ -1,11 +1,14 @@
 /datum/round_event_control/falsealarm
 	name = "False Alarm"
 	typepath = /datum/round_event/falsealarm
-	weight = 20
+	weight = 15
 	max_occurrences = 5
+
+	track = EVENT_TRACK_MUNDANE
+	tags = list(TAG_SPOOKY)
+
 	var/forced_type //Admin abuse
-	category = EVENT_CATEGORY_BUREAUCRATIC
-	description = "Fakes an event announcement."
+
 
 /datum/round_event_control/falsealarm/admin_setup()
 	if(!check_rights(R_FUN))
@@ -13,13 +16,13 @@
 
 	var/list/possible_types = list()
 
-	for(var/datum/round_event_control/E in SSevents.control)
+	for(var/datum/round_event_control/E in SSgamemode.control)
 		var/datum/round_event/event = E.typepath
 		if(!initial(event.fakeable))
 			continue
 		possible_types += E
 
-	forced_type = input(usr, "Select the scare.","False event") as null|anything in sort_names(possible_types)
+	forced_type = input(usr, "Select the scare.","False event") as null|anything in sortNames(possible_types)
 
 /datum/round_event_control/falsealarm/canSpawnEvent(players_amt)
 	return ..() && length(gather_false_events())
@@ -50,7 +53,7 @@
 
 /proc/gather_false_events(players_amt)
 	. = list()
-	for(var/datum/round_event_control/E in SSevents.control)
+	for(var/datum/round_event_control/E in SSgamemode.control)
 		if(istype(E, /datum/round_event_control/falsealarm))
 			continue
 		if(!E.canSpawnEvent(players_amt))

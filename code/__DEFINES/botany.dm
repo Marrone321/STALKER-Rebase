@@ -32,8 +32,6 @@
 #define MAX_TRAY_WEEDS 10
 /// Minumum plant health required for gene shears.
 #define GENE_SHEAR_MIN_HEALTH 15
-/// Minumum plant endurance required to lock a mutation with a somatoray.
-#define FLORA_GUN_MIN_ENDURANCE 20
 
 /// -- Flags for genes --
 /// Plant genes that can be removed via gene shears.
@@ -67,16 +65,18 @@
 /// Plants that have a unique effect on attack_self.
 #define ATTACK_SELF_ID (1<<6)
 
-#define GLOWSHROOM_SPREAD_BASE_DIMINISH_FACTOR 10
-#define GLOWSHROOM_SPREAD_DIMINISH_FACTOR_PER_GLOWSHROOM 0.2
-#define GLOWSHROOM_BASE_INTEGRITY 60
+/*
+// /obj/structure/cache/forage/var/plant_status defines
 
-// obj/machinery/hydroponics/var/plant_status defines
+#define NO_PLANT "missing"
+#define PLANT_DEAD "dead"
+#define PLANT_GROWING "growing"
+#define PLANT_HARVESTABLE "harvestable"
 
-#define HYDROTRAY_NO_PLANT "missing"
-#define HYDROTRAY_PLANT_DEAD "dead"
-#define HYDROTRAY_PLANT_GROWING "growing"
-#define HYDROTRAY_PLANT_HARVESTABLE "harvestable"
-
-/// A list of possible egg laying descriptions
-#define EGG_LAYING_MESSAGES list("lays an egg.","squats down and croons.","begins making a huge racket.","begins clucking raucously.")
+///from base of /obj/machinery/hydroponics/set_seed() : (obj/item/new_seed)
+#define COMSIG_SET_SEED "set_seed"
+///from base of /obj/machinery/hydroponics/set_plant_status() : (new_value)
+#define COMSIG_SET_PLANT_STATUS "set_plant_status"
+///from base of /obj/machinery/hydroponics/update_tray() : (mob/user, product_count)
+#define COMSIG_ON_HARVEST "on_harvest"
+*/

@@ -82,12 +82,6 @@
 	severity = 0
 	. = ..()
 
-/atom/movable/screen/fullscreen/emergency_meeting
-	icon_state = "emergency_meeting"
-	show_when_dead = TRUE
-	layer = CURSE_LAYER
-	plane = SPLASHSCREEN_PLANE
-
 /atom/movable/screen/fullscreen/brute
 	icon_state = "brutedamageoverlay"
 	layer = UI_DAMAGE_LAYER
@@ -117,10 +111,6 @@
 	layer = CURSE_LAYER
 	plane = FULLSCREEN_PLANE
 
-/atom/movable/screen/fullscreen/ivanov_display
-	icon_state = "ivanov"
-	alpha = 180
-
 /atom/movable/screen/fullscreen/impaired
 	icon_state = "impairedoverlay"
 
@@ -128,11 +118,6 @@
 	icon = 'icons/hud/screen_gen.dmi'
 	screen_loc = "WEST,SOUTH to EAST,NORTH"
 	icon_state = "flash"
-
-/atom/movable/screen/fullscreen/flash/black
-	icon = 'icons/hud/screen_gen.dmi'
-	screen_loc = "WEST,SOUTH to EAST,NORTH"
-	icon_state = "black"
 
 /atom/movable/screen/fullscreen/flash/static
 	icon = 'icons/hud/screen_gen.dmi'
@@ -149,14 +134,6 @@
 	screen_loc = "WEST,SOUTH to EAST,NORTH"
 	icon_state = "flash"
 	alpha = 80
-
-/atom/movable/screen/fullscreen/bluespace_sparkle
-	icon = 'icons/effects/effects.dmi'
-	screen_loc = "WEST,SOUTH to EAST,NORTH"
-	icon_state = "shieldsparkles"
-	layer = FLASH_LAYER
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	show_when_dead = TRUE
 
 /atom/movable/screen/fullscreen/color_vision/green
 	color = "#00ff00"

@@ -15,26 +15,32 @@
 	if (!(lube & GALOSHES_DONT_HELP))
 		if(HAS_TRAIT(src, TRAIT_NOSLIPWATER))
 			return FALSE
-		if(shoes && isclothing(shoes))
+		if(shoes && istype(shoes, /obj/item/clothing))
 			var/obj/item/clothing/CS = shoes
 			if (CS.clothing_flags & NOSLIP)
 				return FALSE
 	if (lube & SLIDE_ICE)
-		if(shoes && isclothing(shoes))
+		if(shoes && istype(shoes, /obj/item/clothing))
 			var/obj/item/clothing/CS = shoes
 			if (CS.clothing_flags & NOSLIP_ICE)
 				return FALSE
 	return ..()
 
+/mob/living/carbon/human/mob_has_gravity()
+	. = ..()
+	if(!.)
+		if(mob_negates_gravity())
+			. = 1
+
 /mob/living/carbon/human/mob_negates_gravity()
-	return dna.species.negates_gravity(src) || ..()
+	return ((shoes?.negates_gravity()) || (dna.species.negates_gravity(src)))
 
 /mob/living/carbon/human/Move(NewLoc, direct)
 	. = ..()
 	if(shoes && body_position == STANDING_UP && loc == NewLoc && has_gravity(loc))
 		SEND_SIGNAL(shoes, COMSIG_SHOES_STEP_ACTION)
 
-/mob/living/carbon/human/Process_Spacemove(movement_dir = 0, continuous_move = FALSE)
-	if(movement_type & FLYING || HAS_TRAIT(src, TRAIT_FREE_FLOAT_MOVEMENT))
+/mob/living/carbon/human/Process_Spacemove(movement_dir = 0) //Temporary laziness thing. Will change to handles by species reee.
+	if(dna.species.space_move(src))
 		return TRUE
 	return ..()

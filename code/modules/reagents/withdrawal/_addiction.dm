@@ -14,12 +14,6 @@
 	var/high_sanity_addiction_loss = 2
 	///Amount of drugs you need in your system to be satisfied
 	var/addiction_relief_treshold = MIN_ADDICTION_REAGENT_AMOUNT
-	///moodlet for light withdrawal
-	var/light_withdrawal_moodlet = /datum/mood_event/withdrawal_light
-	///moodlet for medium withdrawal
-	var/medium_withdrawal_moodlet = /datum/mood_event/withdrawal_medium
-	///moodlet for severe withdrawal
-	var/severe_withdrawal_moodlet = /datum/mood_event/withdrawal_severe
 
 ///Called when you gain addiction points somehow. Takes a mind as argument and sees if you gained the addiction
 /datum/addiction/proc/on_gain_addiction_points(datum/mind/victim_mind)
@@ -35,7 +29,7 @@
 /datum/addiction/proc/become_addicted(datum/mind/victim_mind)
 	LAZYSET(victim_mind.active_addictions, type, 1) //Start at first cycle.
 	SEND_SIGNAL(victim_mind.current, COMSIG_CARBON_GAIN_ADDICTION, victim_mind)
-	victim_mind.current.log_message("has become addicted to [name].", LOG_GAME)
+	log_game("[key_name(victim_mind.current)] has become addicted to [name].")
 
 
 ///Called when you lose addiction poitns somehow. Takes a mind as argument and sees if you lost the addiction
@@ -49,9 +43,8 @@
 	return TRUE
 
 /datum/addiction/proc/lose_addiction(datum/mind/victim_mind)
-	victim_mind.current.clear_mood_event("[type]_addiction")
 	SEND_SIGNAL(victim_mind.current, COMSIG_CARBON_LOSE_ADDICTION, victim_mind)
-	to_chat(victim_mind.current, span_notice("You feel like you've gotten over your need for drugs."))
+	to_chat(victim_mind.current, SPAN_NOTICE("You feel like you've gotten over your need for drugs."))
 	end_withdrawal(victim_mind.current)
 	LAZYREMOVE(victim_mind.active_addictions, type)
 
@@ -106,31 +99,30 @@
 
 /// Called when addiction enters stage 1
 /datum/addiction/proc/withdrawal_enters_stage_1(mob/living/carbon/affected_carbon)
-	affected_carbon.add_mood_event("[type]_addiction", light_withdrawal_moodlet, name)
+	return
 
 /// Called when addiction enters stage 2
 /datum/addiction/proc/withdrawal_enters_stage_2(mob/living/carbon/affected_carbon)
-	affected_carbon.add_mood_event("[type]_addiction", medium_withdrawal_moodlet, name)
+	return
 
 /// Called when addiction enters stage 3
 /datum/addiction/proc/withdrawal_enters_stage_3(mob/living/carbon/affected_carbon)
-	affected_carbon.add_mood_event("[type]_addiction", severe_withdrawal_moodlet, name)
+	return
 
 /datum/addiction/proc/end_withdrawal(mob/living/carbon/affected_carbon)
 	LAZYSET(affected_carbon.mind.active_addictions, type, 1) //Keeps withdrawal at first cycle.
-	affected_carbon.clear_mood_event("[type]_addiction")
 
 /// Called when addiction is in stage 1 every process
 /datum/addiction/proc/withdrawal_stage_1_process(mob/living/carbon/affected_carbon, delta_time)
 	if(DT_PROB(5, delta_time))
-		to_chat(affected_carbon, span_danger("[withdrawal_stage_messages[1]]"))
+		to_chat(affected_carbon, SPAN_DANGER("[withdrawal_stage_messages[1]]"))
 
 /// Called when addiction is in stage 2 every process
 /datum/addiction/proc/withdrawal_stage_2_process(mob/living/carbon/affected_carbon, delta_time)
 	if(DT_PROB(10, delta_time) )
-		to_chat(affected_carbon, span_danger("[withdrawal_stage_messages[2]]"))
+		to_chat(affected_carbon, SPAN_DANGER("[withdrawal_stage_messages[2]]"))
 
 /// Called when addiction is in stage 3 every process
 /datum/addiction/proc/withdrawal_stage_3_process(mob/living/carbon/affected_carbon, delta_time)
 	if(DT_PROB(15, delta_time))
-		to_chat(affected_carbon, span_danger("[withdrawal_stage_messages[3]]"))
+		to_chat(affected_carbon, SPAN_DANGER("[withdrawal_stage_messages[3]]"))

@@ -1,17 +1,23 @@
+
 //Here are the procs used to modify status effects of a mob.
+//The effects include: stun, knockdown, unconscious, sleeping, resting, jitteriness, dizziness, ear damage,
+// eye damage, eye_blind, eye_blurry, druggy, TRAIT_BLIND trait, and TRAIT_NEARSIGHT trait.
+
+///Set the jitter of a mob
+/mob/proc/Jitter(amount)
+	jitteriness = max(jitteriness,amount,0)
 
 /**
-* Set drowsyness of a mob to passed value
-*/
-/mob/proc/set_drowsyness(amount)
-	drowsyness = max(amount, 0)
-
-/**
- * Adds passed value to the drowsyness of a mob
+ * Set the dizzyness of a mob to a passed in amount
+ *
+ * Except if dizziness is already higher in which case it does nothing
  */
-/mob/proc/adjust_drowsyness(amount)
-	drowsyness = max(drowsyness + amount, 0)
+/mob/proc/Dizzy(amount)
+	dizziness = max(dizziness,amount,0)
 
+///FOrce set the dizzyness of a mob
+/mob/proc/set_dizziness(amount)
+	dizziness = max(amount, 0)
 
 ///Blind a mobs eyes by amount
 /mob/proc/blind_eyes(amount)
@@ -40,13 +46,13 @@
 /// proc that adds and removes blindness overlays when necessary
 /mob/proc/update_blindness()
 	switch(stat)
-		if(CONSCIOUS, SOFT_CRIT)
+		if(CONSCIOUS)
 			if(HAS_TRAIT(src, TRAIT_BLIND) || eye_blind)
-				throw_alert(ALERT_BLIND, /atom/movable/screen/alert/blind)
+				throw_alert("blind", /atom/movable/screen/alert/blind)
 				do_set_blindness(TRUE)
 			else
 				do_set_blindness(FALSE)
-		if(UNCONSCIOUS, HARD_CRIT)
+		if(UNCONSCIOUS)
 			do_set_blindness(TRUE)
 		if(DEAD)
 			do_set_blindness(FALSE)
@@ -59,7 +65,7 @@
 		// You are blind why should you be able to make out details like color, only shapes near you
 		add_client_colour(/datum/client_colour/monochrome/blind)
 	else
-		clear_alert(ALERT_BLIND)
+		clear_alert("blind")
 		clear_fullscreen("blind")
 		remove_client_colour(/datum/client_colour/monochrome/blind)
 
@@ -93,6 +99,14 @@
 		game_plane_master_controller.add_filter("eye_blur", 1, gauss_blur_filter(clamp(eye_blurry * 0.1, 0.6, 3)))
 	else
 		game_plane_master_controller.remove_filter("eye_blur")
+
+///Adjust the drugginess of a mob
+/mob/proc/adjust_drugginess(amount)
+	return
+
+///Set the drugginess of a mob
+/mob/proc/set_drugginess(amount)
+	return
 
 ///Adjust the disgust level of a mob
 /mob/proc/adjust_disgust(amount)

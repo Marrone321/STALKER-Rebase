@@ -4,16 +4,16 @@
 /datum/unit_test/servingtray/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human)
 	var/obj/structure/table/the_table = allocate(/obj/structure/table)
-	var/obj/item/storage/bag/tray/test_tray = allocate(/obj/item/storage/bag/tray)
-	var/obj/item/food/banana = allocate(/obj/item/food/rationpack)
+	var/obj/item/storage/tray/test_tray = allocate(/obj/item/storage/tray)
+	var/obj/item/reagent_containers/food/banana = allocate(/obj/item/food/rationpack)
 	var/obj/item/food/the_bread = allocate(/obj/item/food/breadslice)
-	var/obj/item/food/sugarcookie = allocate(/obj/item/food/cookie/sugar)
-	var/obj/item/clothing/under/jumpsuit = allocate(/obj/item/clothing/under/color/black)
+	var/obj/item/reagent_containers/food/sugarcookie = allocate(/obj/item/food/cookie/sugar)
+	var/obj/item/clothing/under/jumpsuit = allocate(/obj/item/clothing/under)
 
 	TEST_ASSERT_EQUAL((the_bread in test_tray.contents), FALSE, "The bread is on the serving tray at test start")
 
 	// set the tray to single item mode the dirty way
-	var/datum/storage/tray_storage = test_tray.atom_storage
+	var/datum/component/storage/tray_storage = test_tray.GetComponent(/datum/component/storage)
 	tray_storage.collection_mode = COLLECT_ONE
 
 	test_tray.pre_attack(the_bread, human)

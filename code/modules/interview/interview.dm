@@ -60,11 +60,15 @@
 	GLOB.interviews.approved_ckeys |= owner_ckey
 	GLOB.interviews.close_interview(src)
 	log_admin_private("[key_name(approved_by)] has approved interview #[id] for [owner_ckey][!owner ? "(DC)": ""].")
-	message_admins(span_adminnotice("[key_name(approved_by)] has approved [link_self()] for [owner_ckey][!owner ? "(DC)": ""]."))
+	message_admins(SPAN_ADMINNOTICE("[key_name(approved_by)] has approved [link_self()] for [owner_ckey][!owner ? "(DC)": ""]."))
 	if (owner)
+		/// Register the interview accepted in the users prefs
+		owner.prefs.interview_accepted = TRUE
+		owner.prefs.save_preferences()
+
 		SEND_SOUND(owner, sound('sound/effects/adminhelp.ogg'))
 		to_chat(owner, "<font color='red' size='4'><b>-- Interview Update --</b></font>" \
-			+ "\n[span_adminsay("Your interview was approved, you will now be reconnected in 5 seconds.")]", confidential = TRUE)
+			+ "\n[SPAN_ADMINSAY("Your interview was approved, you will now be reconnected in 5 seconds.")]", confidential = TRUE)
 		addtimer(CALLBACK(src, .proc/reconnect_owner), 50)
 
 /**
@@ -79,7 +83,7 @@
 	GLOB.interviews.close_interview(src)
 	GLOB.interviews.cooldown_ckeys |= owner_ckey
 	log_admin_private("[key_name(denied_by)] has denied interview #[id] for [owner_ckey][!owner ? "(DC)": ""].")
-	message_admins(span_adminnotice("[key_name(denied_by)] has denied [link_self()] for [owner_ckey][!owner ? "(DC)": ""]."))
+	message_admins(SPAN_ADMINNOTICE("[key_name(denied_by)] has denied [link_self()] for [owner_ckey][!owner ? "(DC)": ""]."))
 	addtimer(CALLBACK(GLOB.interviews, /datum/interview_manager.proc/release_from_cooldown, owner_ckey), 180)
 	if (owner)
 		SEND_SOUND(owner, sound('sound/effects/adminhelp.ogg'))
@@ -165,4 +169,4 @@
  * Generates a clickable link to open this interview
  */
 /datum/interview/proc/link_self()
-	return "<a href='?_src_=holder;[HrefToken(forceGlobal = TRUE)];interview=[REF(src)]'>Interview #[id]</a>"
+	return "<a href='?_src_=holder;[HrefToken(TRUE)];interview=[REF(src)]'>Interview #[id]</a>"

@@ -6,9 +6,6 @@
 #define GIRDER_NORMAL 0
 #define GIRDER_REINF_STRUTS 1
 #define GIRDER_REINF 2
-#define GIRDER_DISPLACED 3
-#define GIRDER_DISASSEMBLED 4
-#define GIRDER_TRAM 5
 
 //rwall construction states
 #define INTACT 0
@@ -37,11 +34,6 @@
 #define AIRLOCK_ASSEMBLY_NEEDS_ELECTRONICS 1
 #define AIRLOCK_ASSEMBLY_NEEDS_SCREWDRIVER 2
 
-//blast door (de)construction states
-#define BLASTDOOR_NEEDS_WIRES 0
-#define BLASTDOOR_NEEDS_ELECTRONICS 1
-#define BLASTDOOR_FINISHED 2
-
 //default_unfasten_wrench() return defines
 #define CANT_UNFASTEN 0
 #define FAILED_UNFASTEN 1
@@ -63,10 +55,6 @@
 #define FLOODLIGHT_NEEDS_WIRES 0
 #define FLOODLIGHT_NEEDS_LIGHTS 1
 #define FLOODLIGHT_NEEDS_SECURING 2
-
-// Stationary gas tanks
-#define TANK_FRAME 0
-#define TANK_PLATING_UNSECURED 1
 
 //other construction-related things
 
@@ -96,10 +84,8 @@
 #define CAT_EGG "Egg-Based Food"
 #define CAT_LIZARD "Lizard Food"
 #define CAT_MEAT "Meats"
-#define CAT_SEAFOOD "Seafood"
 #define CAT_MISCFOOD "Misc. Food"
 #define CAT_MEXICAN "Mexican Food"
-#define CAT_MOTH "Mothic Food"
 #define CAT_PASTRY "Pastries"
 #define CAT_PIE "Pies"
 #define CAT_PIZZA "Pizzas"
@@ -110,35 +96,9 @@
 #define CAT_ICE "Frozen"
 #define CAT_DRINK "Drinks"
 #define CAT_CHEMISTRY "Chemistry"
-#define CAT_ATMOSPHERIC "Atmospheric"
-#define CAT_STRUCTURE "Structures"
 
-//rcd modes
-#define RCD_FLOORWALL 0
-#define RCD_AIRLOCK 1
-#define RCD_DECONSTRUCT 2
-#define RCD_WINDOWGRILLE 3
-#define RCD_MACHINE 4
-#define RCD_COMPUTER 5
-#define RCD_FURNISHING 6
+/// How many sheets does it cost to make a fulltile window
+#define SHEETS_FOR_FULLTILE_WINDOW 2
 
-#define RCD_UPGRADE_FRAMES (1<<0)
-#define RCD_UPGRADE_SIMPLE_CIRCUITS (1<<1)
-#define RCD_UPGRADE_SILO_LINK (1<<2)
-#define RCD_UPGRADE_FURNISHING (1<<3)
-
-#define RPD_UPGRADE_UNWRENCH (1<<0)
-
-#define RCD_WINDOW_FULLTILE "full tile"
-#define RCD_WINDOW_DIRECTIONAL "directional"
-#define RCD_WINDOW_NORMAL "glass"
-#define RCD_WINDOW_REINFORCED "reinforced glass"
-
-#define RCD_MEMORY_WALL 1
-#define RCD_MEMORY_WINDOWGRILLE 2
-
-// How much faster to use the RCD when on a tile with memory
-#define RCD_MEMORY_SPEED_BUFF 5
-
-/// How much less resources the RCD uses when reconstructing
-#define RCD_MEMORY_COST_BUFF 8
+/// How much wood does it cost to construct a sauna oven.
+#define SAUNA_OVEN_WOOD_COST 20

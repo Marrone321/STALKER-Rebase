@@ -5,7 +5,7 @@
 	gender= PLURAL
 	name = "paint"
 	desc = "Used to recolor floors and walls. Can be removed by the janitor."
-	icon = 'icons/obj/weapons/items_and_weapons.dmi'
+	icon = 'icons/obj/items_and_weapons.dmi'
 	icon_state = "paint_neutral"
 	inhand_icon_state = "paintcan"
 	w_class = WEIGHT_CLASS_NORMAL
@@ -15,6 +15,10 @@
 	var/paint_color = COLOR_WHITE
 	/// How many uses are left
 	var/paintleft = 10
+
+/obj/item/paint/examine(mob/user)
+	. = ..()
+	. += SPAN_NOTICE("Paint wall stripes by right clicking a walls.")
 
 /obj/item/paint/red
 	name = "red paint"
@@ -55,6 +59,18 @@
 	gender = PLURAL
 	name = "adaptive paint"
 	icon_state = "paint_neutral"
+	custom_price = PAYCHECK_HARD * 2 //200 bucks for premium paint
+
+/obj/item/paint/anycolor/examine(mob/user)
+	. = ..()
+	. += SPAN_NOTICE("Choose a basic color by using the paint.")
+	. += SPAN_NOTICE("Choose any color by alt-clicking the paint.")
+
+/obj/item/paint/anycolor/AltClick(mob/living/user)
+	var/new_paint_color = input(user, "Choose new paint color", "Paint Color", paint_color) as color|null
+	if(new_paint_color)
+		paint_color = new_paint_color
+		icon_state = "paint_neutral"
 
 /obj/item/paint/anycolor/attack_self(mob/user)
 	var/list/possible_colors = list(
@@ -102,28 +118,41 @@
 		return FALSE
 	return TRUE
 
-/obj/item/paint/afterattack(atom/target, mob/user, proximity)
+/obj/item/paint/afterattack(atom/target, mob/user, proximity, params)
 	. = ..()
+	if(.)
+		return
 	if(!proximity)
 		return
 	if(paintleft <= 0)
 		icon_state = "paint_empty"
 		return
 	if(!isturf(target) || isspaceturf(target))
-		return
+		return TRUE
 	target.add_atom_colour(paint_color, WASHABLE_COLOUR_PRIORITY)
 
-/obj/item/paint/paint_remover
-	gender = PLURAL
+/obj/item/paint_remover
+	gender =  PLURAL
 	name = "paint remover"
 	desc = "Used to remove color from anything."
+	icon = 'icons/obj/items_and_weapons.dmi'
 	icon_state = "paint_neutral"
+	inhand_icon_state = "paintcan"
+	w_class = WEIGHT_CLASS_NORMAL
+	resistance_flags = FLAMMABLE
+	max_integrity = 100
 
-/obj/item/paint/paint_remover/afterattack(atom/target, mob/user, proximity)
+/obj/item/paint_remover/examine(mob/user)
 	. = ..()
+	. += SPAN_NOTICE("Remove wall stripe paint by right-clicking a wall.")
+
+/obj/item/paint_remover/afterattack(atom/target, mob/user, proximity, params)
+	. = ..()
+	if(.)
+		return
 	if(!proximity)
 		return
-	if(!isturf(target) || !isobj(target))
+	if(!isturf(target) && !isobj(target))
 		return
 	if(target.color != initial(target.color))
 		target.remove_atom_colour(WASHABLE_COLOUR_PRIORITY)

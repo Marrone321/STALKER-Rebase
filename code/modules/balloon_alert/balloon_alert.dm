@@ -9,10 +9,10 @@
 #define BALLOON_TEXT_CHAR_LIFETIME_INCREASE_MIN 10
 
 /// Creates text that will float from the atom upwards to the viewer.
-/atom/proc/balloon_alert(mob/viewer, text)
+/atom/proc/balloon_alert(mob/viewer, text, chat_text = null)
 	SHOULD_NOT_SLEEP(TRUE)
 
-	INVOKE_ASYNC(src, .proc/balloon_alert_perform, viewer, text)
+	INVOKE_ASYNC(src, .proc/balloon_alert_perform, viewer, text, chat_text)
 
 /// Create balloon alerts (text that floats up) to everything within range.
 /// Will only display to people who can see.
@@ -32,9 +32,17 @@
 // MeasureText blocks. I have no idea for how long.
 // I would've made the maptext_height update on its own, but I don't know
 // if this would look bad on laggy clients.
-/atom/proc/balloon_alert_perform(mob/viewer, text)
+/atom/proc/balloon_alert_perform(mob/viewer, text, chat_text = null)
 	var/client/viewer_client = viewer.client
 	if (isnull(viewer_client))
+		return
+
+	// User has balloon alerts disabled
+	if (viewer_client?.prefs.balloon_alerts_pref != BALLOON_ALERTS_ONLY)
+		if(!chat_text)
+			chat_text = SPAN_NOTICE("[src] - [text]")
+		to_chat(viewer, chat_text)
+	if (viewer_client?.prefs.balloon_alerts_pref == BALLOON_ALERTS_NONE)
 		return
 
 	var/bound_width = world.icon_size
@@ -42,10 +50,9 @@
 		var/atom/movable/movable_source = src
 		bound_width = movable_source.bound_width
 
-	var/image/balloon_alert = image(loc = isturf(src) ? src : get_atom_on_turf(src), layer = ABOVE_MOB_LAYER)
+	var/image/balloon_alert = image(loc = get_atom_on_turf(src), layer = ABOVE_MOB_LAYER)
 	balloon_alert.plane = BALLOON_CHAT_PLANE
 	balloon_alert.alpha = 0
-	balloon_alert.appearance_flags = RESET_ALPHA|RESET_COLOR|RESET_TRANSFORM
 	balloon_alert.maptext = MAPTEXT("<span style='text-align: center; -dm-text-outline: 1px #0005'>[text]</span>")
 	balloon_alert.maptext_x = (BALLOON_TEXT_WIDTH - bound_width) * -0.5
 	balloon_alert.maptext_height = WXH_TO_HEIGHT(viewer_client?.MeasureText(text, null, BALLOON_TEXT_WIDTH))

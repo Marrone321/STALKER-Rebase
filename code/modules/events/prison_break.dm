@@ -3,19 +3,15 @@
 	typepath = /datum/round_event/grey_tide
 	max_occurrences = 2
 	min_players = 5
-	category = EVENT_CATEGORY_ENGINEERING
-	description = "Bolts open all doors in one or more departments."
+
+	track = EVENT_TRACK_MODERATE
+	tags = list(TAG_DESTRUCTIVE, TAG_SPOOKY)
 
 /datum/round_event/grey_tide
 	announceWhen = 50
 	endWhen = 20
 	var/list/area/areasToOpen = list()
-	var/list/potential_areas = list(/area/station/command,
-									/area/station/engineering,
-									/area/station/medical,
-									/area/station/security,
-									/area/station/cargo,
-									/area/station/science)
+	var/list/potential_areas = list(/area/indoors)
 	var/severity = 1
 
 
@@ -39,22 +35,8 @@
 
 
 /datum/round_event/grey_tide/start()
-	for(var/area/A in areasToOpen)
-		for(var/obj/machinery/light/L in A)
-			L.flicker(10)
+	return
 
 /datum/round_event/grey_tide/end()
-	for(var/area/A in areasToOpen)
-		for(var/obj/O in A)
-			if(istype(O, /obj/structure/closet/secure_closet))
-				var/obj/structure/closet/secure_closet/temp = O
-				temp.locked = FALSE
-				temp.update_appearance()
-			else if(istype(O, /obj/machinery/door/airlock))
-				var/obj/machinery/door/airlock/temp = O
-				if(temp.critical_machine) //Skip doors in critical positions, such as the SM chamber.
-					continue
-				temp.prison_open()
-			else if(istype(O, /obj/machinery/status_display/door_timer))
-				var/obj/machinery/status_display/door_timer/temp = O
-				temp.timer_end(forced = TRUE)
+	return
+

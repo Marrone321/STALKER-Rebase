@@ -36,11 +36,6 @@ export const PortParameter = new Juke.Parameter({
 
 export const CiParameter = new Juke.Parameter({ type: 'boolean' });
 
-export const WarningParameter = new Juke.Parameter({
-  type: 'string[]',
-  alias: 'W',
-});
-
 export const DmMapsIncludeTarget = new Juke.Target({
   executes: async () => {
     const folders = [
@@ -65,6 +60,7 @@ export const DmTarget = new Juke.Target({
   inputs: [
     '_maps/map_files/generic/**',
     'code/**',
+    'goon/**',
     'html/**',
     'icons/**',
     'interface/**',
@@ -77,7 +73,6 @@ export const DmTarget = new Juke.Target({
   executes: async ({ get }) => {
     await DreamMaker(`${DME_NAME}.dme`, {
       defines: ['CBT', ...get(DefineParameter)],
-      warningsAsErrors: get(WarningParameter).includes('error'),
     });
   },
 });
@@ -91,7 +86,6 @@ export const DmTestTarget = new Juke.Target({
     fs.copyFileSync(`${DME_NAME}.dme`, `${DME_NAME}.test.dme`);
     await DreamMaker(`${DME_NAME}.test.dme`, {
       defines: ['CBT', 'CIBUILDING', ...get(DefineParameter)],
-      warningsAsErrors: get(WarningParameter).includes('error'),
     });
     Juke.rm('data/logs/ci', { recursive: true });
     await DreamDaemon(
@@ -110,36 +104,6 @@ export const DmTestTarget = new Juke.Target({
     }
   },
 });
-
-export const AutowikiTarget = new Juke.Target({
-  parameters: [DefineParameter],
-  dependsOn: ({ get }) => [
-    get(DefineParameter).includes('ALL_MAPS') && DmMapsIncludeTarget,
-  ],
-  outputs: [
-    'data/autowiki_edits.txt',
-  ],
-  executes: async ({ get }) => {
-    fs.copyFileSync(`${DME_NAME}.dme`, `${DME_NAME}.test.dme`);
-    await DreamMaker(`${DME_NAME}.test.dme`, {
-      defines: ['CBT', 'AUTOWIKI', ...get(DefineParameter)],
-      warningsAsErrors: get(WarningParameter).includes('error'),
-    });
-    Juke.rm('data/autowiki_edits.txt');
-    Juke.rm('data/autowiki_files', { recursive: true });
-    Juke.rm('data/logs/ci', { recursive: true });
-    await DreamDaemon(
-      `${DME_NAME}.test.dmb`,
-      '-close', '-trusted', '-verbose',
-      '-params', 'log-directory=ci',
-    );
-    Juke.rm('*.test.*');
-    if (!fs.existsSync('data/autowiki_edits.txt')) {
-      Juke.logger.error('Autowiki did not generate an output, exiting');
-      throw new Juke.ExitCode(1);
-    }
-  },
-})
 
 export const YarnTarget = new Juke.Target({
   parameters: [CiParameter],
@@ -182,8 +146,6 @@ export const TguiTarget = new Juke.Target({
     'tgui/public/tgui.bundle.js',
     'tgui/public/tgui-panel.bundle.css',
     'tgui/public/tgui-panel.bundle.js',
-    'tgui/public/tgui-say.bundle.css',
-    'tgui/public/tgui-say.bundle.js',
   ],
   executes: () => yarn('tgui:build'),
 });
@@ -192,11 +154,6 @@ export const TguiEslintTarget = new Juke.Target({
   parameters: [CiParameter],
   dependsOn: [YarnTarget],
   executes: ({ get }) => yarn('tgui:lint', !get(CiParameter) && '--fix'),
-});
-
-export const TguiPrettierTarget = new Juke.Target({
-  dependsOn: [YarnTarget],
-  executes: () => yarn('tgui:prettier'),
 });
 
 export const TguiSonarTarget = new Juke.Target({
@@ -216,7 +173,7 @@ export const TguiTestTarget = new Juke.Target({
 });
 
 export const TguiLintTarget = new Juke.Target({
-  dependsOn: [YarnTarget, TguiPrettierTarget, TguiEslintTarget, TguiTscTarget],
+  dependsOn: [YarnTarget, TguiEslintTarget, TguiTscTarget],
 });
 
 export const TguiDevTarget = new Juke.Target({
@@ -229,11 +186,6 @@ export const TguiAnalyzeTarget = new Juke.Target({
   executes: () => yarn('tgui:analyze'),
 });
 
-export const TguiBenchTarget = new Juke.Target({
-  dependsOn: [YarnTarget],
-  executes: () => yarn('tgui:bench'),
-});
-
 export const TestTarget = new Juke.Target({
   dependsOn: [DmTestTarget, TguiTestTarget],
 });
@@ -243,7 +195,7 @@ export const LintTarget = new Juke.Target({
 });
 
 export const BuildTarget = new Juke.Target({
-  dependsOn: [TguiTarget, DmTarget],
+  dependsOn: [TguiTarget, TgFontTarget, DmTarget],
 });
 
 export const ServerTarget = new Juke.Target({
@@ -307,7 +259,7 @@ const prependDefines = (...defines) => {
 };
 
 export const TgsTarget = new Juke.Target({
-  dependsOn: [TguiTarget],
+  dependsOn: [TguiTarget, TgFontTarget],
   executes: async () => {
     Juke.logger.info('Prepending TGS define');
     prependDefines('TGS');

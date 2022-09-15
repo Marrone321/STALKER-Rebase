@@ -31,14 +31,16 @@
 #define BOMB "bomb"
 /// Involved in checking wheter a disease can infect or spread. Also involved in xeno neurotoxin.
 #define BIO "bio"
+/// Involves ionizing radiation.
+#define RAD "rad"
 /// Involves fire or temperature extremes.
 #define FIRE "fire"
 /// Involves corrosive substances.
 #define ACID "acid"
+/// Involves magic.
+#define MAGIC "magic"
 /// Involved in checking the likelyhood of applying a wound to a mob.
 #define WOUND "wound"
-/// Involves being eaten
-#define CONSUME "consume"
 
 //bitflag damage defines used for suicide_act
 #define BRUTELOSS (1<<0)
@@ -54,8 +56,12 @@
 #define EFFECT_UNCONSCIOUS "unconscious"
 #define EFFECT_PARALYZE "paralyze"
 #define EFFECT_IMMOBILIZE "immobilize"
+#define EFFECT_IRRADIATE "irradiate"
+#define EFFECT_STUTTER "stutter"
+#define EFFECT_SLUR "slur"
 #define EFFECT_EYE_BLUR "eye_blur"
 #define EFFECT_DROWSY "drowsy"
+#define EFFECT_JITTER "jitter"
 
 //Bitflags defining which status effects could be or are inflicted on a mob
 #define CANSTUN (1<<0)
@@ -137,8 +143,7 @@
 #define SHOVE_SLOWDOWN_LENGTH 30
 #define SHOVE_SLOWDOWN_STRENGTH 0.85 //multiplier
 //Shove disarming item list
-GLOBAL_LIST_INIT(shove_disarming_types, typecacheof(list(
-	/obj/item/gun)))
+GLOBAL_LIST_INIT(shove_disarming_types, list())
 
 
 //Combat object defines
@@ -217,17 +222,6 @@ GLOBAL_LIST_INIT(shove_disarming_types, typecacheof(list(
 #define REFLECT_NORMAL (1<<0)
 #define REFLECT_FAKEPROJECTILE (1<<1)
 
-//His Grace.
-#define HIS_GRACE_SATIATED 0 //He hungers not. If bloodthirst is set to this, His Grace is asleep.
-#define HIS_GRACE_PECKISH 20 //Slightly hungry.
-#define HIS_GRACE_HUNGRY 60 //Getting closer. Increases damage up to a minimum of 20.
-#define HIS_GRACE_FAMISHED 100 //Dangerous. Increases damage up to a minimum of 25 and cannot be dropped.
-#define HIS_GRACE_STARVING 120 //Incredibly close to breaking loose. Increases damage up to a minimum of 30.
-#define HIS_GRACE_CONSUME_OWNER 140 //His Grace consumes His owner at this point and becomes aggressive.
-#define HIS_GRACE_FALL_ASLEEP 160 //If it reaches this point, He falls asleep and resets.
-
-#define HIS_GRACE_FORCE_BONUS 4 //How much force is gained per kill.
-
 /// ex_act() with EXPLODE_DEVASTATE severity will gib mobs with less than this much bomb armor
 #define EXPLODE_GIB_THRESHOLD 50
 
@@ -301,13 +295,3 @@ GLOBAL_LIST_INIT(shove_disarming_types, typecacheof(list(
 
 /// IF an object is weak against armor, this is the value that any present armor is multiplied by
 #define ARMOR_WEAKENED_MULTIPLIER 2
-/// Armor can't block more than this as a percentage
-#define ARMOR_MAX_BLOCK 90
-
-/// Return values used in item/melee/baton/baton_attack.
-/// Does a normal item attack.
-#define BATON_DO_NORMAL_ATTACK 1
-/// The attack has been stopped. Either because the user was clumsy or the attack was blocked.
-#define BATON_ATTACK_DONE 2
-/// The baton attack is still going. baton_effect() is called.
-#define BATON_ATTACKING 3

@@ -42,13 +42,13 @@
 	var/heart_nominee
 	switch(attempt)
 		if(1)
-			heart_nominee = tgui_input_text(src, "What was their name? Just a first or last name may be enough.", "<3?")
+			heart_nominee = input(src, "What was their name? Just a first or last name may be enough. (Leave blank to cancel)", "<3?")
 		if(2)
-			heart_nominee = tgui_input_text(src, "Try again, what was their name? Just a first or last name may be enough.", "<3?")
+			heart_nominee = input(src, "Try again, what was their name? Just a first or last name may be enough. (Leave blank to cancel)", "<3?")
 		if(3)
-			heart_nominee = tgui_input_text(src, "One more try, what was their name? Just a first or last name may be enough.", "<3?")
+			heart_nominee = input(src, "One more try, what was their name? Just a first or last name may be enough. (Leave blank to cancel)", "<3?")
 
-	if(!heart_nominee)
+	if(isnull(heart_nominee) || heart_nominee == "")
 		return
 
 	heart_nominee = lowertext(heart_nominee)
@@ -88,7 +88,7 @@
 /mob/proc/receive_heart(mob/heart_sender, duration = 24 HOURS, instant = FALSE)
 	if(!client)
 		return
-	to_chat(heart_sender, span_nicegreen("Commendation sent!"))
+	to_chat(heart_sender, SPAN_NICEGREEN("Commendation sent!"))
 	message_admins("[key_name(heart_sender)] commended [key_name(src)] [instant ? "(instant)" : ""]")
 	log_admin("[key_name(heart_sender)] commended [key_name(src)] [instant ? "(instant)" : ""]")
 	if(instant || SSticker.current_state == GAME_STATE_FINISHED)

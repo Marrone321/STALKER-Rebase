@@ -1,9 +1,7 @@
 // Hey! Listen! Update \config\lavaruinblacklist.txt with your new ruins!
 
 /datum/map_template/ruin/lavaland
-	ruin_type = ZTRAIT_LAVA_RUINS
 	prefix = "_maps/RandomRuins/LavaRuins/"
-	default_area = /area/lavaland/surface/outdoors/unexplored
 
 /datum/map_template/ruin/lavaland/biodome
 	cost = 5
@@ -204,6 +202,14 @@
 	allow_duplicates = FALSE
 	cost = 10
 
+/datum/map_template/ruin/lavaland/swarmer_boss
+	name = "Crashed Shuttle"
+	id = "swarmerboss"
+	description = "A Syndicate shuttle had an unfortunate stowaway..."
+	suffix = "lavaland_surface_swarmer_crash.dmm"
+	allow_duplicates = FALSE
+	cost = 20
+
 /datum/map_template/ruin/lavaland/miningripley
 	name = "Ripley"
 	id = "ripley"
@@ -218,14 +224,6 @@
 	description = "A ruin with dark wizards. What secret do they guard?"
 	suffix = "lavaland_surface_wizard.dmm"
 	cost = 5
-
-/datum/map_template/ruin/lavaland/strong_stone
-	name = "Strong Stone"
-	id = "strong_stone"
-	description = "A stone that seems particularly powerful."
-	suffix = "lavaland_strong_rock.dmm"
-	allow_duplicates = FALSE
-	cost = 2
 
 /datum/map_template/ruin/lavaland/puzzle
 	name = "Ancient Puzzle"
@@ -250,11 +248,3 @@
 	suffix = "lavaland_surface_elephant_graveyard.dmm"
 	allow_duplicates = FALSE
 	cost = 10
-
-/datum/map_template/ruin/lavaland/bileworm_nest
-	name = "Bileworm Nest"
-	id = "bileworm_nest"
-	description = "A small sanctuary from the harsh wilderness... if you're a bileworm, that is."
-	cost = 5
-	suffix = "lavaland_surface_bileworm_nest.dmm"
-	allow_duplicates = FALSE

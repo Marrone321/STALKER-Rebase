@@ -29,7 +29,7 @@
 		for (var/V in O.vars)
 			names += V
 
-		names = sort_list(names)
+		names = sortList(names)
 
 		variable = input("Which var?", "Var") as null|anything in names
 	else
@@ -209,18 +209,6 @@
 	. = list()
 	if (ispath(T, /mob))
 		for(var/mob/thing in world)
-			if (typecache[thing.type])
-				. += thing
-			CHECK_TICK
-
-	else if (ispath(T, /obj/machinery/door))
-		for(var/obj/machinery/door/thing in world)
-			if (typecache[thing.type])
-				. += thing
-			CHECK_TICK
-
-	else if (ispath(T, /obj/machinery))
-		for(var/obj/machinery/thing in world)
 			if (typecache[thing.type])
 				. += thing
 			CHECK_TICK

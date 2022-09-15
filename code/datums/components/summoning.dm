@@ -11,7 +11,7 @@
 	var/list/spawned_mobs = list()
 
 /datum/component/summoning/Initialize(mob_types, spawn_chance=100, max_mobs=3, spawn_delay=100, spawn_text="appears out of nowhere", spawn_sound='sound/magic/summon_magic.ogg', faction)
-	if(!isitem(parent) && !ishostile(parent) && !isgun(parent) && !ismachinery(parent) && !isstructure(parent) && !isprojectilespell(parent))
+	if(!isitem(parent) && !ishostile(parent) && !isstructure(parent))
 		return COMPONENT_INCOMPATIBLE
 
 	src.mob_types = mob_types
@@ -23,7 +23,7 @@
 	src.faction = faction
 
 /datum/component/summoning/RegisterWithParent()
-	if(ismachinery(parent) || isstructure(parent) || isgun(parent) || isprojectilespell(parent)) // turrets, etc
+	if(isstructure(parent)) // turrets, etc
 		RegisterSignal(parent, COMSIG_PROJECTILE_ON_HIT, .proc/projectile_hit)
 	else if(isitem(parent))
 		RegisterSignal(parent, COMSIG_ITEM_AFTERATTACK, .proc/item_afterattack)
@@ -47,7 +47,7 @@
 		return
 	do_spawn_mob(get_turf(target), attacker)
 
-/datum/component/summoning/proc/projectile_hit(datum/fired_from, atom/movable/firer, atom/target, Angle)
+/datum/component/summoning/proc/projectile_hit(atom/fired_from, atom/movable/firer, atom/target, Angle)
 	SIGNAL_HANDLER
 
 	do_spawn_mob(get_turf(target), firer)
@@ -70,7 +70,7 @@
 		L.faction = faction
 	RegisterSignal(L, COMSIG_LIVING_DEATH, .proc/on_spawned_death) // so we can remove them from the list, etc (for mobs with corpses)
 	playsound(spawn_location,spawn_sound, 50, TRUE)
-	spawn_location.visible_message(span_danger("[L] [spawn_text]."))
+	spawn_location.visible_message(SPAN_DANGER("[L] [spawn_text]."))
 
 /datum/component/summoning/proc/on_spawned_death(mob/killed, gibbed)
 	SIGNAL_HANDLER

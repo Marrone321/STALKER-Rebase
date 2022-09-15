@@ -53,18 +53,23 @@ Key procs
 	var/atom/owner
 
 /// Initializes, and copies in the languages from the current atom if available.
-/datum/language_holder/New(atom/_owner)
+/datum/language_holder/New(atom/_owner, datum/preferences/pref_load)
 	if(_owner && QDELETED(_owner))
 		CRASH("Langauge holder added to a qdeleting thing, what the fuck \ref[_owner]")
+	if(pref_load)
+		//If we're loading a holder from prefs, override the languages
+		understood_languages.Cut()
+		spoken_languages.Cut()
+		for(var/lang_path in pref_load.languages)
+			understood_languages[lang_path] = list(LANGUAGE_ATOM)
+			if(pref_load.languages[lang_path] == LANGUAGE_SPOKEN)
+				spoken_languages[lang_path] = list(LANGUAGE_ATOM)
 	owner = _owner
 	if(istype(owner, /datum/mind))
 		var/datum/mind/M = owner
 		if(M.current)
 			update_atom_languages(M.current)
-
-	// If we have an owner, we'll set a default selected language
-	if(owner)
-		get_selected_language()
+	get_selected_language()
 
 /datum/language_holder/Destroy()
 	QDEL_NULL(language_menu)
@@ -249,11 +254,6 @@ Key procs
 	spoken_languages = list(/datum/language/common = list(LANGUAGE_ATOM),
 							/datum/language/narsie = list(LANGUAGE_ATOM))
 
-/datum/language_holder/drone
-	understood_languages = list(/datum/language/drone = list(LANGUAGE_ATOM))
-	spoken_languages = list(/datum/language/drone = list(LANGUAGE_ATOM))
-	blocked_languages = list(/datum/language/common = list(LANGUAGE_ATOM))
-
 /datum/language_holder/drone/syndicate
 	blocked_languages = list()
 
@@ -392,11 +392,18 @@ Key procs
 	spoken_languages = list(/datum/language/common = list(LANGUAGE_ATOM),
 							/datum/language/shadowtongue = list(LANGUAGE_ATOM))
 
-/datum/language_holder/clown
+/datum/language_holder/vox
 	understood_languages = list(/datum/language/common = list(LANGUAGE_ATOM),
-								/datum/language/monkey = list(LANGUAGE_ATOM))
+								/datum/language/vox = list(LANGUAGE_ATOM))
 	spoken_languages = list(/datum/language/common = list(LANGUAGE_ATOM),
-							/datum/language/monkey = list(LANGUAGE_ATOM))
+							/datum/language/vox = list(LANGUAGE_ATOM))
+
+/datum/language_holder/teshari
+	understood_languages = list(/datum/language/common = list(LANGUAGE_ATOM),
+								/datum/language/schechi = list(LANGUAGE_ATOM))
+	spoken_languages = list(/datum/language/common = list(LANGUAGE_ATOM),
+							/datum/language/schechi = list(LANGUAGE_ATOM))
+
 /datum/language_holder/empty
 	understood_languages = list()
 	spoken_languages = list()

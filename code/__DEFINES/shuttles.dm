@@ -11,11 +11,6 @@
 #define SHUTTLE_RECHARGING "recharging"
 #define SHUTTLE_PREARRIVAL "landing"
 
-#define EMERGENCY_IDLE_OR_RECALLED (SSshuttle.emergency && ((SSshuttle.emergency.mode == SHUTTLE_IDLE) || (SSshuttle.emergency.mode == SHUTTLE_RECALL)))
-#define EMERGENCY_ESCAPED_OR_ENDGAMED (SSshuttle.emergency && ((SSshuttle.emergency.mode == SHUTTLE_ESCAPE) || (SSshuttle.emergency.mode == SHUTTLE_ENDGAME)))
-#define EMERGENCY_AT_LEAST_DOCKED (SSshuttle.emergency && SSshuttle.emergency.mode != SHUTTLE_IDLE && SSshuttle.emergency.mode != SHUTTLE_RECALL && SSshuttle.emergency.mode != SHUTTLE_CALL)
-#define EMERGENCY_PAST_POINT_OF_NO_RETURN ((SSshuttle.emergency && SSshuttle.emergency.mode == SHUTTLE_CALL && !SSshuttle.canRecall()) || EMERGENCY_AT_LEAST_DOCKED)
-
 // Shuttle return values
 #define SHUTTLE_CAN_DOCK "can_dock"
 #define SHUTTLE_NOT_A_DOCKING_PORT "not a docking port"
@@ -44,9 +39,8 @@
 #define TRANSIT_REQUEST 1
 #define TRANSIT_READY 2
 
-#define SHUTTLE_TRANSIT_BORDER 8
+#define SHUTTLE_TRANSIT_BORDER 13
 
-#define PARALLAX_LOOP_TIME 25
 #define HYPERSPACE_END_TIME 5
 
 #define HYPERSPACE_WARMUP 1
@@ -89,5 +83,4 @@
 //Shuttle unlocks
 #define SHUTTLE_UNLOCK_ALIENTECH "abductor"
 #define SHUTTLE_UNLOCK_BUBBLEGUM "bubblegum"
-#define SHUTTLE_UNLOCK_MEDISIM "holodeck"
 #define SHUTTLE_UNLOCK_NARNAR "narnar"

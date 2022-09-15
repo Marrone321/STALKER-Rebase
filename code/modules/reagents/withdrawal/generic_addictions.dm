@@ -1,25 +1,26 @@
-///Opioids
-/datum/addiction/opioids
-	name = "opioid"
-	withdrawal_stage_messages = list("I feel aches in my bodies..", "I need some pain relief...", "It aches all over...I need some opioids!")
+///Opiods
+/datum/addiction/opiods
+	name = "opiod"
+	withdrawal_stage_messages = list("I feel aches in my bodies..", "I need some pain relief...", "It aches all over...I need some opiods!")
 
-/datum/addiction/opioids/withdrawal_stage_1_process(mob/living/carbon/affected_carbon, delta_time)
+/datum/addiction/opiods/withdrawal_stage_1_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
 	if(DT_PROB(10, delta_time))
 		affected_carbon.emote("yawn")
 
-/datum/addiction/opioids/withdrawal_enters_stage_2(mob/living/carbon/affected_carbon)
+/datum/addiction/opiods/withdrawal_enters_stage_2(mob/living/carbon/affected_carbon)
 	. = ..()
-	affected_carbon.apply_status_effect(/datum/status_effect/high_blood_pressure)
+	affected_carbon.apply_status_effect(STATUS_EFFECT_HIGHBLOODPRESSURE)
 
-/datum/addiction/opioids/withdrawal_stage_3_process(mob/living/carbon/affected_carbon, delta_time)
+/datum/addiction/opiods/withdrawal_stage_3_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
 	if(affected_carbon.disgust < DISGUST_LEVEL_DISGUSTED && DT_PROB(7.5, delta_time))
 		affected_carbon.adjust_disgust(12.5 * delta_time)
 
-/datum/addiction/opioids/end_withdrawal(mob/living/carbon/affected_carbon)
+
+/datum/addiction/opiods/end_withdrawal(mob/living/carbon/affected_carbon)
 	. = ..()
-	affected_carbon.remove_status_effect(/datum/status_effect/high_blood_pressure)
+	affected_carbon.remove_status_effect(STATUS_EFFECT_HIGHBLOODPRESSURE)
 	affected_carbon.set_disgust(affected_carbon.disgust * 0.5) //half their disgust to help
 
 ///Stimulants
@@ -34,7 +35,7 @@
 
 /datum/addiction/stimulants/withdrawal_enters_stage_2(mob/living/carbon/affected_carbon)
 	. = ..()
-	affected_carbon.apply_status_effect(/datum/status_effect/woozy)
+	affected_carbon.apply_status_effect(STATUS_EFFECT_WOOZY)
 
 /datum/addiction/stimulants/withdrawal_enters_stage_3(mob/living/carbon/affected_carbon)
 	. = ..()
@@ -43,7 +44,7 @@
 /datum/addiction/stimulants/end_withdrawal(mob/living/carbon/affected_carbon)
 	. = ..()
 	affected_carbon.remove_actionspeed_modifier(ACTIONSPEED_ID_STIMULANTS)
-	affected_carbon.remove_status_effect(/datum/status_effect/woozy)
+	affected_carbon.remove_status_effect(STATUS_EFFECT_WOOZY)
 	affected_carbon.remove_movespeed_modifier(MOVESPEED_ID_STIMULANTS)
 
 ///Alcohol
@@ -53,20 +54,20 @@
 
 /datum/addiction/alcohol/withdrawal_stage_1_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
-	affected_carbon.set_timed_status_effect(10 SECONDS * delta_time, /datum/status_effect/jitter, only_if_higher = TRUE)
+	affected_carbon.Jitter(5 * delta_time)
 
 /datum/addiction/alcohol/withdrawal_stage_2_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
-	affected_carbon.set_timed_status_effect(20 SECONDS * delta_time, /datum/status_effect/jitter, only_if_higher = TRUE)
+	affected_carbon.Jitter(10 * delta_time)
 	affected_carbon.hallucination = max(5 SECONDS, affected_carbon.hallucination)
 
 /datum/addiction/alcohol/withdrawal_stage_3_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
-	affected_carbon.set_timed_status_effect(30 SECONDS * delta_time, /datum/status_effect/jitter, only_if_higher = TRUE)
+	affected_carbon.Jitter(15 * delta_time)
 	affected_carbon.hallucination = max(5 SECONDS, affected_carbon.hallucination)
 	if(DT_PROB(4, delta_time))
 		if(!HAS_TRAIT(affected_carbon, TRAIT_ANTICONVULSANT))
-			affected_carbon.apply_status_effect(/datum/status_effect/seizure)
+			affected_carbon.apply_status_effect(STATUS_EFFECT_SEIZURE)
 
 /datum/addiction/hallucinogens
 	name = "hallucinogen"
@@ -108,10 +109,6 @@
 	if(!ishuman(affected_carbon))
 		return
 	var/mob/living/carbon/human/affected_human = affected_carbon
-	if(affected_human.gender == MALE)
-		to_chat(affected_human, span_warning("Your chin itches."))
-		affected_human.facial_hairstyle = "Beard (Full)"
-		affected_human.update_body_parts()
 	//Only like gross food
 	affected_human.dna?.species.liked_food = GROSS
 	affected_human.dna?.species.disliked_food = NONE
@@ -121,9 +118,10 @@
 	. = ..()
 	if(!ishuman(affected_carbon))
 		return
-	to_chat(affected_carbon, span_warning("You feel yourself adapt to the darkness."))
+	to_chat(affected_carbon, SPAN_WARNING("You feel yourself adapt to the darkness."))
 	var/mob/living/carbon/human/affected_human = affected_carbon
-	var/obj/item/organ/internal/eyes/empowered_eyes = affected_human.getorgan(/obj/item/organ/internal/eyes)
+
+	var/obj/item/organ/eyes/empowered_eyes = affected_human.getorgan(/obj/item/organ/eyes)
 	if(empowered_eyes)
 		ADD_TRAIT(affected_human, TRAIT_NIGHT_VISION, "maint_drug_addiction")
 		empowered_eyes?.refresh()
@@ -135,11 +133,8 @@
 	var/turf/T = get_turf(affected_human)
 	var/lums = T.get_lumcount()
 	if(lums > 0.5)
-		affected_human.add_mood_event("too_bright", /datum/mood_event/bright_light)
-		affected_human.adjust_timed_status_effect(6 SECONDS, /datum/status_effect/dizziness, max_duration = 80 SECONDS)
-		affected_human.adjust_timed_status_effect(0.5 SECONDS * delta_time, /datum/status_effect/confusion, max_duration = 20 SECONDS)
-	else
-		affected_carbon.clear_mood_event("too_bright")
+		affected_human.dizziness = min(40, affected_human.dizziness + 3)
+		affected_human.set_confusion(min(affected_human.get_confusion() + (0.5 * delta_time), 20))
 
 /datum/addiction/maintenance_drugs/end_withdrawal(mob/living/carbon/affected_carbon)
 	. = ..()
@@ -151,7 +146,7 @@
 	affected_human.dna?.species.disliked_food = initial(affected_human.dna?.species.disliked_food)
 	affected_human.dna?.species.toxic_food = initial(affected_human.dna?.species.toxic_food)
 	REMOVE_TRAIT(affected_human, TRAIT_NIGHT_VISION, "maint_drug_addiction")
-	var/obj/item/organ/internal/eyes/eyes = affected_human.getorgan(/obj/item/organ/internal/eyes)
+	var/obj/item/organ/eyes/eyes = affected_human.getorgan(/obj/item/organ/eyes)
 	eyes.refresh()
 
 ///Makes you a hypochondriac - I'd like to call it hypochondria, but "I could use some hypochondria" doesn't work
@@ -177,15 +172,15 @@
 	. = ..()
 	var/list/possibilities = list()
 	if(!HAS_TRAIT(affected_carbon, TRAIT_RESISTHEAT))
-		possibilities += ALERT_TEMPERATURE_HOT
+		possibilities += "temphot"
 	if(!HAS_TRAIT(affected_carbon, TRAIT_RESISTCOLD))
-		possibilities += ALERT_TEMPERATURE_COLD
-	var/obj/item/organ/internal/lungs/lungs = affected_carbon.getorganslot(ORGAN_SLOT_LUNGS)
+		possibilities += "tempcold"
+	var/obj/item/organ/lungs/lungs = affected_carbon.getorganslot(ORGAN_SLOT_LUNGS)
 	if(lungs)
 		if(lungs.safe_oxygen_min)
-			possibilities += ALERT_NOT_ENOUGH_OXYGEN
+			possibilities += "not_enough_oxy"
 		if(lungs.safe_oxygen_max)
-			possibilities += ALERT_TOO_MUCH_OXYGEN
+			possibilities += "too_much_oxy"
 	var/type = pick(possibilities)
 	hallucination = new(affected_carbon, TRUE, type, 120 MINUTES)//last for a while basically
 
@@ -211,7 +206,7 @@
 		return
 	if(DT_PROB(65, delta_time))
 		return
-	if(affected_carbon.stat >= SOFT_CRIT)
+	if(affected_carbon.stat > CONSCIOUS)
 		return
 
 	var/obj/item/organ/organ = pick(affected_carbon.internal_organs)
@@ -221,7 +216,7 @@
 	else if (organ.high_threshold_passed)
 		to_chat(affected_carbon, organ.high_threshold_passed)
 		return
-	to_chat(affected_carbon, span_warning("You feel a dull pain in your [organ.name]."))
+	to_chat(affected_carbon, SPAN_WARNING("You feel a dull pain in your [organ.name]."))
 
 /datum/addiction/medicine/end_withdrawal(mob/living/carbon/affected_carbon)
 	. = ..()
@@ -235,21 +230,14 @@
 	addiction_relief_treshold = MIN_NICOTINE_ADDICTION_REAGENT_AMOUNT //much less because your intake is probably from ciggies
 	withdrawal_stage_messages = list("Feel like having a smoke...", "Getting antsy. Really need a smoke now.", "I can't take it! Need a smoke NOW!")
 
-	medium_withdrawal_moodlet = /datum/mood_event/nicotine_withdrawal_moderate
-	severe_withdrawal_moodlet = /datum/mood_event/nicotine_withdrawal_severe
-
 /datum/addiction/nicotine/withdrawal_enters_stage_1(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
-	affected_carbon.set_timed_status_effect(10 SECONDS * delta_time, /datum/status_effect/jitter, only_if_higher = TRUE)
+	affected_carbon.Jitter(5 * delta_time)
 
 /datum/addiction/nicotine/withdrawal_stage_2_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
-	affected_carbon.set_timed_status_effect(20 SECONDS * delta_time, /datum/status_effect/jitter, only_if_higher = TRUE)
-	if(DT_PROB(10, delta_time))
-		affected_carbon.emote("cough")
+	affected_carbon.Jitter(10 * delta_time)
 
 /datum/addiction/nicotine/withdrawal_stage_3_process(mob/living/carbon/affected_carbon, delta_time)
 	. = ..()
-	affected_carbon.set_timed_status_effect(30 SECONDS * delta_time, /datum/status_effect/jitter, only_if_higher = TRUE)
-	if(DT_PROB(15, delta_time))
-		affected_carbon.emote("cough")
+	affected_carbon.Jitter(15 * delta_time)

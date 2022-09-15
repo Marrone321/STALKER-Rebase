@@ -5,13 +5,11 @@ GLOBAL_LIST_EMPTY_TYPED(station_goals, /datum/station_goal)
 	var/name = "Generic Goal"
 	var/weight = 1 //In case of multiple goals later.
 	var/required_crew = 10
-	var/requires_space = FALSE
 	var/completed = FALSE
 	var/report_message = "Complete this goal."
 
 /datum/station_goal/proc/send_report()
 	priority_announce("Priority Nanotrasen directive received. Project \"[name]\" details inbound.", "Incoming Priority Message", SSstation.announcer.get_rand_report_sound())
-	print_command_report(get_report(),"Nanotrasen Directive [pick(GLOB.phonetic_alphabet)] \Roman[rand(1,50)]", announce=FALSE)
 	on_report()
 
 /datum/station_goal/proc/on_report()
@@ -26,9 +24,9 @@ GLOBAL_LIST_EMPTY_TYPED(station_goals, /datum/station_goal)
 
 /datum/station_goal/proc/get_result()
 	if(check_completion())
-		return "<li>[name] :  [span_greentext("Completed!")]</li>"
+		return "<li>[name] :  [SPAN_GREENTEXT("Completed!")]</li>"
 	else
-		return "<li>[name] : [span_redtext("Failed!")]</li>"
+		return "<li>[name] : [SPAN_REDTEXT("Failed!")]</li>"
 
 /datum/station_goal/Destroy()
 	GLOB.station_goals -= src

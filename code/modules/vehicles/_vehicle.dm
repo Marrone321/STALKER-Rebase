@@ -4,13 +4,10 @@
 	icon = 'icons/obj/vehicles.dmi'
 	icon_state = "fuckyou"
 	max_integrity = 300
-	armor = list(MELEE = 30, BULLET = 30, LASER = 30, ENERGY = 0, BOMB = 30, BIO = 0, FIRE = 60, ACID = 60)
-	layer = VEHICLE_LAYER
-	plane = GAME_PLANE_FOV_HIDDEN
+	armor = list(MELEE = 30, BULLET = 30, LASER = 30, ENERGY = 0, BOMB = 30, BIO = 0, RAD = 0, FIRE = 60, ACID = 60)
 	density = TRUE
 	anchored = FALSE
 	blocks_emissive = EMISSIVE_BLOCK_GENERIC
-	pass_flags_self = PASSVEHICLE
 	COOLDOWN_DECLARE(cooldown_vehicle_move)
 	var/list/mob/occupants //mob = bitflags of their control level.
 	///Maximum amount of passengers plus drivers
@@ -25,9 +22,11 @@
 	  * Eventually the remaining checks should be moved to the component and this var removed.
 	  */
 	var/key_type
+	/// What ID of the key does the vehicle require. DONT SET THIS IF `key_type` IS NOT A KEY! (looking at you, boat)
+	var/key_id
 	///The inserted key, needed on some vehicles to start the engine
 	var/obj/item/key/inserted_key
-	/// Whether the vehicle is currently able to move
+	/// Whether the vehicle os currently able to move
 	var/canmove = TRUE
 	var/list/autogrant_actions_passenger //plain list of typepaths
 	var/list/autogrant_actions_controller //assoc list "[bitflag]" = list(typepaths)
@@ -44,28 +43,18 @@
 	occupant_actions = list()
 	generate_actions()
 
-/obj/vehicle/Destroy(force)
-	QDEL_NULL(trailer)
-	inserted_key = null
-	return ..()
-
-/obj/vehicle/Exited(atom/movable/gone, direction)
-	if(gone == inserted_key)
-		inserted_key = null
-	return ..()
-
 /obj/vehicle/examine(mob/user)
 	. = ..()
 	if(resistance_flags & ON_FIRE)
-		. += span_warning("It's on fire!")
-	var/healthpercent = atom_integrity/max_integrity * 100
+		. += SPAN_WARNING("It's on fire!")
+	var/healthpercent = obj_integrity/max_integrity * 100
 	switch(healthpercent)
 		if(50 to 99)
 			. += "It looks slightly damaged."
 		if(25 to 50)
 			. += "It appears heavily damaged."
 		if(0 to 25)
-			. += span_warning("It's falling apart!")
+			. += SPAN_WARNING("It's falling apart!")
 
 /obj/vehicle/proc/is_key(obj/item/I)
 	return istype(I, key_type)
@@ -116,10 +105,9 @@
 
 /obj/vehicle/proc/auto_assign_occupant_flags(mob/M) //override for each type that needs it. Default is assign driver if drivers is not at max.
 	if(driver_amount() < max_drivers)
-		add_control_flags(M, VEHICLE_CONTROL_DRIVE)
+		add_control_flags(M, VEHICLE_CONTROL_DRIVE|VEHICLE_CONTROL_PERMISSION)
 
 /obj/vehicle/proc/remove_occupant(mob/M)
-	SHOULD_CALL_PARENT(TRUE)
 	if(!istype(M))
 		return FALSE
 	remove_control_flags(M, ALL)
@@ -159,22 +147,8 @@
 			remove_controller_actions_by_flag(controller, i)
 	return TRUE
 
-/// To add a trailer to the vehicle in a manner that allows safe qdels
-/obj/vehicle/proc/add_trailer(obj/vehicle/added_vehicle)
-	trailer = added_vehicle
-	RegisterSignal(trailer, COMSIG_PARENT_QDELETING, .proc/remove_trailer)
-
-/// To remove a trailer from the vehicle in a manner that allows safe qdels
-/obj/vehicle/proc/remove_trailer()
-	SIGNAL_HANDLER
-	UnregisterSignal(trailer, COMSIG_PARENT_QDELETING)
-	trailer = null
-
 /obj/vehicle/Move(newloc, dir)
-	// It is unfortunate, but this is the way to make it not mess up
-	var/atom/old_loc = loc
-	// When we do this, it will set the loc to the new loc
 	. = ..()
 	if(trailer && .)
-		var/dir_to_move = get_dir(trailer.loc, old_loc)
+		var/dir_to_move = get_dir(trailer.loc, newloc)
 		step(trailer, dir_to_move)

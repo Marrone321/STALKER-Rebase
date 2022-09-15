@@ -12,7 +12,6 @@
 	w_class = WEIGHT_CLASS_NORMAL
 	throw_speed = 3
 	throw_range = 7
-	pressure_resistance = 8
 	var/papertype = /obj/item/paper
 	var/total_paper = 30
 	var/list/papers = list()
@@ -39,11 +38,10 @@
 
 /obj/item/paper_bin/proc/generate_paper()
 	var/obj/item/paper/paper = new papertype(src)
-	if(SSevents.holidays && SSevents.holidays[APRIL_FOOLS])
+	if(SSgamemode.holidays && SSgamemode.holidays[APRIL_FOOLS])
 		if(prob(30))
-			paper.add_raw_text("<font face=\"[CRAYON_FONT]\" color=\"red\"><b>HONK HONK HONK HONK HONK HONK HONK<br>HOOOOOOOOOOOOOOOOOOOOOONK<br>APRIL FOOLS</b></font>")
-			paper.AddElement(/datum/element/honkspam)
-			paper.update_appearance()
+			paper.info = "<font face=\"[CRAYON_FONT]\" color=\"red\"><b>HONK HONK HONK HONK HONK HONK HONK<br>HOOOOOOOOOOOOOOOOOOOOOONK<br>APRIL FOOLS</b></font>"
+			paper.AddComponent(/datum/component/honkspam)
 	return paper
 
 /obj/item/paper_bin/Destroy()
@@ -54,7 +52,7 @@
 	if(!droppoint)
 		droppoint = drop_location()
 	if(collapse)
-		visible_message(span_warning("The stack of paper collapses!"))
+		visible_message(SPAN_WARNING("The stack of paper collapses!"))
 	for(var/atom/movable/movable_atom in contents)
 		movable_atom.forceMove(droppoint)
 		if(!movable_atom.pixel_y)
@@ -79,7 +77,7 @@
 		var/mob/living/living_mob = user
 		if(!(living_mob.mobility_flags & MOBILITY_PICKUP))
 			return
-	user.changeNext_move(CLICK_CD_RAPID)
+	user.changeNext_move(CLICK_CD_MELEE)
 	if(at_overlay_limit())
 		dump_contents(drop_location(), TRUE)
 		return
@@ -88,19 +86,19 @@
 		pen.add_fingerprint(user)
 		pen.forceMove(user.loc)
 		user.put_in_hands(pen)
-		to_chat(user, span_notice("You take [pen] out of [src]."))
+		to_chat(user, SPAN_NOTICE("You take [pen] out of [src]."))
 		bin_pen = null
 		update_appearance()
 	else if(LAZYLEN(papers))
 		var/obj/item/paper/top_paper = papers[papers.len]
-		LAZYREMOVE(papers, top_paper)
+		papers.Remove(top_paper)
 		top_paper.add_fingerprint(user)
 		top_paper.forceMove(user.loc)
 		user.put_in_hands(top_paper)
-		to_chat(user, span_notice("You take [top_paper] out of [src]."))
+		to_chat(user, SPAN_NOTICE("You take [top_paper] out of [src]."))
 		update_appearance()
 	else
-		to_chat(user, span_warning("[src] is empty!"))
+		to_chat(user, SPAN_WARNING("[src] is empty!"))
 	add_fingerprint(user)
 	return ..()
 
@@ -112,21 +110,21 @@
 		var/obj/item/paper/paper = I
 		if(!user.transferItemToLoc(paper, src))
 			return
-		to_chat(user, span_notice("You put [paper] in [src]."))
-		LAZYADD(papers, paper)
+		to_chat(user, SPAN_NOTICE("You put [paper] in [src]."))
+		papers.Add(paper)
 		update_appearance()
 	else if(istype(I, /obj/item/pen) && !bin_pen)
 		var/obj/item/pen/pen = I
 		if(!user.transferItemToLoc(pen, src))
 			return
-		to_chat(user, span_notice("You put [pen] in [src]."))
+		to_chat(user, SPAN_NOTICE("You put [pen] in [src]."))
 		bin_pen = pen
 		update_appearance()
 	else
 		return ..()
 
 /obj/item/paper_bin/proc/at_overlay_limit()
-	return overlays.len >= MAX_ATOM_OVERLAYS - 1
+	return overlays.len >= MAX_ATOM_OVERLAYS
 
 /obj/item/paper_bin/examine(mob/user)
 	. = ..()
@@ -164,68 +162,12 @@
 			. += paper_overlay
 			if(paper_number == papers.len) //this is our top paper
 				. += current_paper.overlays //add overlays only for top paper
-				if(istype(src, /obj/item/paper_bin/bundlenatural))
-					bin_overlay.pixel_y = paper_overlay.pixel_y //keeps binding centred on stack
 				if(bin_pen)
 					pen_overlay.pixel_y = paper_overlay.pixel_y //keeps pen on top of stack
 		. += bin_overlay
 
 	if(bin_pen)
 		. += pen_overlay
-
-/obj/item/paper_bin/construction
-	name = "construction paper bin"
-	desc = "Contains all the paper you'll never need, IN COLOR!"
-	papertype = /obj/item/paper/construction
-
-/obj/item/paper_bin/bundlenatural
-	name = "natural paper bundle"
-	desc = "A bundle of paper created using traditional methods."
-	icon_state = null
-	papertype = /obj/item/paper/natural
-	resistance_flags = FLAMMABLE
-	bin_overlay_string = "paper_bundle_overlay"
-	///Cable this bundle is held together with.
-	var/obj/item/stack/cable_coil/binding_cable
-
-/obj/item/paper_bin/bundlenatural/Initialize(mapload)
-	binding_cable = new /obj/item/stack/cable_coil(src, 2)
-	binding_cable.color = COLOR_ORANGE_BROWN
-	binding_cable.cable_color = "brown"
-	binding_cable.desc += " Non-natural."
-	return ..()
-
-/obj/item/paper_bin/bundlenatural/dump_contents(atom/droppoint)
-	. = ..()
-	qdel(src)
-
-/obj/item/paper_bin/bundlenatural/update_overlays()
-	bin_overlay = mutable_appearance(icon, bin_overlay_string)
-	bin_overlay.color = binding_cable.color
-	return ..()
-
-/obj/item/paper_bin/bundlenatural/attack_hand(mob/user, list/modifiers)
-	. = ..()
-	if(!LAZYLEN(papers))
-		deconstruct(FALSE)
-
-/obj/item/paper_bin/bundlenatural/deconstruct(disassembled)
-	dump_contents()
-	return ..()
-
-/obj/item/paper_bin/bundlenatural/fire_act(exposed_temperature, exposed_volume)
-	qdel(src)
-
-/obj/item/paper_bin/bundlenatural/attackby(obj/item/W, mob/user)
-	if(istype(W, /obj/item/paper/carbon))
-		to_chat(user, span_warning("[W] won't fit into [src]."))
-		return
-	if(W.get_sharpness())
-		if(W.use_tool(src, user, 1 SECONDS))
-			to_chat(user, span_notice("You slice the cable from [src]."))
-			deconstruct(TRUE)
-	else
-		..()
 
 /obj/item/paper_bin/carbon
 	name = "carbon paper bin"

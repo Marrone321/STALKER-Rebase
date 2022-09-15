@@ -24,7 +24,7 @@
 	var/respawn_time = 50
 	var/respawn_sound = 'sound/magic/staff_animation.ogg'
 
-/obj/structure/life_candle/Initialize(mapload)
+/obj/structure/life_candle/ComponentInitialize()
 	. = ..()
 	AddElement(/datum/element/movetype_handler)
 
@@ -35,14 +35,14 @@
 	if(!user.mind)
 		return
 	if(user.mind in linked_minds)
-		user.visible_message(span_notice("[user] reaches out and pinches the flame of [src]."), span_warning("You sever the connection between yourself and [src]."))
+		user.visible_message(SPAN_NOTICE("[user] reaches out and pinches the flame of [src]."), SPAN_WARNING("You sever the connection between yourself and [src]."))
 		linked_minds -= user.mind
 		if(!linked_minds.len)
 			REMOVE_TRAIT(src, TRAIT_MOVE_FLOATING, LIFECANDLE_TRAIT)
 	else
 		if(!linked_minds.len)
 			ADD_TRAIT(src, TRAIT_MOVE_FLOATING, LIFECANDLE_TRAIT)
-		user.visible_message(span_notice("[user] touches [src]. It seems to respond to [user.p_their()] presence!"), span_warning("You create a connection between you and [src]."))
+		user.visible_message(SPAN_NOTICE("[user] touches [src]. It seems to respond to [user.p_their()] presence!"), SPAN_WARNING("You create a connection between you and [src]."))
 		linked_minds |= user.mind
 
 	update_appearance()

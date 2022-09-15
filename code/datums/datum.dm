@@ -19,7 +19,7 @@
 
 	/// Active timers with this datum as the target
 	var/list/active_timers
-	/// Status traits attached to this datum. associative list of the form: list(trait name (string) = list(source1, source2, source3,...))
+	/// Status traits attached to this datum
 	var/list/status_traits
 
 	/**
@@ -50,6 +50,9 @@
 	* add_timer() returns the truthy value of -1 when not stoppable, and else a truthy numeric index
 	*/
 	var/list/cooldowns
+
+	/// Meta property of a type. If this equals to .type it means the type is abstract, and should not be instantiated.
+	var/abstract_type
 
 #ifdef REFERENCE_TRACKING
 	var/running_find_references
@@ -91,14 +94,14 @@
  */
 /datum/proc/Destroy(force=FALSE, ...)
 	SHOULD_CALL_PARENT(TRUE)
-	SHOULD_NOT_SLEEP(TRUE)
 	tag = null
 	datum_flags &= ~DF_USE_TAG //In case something tries to REF us
 	weak_reference = null //ensure prompt GCing of weakref.
 
 	var/list/timers = active_timers
 	active_timers = null
-	for(var/datum/timedevent/timer as anything in timers)
+	for(var/thing in timers)
+		var/datum/timedevent/timer = thing
 		if (timer.spent && !(timer.flags & TIMER_DELETE_ME))
 			continue
 		qdel(timer)
@@ -110,31 +113,26 @@
 	#endif
 
 	//BEGIN: ECS SHIT
+
 	var/list/dc = datum_components
 	if(dc)
 		var/all_components = dc[/datum/component]
 		if(length(all_components))
-			for(var/datum/component/component as anything in all_components)
-				qdel(component, FALSE, TRUE)
+			for(var/I in all_components)
+				var/datum/component/C = I
+				qdel(C, FALSE, TRUE)
 		else
 			var/datum/component/C = all_components
 			qdel(C, FALSE, TRUE)
 		dc.Cut()
 
-	clear_signal_refs()
-	//END: ECS SHIT
-
-	return QDEL_HINT_QUEUE
-
-///Only override this if you know what you're doing. You do not know what you're doing
-///This is a threat
-/datum/proc/clear_signal_refs()
 	var/list/lookup = comp_lookup
 	if(lookup)
 		for(var/sig in lookup)
 			var/list/comps = lookup[sig]
 			if(length(comps))
-				for(var/datum/component/comp as anything in comps)
+				for(var/i in comps)
+					var/datum/component/comp = i
 					comp.UnregisterSignal(src, sig)
 			else
 				var/datum/component/comp = comps
@@ -143,6 +141,9 @@
 
 	for(var/target in signal_procs)
 		UnregisterSignal(target, signal_procs[target])
+	//END: ECS SHIT
+
+	return QDEL_HINT_QUEUE
 
 #ifdef DATUMVAR_DEBUGGING_MODE
 /datum/proc/save_vars()
@@ -230,7 +231,7 @@
 	var/typeofdatum = jsonlist["DATUM_TYPE"] //BYOND won't directly read if this is just put in the line below, and will instead runtime because it thinks you're trying to make a new list?
 	var/datum/D = new typeofdatum
 	var/datum/returned = D.deserialize_list(jsonlist, options)
-	if(!isdatum(returned))
+	if(!istype(returned, /datum))
 		qdel(D)
 	else
 		return returned
@@ -265,3 +266,7 @@
 		return
 	SEND_SIGNAL(source, COMSIG_CD_RESET(index), S_TIMER_COOLDOWN_TIMELEFT(source, index))
 	TIMER_COOLDOWN_END(source, index)
+
+/// Returns whether a type is an abstract type.
+/proc/is_abstract(datum/datum_type)
+	return (initial(datum_type.abstract_type) == datum_type)

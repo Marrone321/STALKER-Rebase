@@ -12,6 +12,8 @@
 #define CHAT_MESSAGE_APPROX_LHEIGHT 11
 /// Max width of chat message in pixels
 #define CHAT_MESSAGE_WIDTH 96
+/// Width that we use for message dimension calculation
+#define CHAT_MESSAGE_DIVISOR_WIDTH 88
 /// Max length of chat message in characters
 #define CHAT_MESSAGE_MAX_LENGTH 110
 /// The dimensions of the chat message icons
@@ -25,6 +27,8 @@
 #define CHAT_LAYER_Z_STEP 0.0001
 /// The number of z-layer 'slices' usable by the chat message layering
 #define CHAT_LAYER_MAX_Z (CHAT_LAYER_MAX - CHAT_LAYER) / CHAT_LAYER_Z_STEP
+/// The color of the chat message when its an emote
+#define CHAT_MESSAGE_EMOTE_COLOR "#ADADAD"
 
 /**
  * # Chat Message Overlay
@@ -32,7 +36,7 @@
  * Datum for generating a message overlay on the map
  */
 /datum/chatmessage
-	/// The visual element of the chat message
+	/// The visual element of the chat messsage
 	var/image/message
 	/// The location in which the message is appearing
 	var/atom/message_loc
@@ -50,10 +54,6 @@
 	var/datum/chatmessage/prev
 	/// The current index used for adjusting the layer of each sequential chat message such that recent messages will overlay older ones
 	var/static/current_z_idx = 0
-	/// Contains ID of assigned timer for end_of_life fading event
-	var/fadertimer = null
-	/// States if end_of_life is being executed
-	var/isFading = FALSE
 
 /**
  * Constructs a chat message overlay
@@ -84,6 +84,7 @@
 	owned_by = null
 	message_loc = null
 	message = null
+	leave_subsystem()
 	return ..()
 
 /**
@@ -91,6 +92,7 @@
  */
 /datum/chatmessage/proc/on_parent_qdel()
 	SIGNAL_HANDLER
+
 	qdel(src)
 
 /**
@@ -117,7 +119,7 @@
 	text = replacetext(text, span_check, "")
 
 	// Clip message
-	var/maxlen = owned_by.prefs.read_preference(/datum/preference/numeric/max_chat_length)
+	var/maxlen = owned_by.prefs.max_chat_length
 	if (length_char(text) > maxlen)
 		text = copytext_char(text, 1, maxlen + 1) + "..." // BYOND index moment
 
@@ -142,14 +144,17 @@
 		extra_classes |= "small"
 
 	var/list/prefixes
+	var/is_emote = FALSE
 
 	// Append radio icon if from a virtual speaker
 	if (extra_classes.Find("virtual-speaker"))
 		var/image/r_icon = image('icons/ui_icons/chat/chat_icons.dmi', icon_state = "radio")
 		LAZYADD(prefixes, "\icon[r_icon]")
 	else if (extra_classes.Find("emote"))
-		var/image/r_icon = image('icons/ui_icons/chat/chat_icons.dmi', icon_state = "emote")
-		LAZYADD(prefixes, "\icon[r_icon]")
+		is_emote = TRUE
+		/// Add small, remove italics when it's an emote
+		extra_classes |= "small"
+		extra_classes -= "italics"
 
 	// Append language icon if the language uses one
 	var/datum/language/language_instance = GLOB.language_datum_instances[language]
@@ -163,16 +168,20 @@
 
 	text = "[prefixes?.Join("&nbsp;")][text]"
 
-	// We dim italicized text to make it more distinguishable from regular text
-	var/tgt_color = extra_classes.Find("italics") ? target.chat_color_darkened : target.chat_color
+	// We turn the emote color into gray, or dim italicized text
+	var/tgt_color
+	if(is_emote)
+		tgt_color = CHAT_MESSAGE_EMOTE_COLOR
+	else
+		tgt_color = extra_classes.Find("italics") ? target.chat_color_darkened : target.chat_color
 
 	// Approximate text height
-	var/complete_text = "<span class='center [extra_classes.Join(" ")]' style='color: [tgt_color]'>[owner.say_emphasis(text)]</span>"
-	var/mheight = WXH_TO_HEIGHT(owned_by.MeasureText(complete_text, null, CHAT_MESSAGE_WIDTH))
+	var/complete_text = "<span class='center [extra_classes.Join(" ")]' style='color: [tgt_color]'>[text]</span>"
+	var/mheight = WXH_TO_HEIGHT(owned_by.MeasureText(complete_text, null, CHAT_MESSAGE_DIVISOR_WIDTH))
 	approx_lines = max(1, mheight / CHAT_MESSAGE_APPROX_LHEIGHT)
 
 	// Translate any existing messages upwards, apply exponential decay factors to timers
-	message_loc = isturf(target) ? target : get_atom_on_turf(target)
+	message_loc = get_atom_on_turf(target)
 	if (owned_by.seen_messages)
 		var/idx = 1
 		var/combined_height = approx_lines
@@ -182,15 +191,11 @@
 			combined_height += m.approx_lines
 
 			// When choosing to update the remaining time we have to be careful not to update the
-			// scheduled time once the EOL has been executed.
-			if (!m.isFading)
-				var/sched_remaining = timeleft(m.fadertimer, SSrunechat)
+			// scheduled time once the EOL completion time has been set.
+			var/sched_remaining = m.scheduled_destruction - world.time
+			if (!m.eol_complete)
 				var/remaining_time = (sched_remaining) * (CHAT_MESSAGE_EXP_DECAY ** idx++) * (CHAT_MESSAGE_HEIGHT_DECAY ** combined_height)
-				if (remaining_time)
-					deltimer(m.fadertimer, SSrunechat)
-					m.fadertimer = addtimer(CALLBACK(m, .proc/end_of_life), remaining_time, TIMER_STOPPABLE|TIMER_DELETE_ME, SSrunechat)
-				else
-					m.end_of_life()
+				m.enter_subsystem(world.time + remaining_time) // push updated time to runechat SS
 
 	// Reset z index if relevant
 	if (current_z_idx >= CHAT_LAYER_MAX_Z)
@@ -201,8 +206,7 @@
 	message.plane = RUNECHAT_PLANE
 	message.appearance_flags = APPEARANCE_UI_IGNORE_ALPHA | KEEP_APART
 	message.alpha = 0
-	message.pixel_y = target.maptext_height
-	message.pixel_x = (target.maptext_width * 0.5) - 16
+	message.pixel_y = owner.bound_height * 0.95
 	message.maptext_width = CHAT_MESSAGE_WIDTH
 	message.maptext_height = mheight
 	message.maptext_x = (CHAT_MESSAGE_WIDTH - owner.bound_width) * -0.5
@@ -214,20 +218,20 @@
 	animate(message, alpha = 255, time = CHAT_MESSAGE_SPAWN_TIME)
 
 	// Register with the runechat SS to handle EOL and destruction
-	var/duration = lifespan - CHAT_MESSAGE_EOL_FADE
-	fadertimer = addtimer(CALLBACK(src, .proc/end_of_life), duration, TIMER_STOPPABLE|TIMER_DELETE_ME, SSrunechat)
+	scheduled_destruction = world.time + (lifespan - CHAT_MESSAGE_EOL_FADE)
+	enter_subsystem()
 
 /**
  * Applies final animations to overlay CHAT_MESSAGE_EOL_FADE deciseconds prior to message deletion,
- * sets timer for scheduling deletion
+ * sets time for scheduling deletion and re-enters the runechat SS for qdeling
  *
  * Arguments:
  * * fadetime - The amount of time to animate the message's fadeout for
  */
 /datum/chatmessage/proc/end_of_life(fadetime = CHAT_MESSAGE_EOL_FADE)
-	isFading = TRUE
+	eol_complete = scheduled_destruction + fadetime
 	animate(message, alpha = 0, time = fadetime, flags = ANIMATION_PARALLEL)
-	addtimer(CALLBACK(GLOBAL_PROC, /proc/qdel, src), fadetime, TIMER_DELETE_ME, SSrunechat)
+	enter_subsystem(eol_complete) // re-enter the runechat SS with the EOL completion time to QDEL self
 
 /**
  * Creates a message overlay at a defined location for a given speaker
@@ -239,17 +243,11 @@
  * * spans - Additional classes to be added to the message
  */
 /mob/proc/create_chat_message(atom/movable/speaker, datum/language/message_language, raw_message, list/spans, runechat_flags = NONE)
-	if(SSlag_switch.measures[DISABLE_RUNECHAT] && !HAS_TRAIT(speaker, TRAIT_BYPASS_MEASURES))
-		return
 	// Ensure the list we are using, if present, is a copy so we don't modify the list provided to us
 	spans = spans ? spans.Copy() : list()
 
 	// Check for virtual speakers (aka hearing a message through a radio)
 	var/atom/movable/originalSpeaker = speaker
-	if (istype(speaker, /atom/movable/virtualspeaker))
-		var/atom/movable/virtualspeaker/v = speaker
-		speaker = v.source
-		spans |= "virtual-speaker"
 
 	// Ignore virtual speaker (most often radio messages) from ourself
 	if (originalSpeaker != src && speaker == src)
@@ -257,7 +255,7 @@
 
 	// Display visual above source
 	if(runechat_flags & EMOTE_MESSAGE)
-		new /datum/chatmessage(raw_message, speaker, src, message_language, list("emote", "italics"))
+		new /datum/chatmessage(raw_message, speaker, src, message_language, list("emote"))
 	else
 		new /datum/chatmessage(lang_treat(speaker, message_language, raw_message, spans, null, TRUE), speaker, src, message_language, spans)
 
@@ -321,6 +319,8 @@
 #undef CHAT_MESSAGE_HEIGHT_DECAY
 #undef CHAT_MESSAGE_APPROX_LHEIGHT
 #undef CHAT_MESSAGE_WIDTH
+#undef CHAT_MESSAGE_DIVISOR_WIDTH
 #undef CHAT_LAYER_Z_STEP
 #undef CHAT_LAYER_MAX_Z
 #undef CHAT_MESSAGE_ICON_SIZE
+#undef CHAT_MESSAGE_EMOTE_COLOR

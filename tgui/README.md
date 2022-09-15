@@ -23,24 +23,16 @@ This project uses **Inferno** - a very fast UI rendering engine with a similar A
 
 If you were already familiar with an older, Ractive-based tgui, and want to translate concepts between old and new tgui, read this [interface conversion guide](docs/converting-old-tgui-interfaces.md).
 
-### Other Documentation
-
-- [Component Reference](docs/component-reference.md) - UI building blocks
-- [Using TGUI and Byond API for custom HTML popups](docs/tgui-for-custom-html-popups.md)
-- [Chat Embedded Components](docs/chat-embedded-components.md)
-- [Writing Tests](docs/writing-tests.md)
-
 ## Pre-requisites
 
 If you are using the tooling provided in this repo, everything is included! Feel free to skip this step.
 
 However, if you want finer control over the installation or build process, you will need these:
 
-- [Node v16.13+](https://nodejs.org/en/download/)
-  - **LTS** release is recommended instead of latest
+- [Node v12.20+](https://nodejs.org/en/download/)
   - **DO NOT install Chocolatey if Node installer asks you to!**
 - [Yarn v1.22.4+](https://yarnpkg.com/getting-started/install)
-  - You can run `npm install -g yarn` to install it.
+  - You only need to run `npm install -g yarn`.
 
 ## Usage
 
@@ -52,7 +44,6 @@ However, if you want finer control over the installation or build process, you w
   - `bin/tgui-dev --debug` - Run server with debug logging enabled.
   - `bin/tgui-dev --no-hot` - Disable hot module replacement (helps when doing development on IE8).
 - `bin/tgui-sonar` - Analyze code with SonarQube.
-- `bin/tgui-bench` - Run benchmarks.
 
 > To open a CMD or PowerShell window in any open folder, right click **while holding Shift** on any free space in the folder, then click on either `Open command window here` or `Open PowerShell window here`.
 
@@ -67,7 +58,6 @@ However, if you want finer control over the installation or build process, you w
 - `tools/build/build tgui-sonar` - Analyze code with SonarQube.
 - `tools/build/build tgui-test` - Run unit and integration tests.
 - `tools/build/build tgui-analyze` - Run a bundle analyzer.
-- `tools/build/build tgui-bench` - Run benchmarks.
 - `tools/build/build tgui-clean` - Clean up tgui folder.
 
 > With Juke Build, you can run multiple targets together, e.g.:
@@ -90,11 +80,8 @@ Run `yarn install` once to install tgui dependencies.
 - `yarn tgui:tsc` - Check code with TypeScript compiler.
 - `yarn tgui:test` - Run unit and integration tests.
 - `yarn tgui:analyze` - Run a bundle analyzer.
-- `yarn tgui:bench` - Run benchmarks.
-- `yarn tgfont:build` - Build icon fonts.
-- `yarn tgui-polyfill:build` - Build polyfills. You need to run it when updating any of the static (numbered) polyfills.
 
-## Important Memo
+## Important memo
 
 Remember to always run a full build of tgui before submitting a PR, because it comes with the full suite of CI checks, and runs much faster on your computer than on GitHub servers. It will save you some time and possibly a few broken commits! Address the issues that are reported by the tooling as much as possible, because maintainers will beat you with a ruler and force you to address them anyway (unless it's a false positive or something unfixable).
 
@@ -122,41 +109,15 @@ Webpack stores its cache on disk since tgui 4.3, and it is very sensitive to bui
 
 To fix this kind of problem, run `bin/tgui --clean` and try again.
 
-## Dev Server Tools
+## Developer Tools
 
-When developing with `tgui-dev-server`, you will have access to certain
-development only features.
+When developing with `tgui-dev-server`, you will have access to certain development only features.
 
-**Debug Logs.**
-When running server via `bin/tgui --dev --debug`, server will print debug
-logs and time spent on rendering. Use this information to optimize your
-code, and try to keep re-renders below 16ms.
+**Debug Logs**. When running server via `bin/tgui --dev --debug`, server will print debug logs and time spent on rendering. Use this information to optimize your code, and try to keep re-renders below 16ms.
 
-**Kitchen Sink.**
-Press `F12` or click the green bug to open the KitchenSink interface. This interface is a
-playground to test various tgui components.
+**Kitchen Sink**. Press `F12` to open the KitchenSink interface. This interface is a playground to test various tgui components.
 
-**Layout Debugger.**
-Press `F11` to toggle the *layout debugger*. It will show outlines of
-all tgui elements, which makes it easy to understand how everything comes
-together, and can reveal certain layout bugs which are not normally visible.
-
-## Browser Developer Tools
-
-To debug TGUI interfaces with browser-style developer tools, there exists a utility
-that Microsoft bundles with Windows to debug any Internet Explorer/Trident-using interface,
-which BYOND uses.
-
-This provides invaluable tools such as a local console, a DOM viewer, an interactive debugger, and more.
-
-The 64-bit version that we use is located at `%windir%\SysWOW64\F12\IEChooser.exe`.
-There's also a 32-bit one in `system32\`.
-
-Simply launch the application after you've opened a TGUI window, and choose the .html name.
-This is likely to be something like `tgui-window-1`. There's a refresh button in the top right.
-
-Unfortunately, it seems this program doesn't have a new target chooser if your window is fully closed
-so you'll need to restart it if it disconnects from the window.
+**Layout Debugger**. Press `F11` to toggle the *layout debugger*. It will show outlines of all tgui elements, which makes it easy to understand how everything comes together, and can reveal certain layout bugs which are not normally visible.
 
 ## Project Structure
 
@@ -174,6 +135,10 @@ so you'll need to restart it if it disconnects from the window.
 - `/packages/tgui/styles/interfaces` - Custom stylesheets for your interfaces. Add stylesheets here if you really need a fine control over your UI styles.
 - `/packages/tgui/styles/layouts` - Layout-related styles.
 - `/packages/tgui/styles/themes` - Contains themes that you can use in tgui. Each theme must be registered in `/packages/tgui/index.js` file.
+
+## Component Reference
+
+See: [Component Reference](docs/component-reference.md).
 
 ## License
 

@@ -28,7 +28,7 @@
 /mob/proc/get_item_for_held_index(i)
 	if(i > 0 && i <= held_items.len)
 		return held_items[i]
-	return null
+	return FALSE
 
 
 //Odd = left. Even = right
@@ -71,6 +71,13 @@
 			holding_items += I
 	return holding_items
 
+/mob/proc/get_held_items()
+	var/list/holding_items = list()
+	for(var/i in 1 to held_items.len)
+		var/obj/item = held_items[i]
+		if(!isnull(item))
+			holding_items += item
+	return holding_items
 
 /mob/proc/get_empty_held_indexes()
 	var/list/L
@@ -158,7 +165,7 @@
 
 	if(isturf(I.loc) && !ignore_anim)
 		I.do_pickup_animation(src)
-	if(get_item_for_held_index(hand_index))
+	if(get_item_for_held_index(hand_index) != null)
 		dropItemToGround(get_item_for_held_index(hand_index), force = TRUE)
 	I.forceMove(src)
 	held_items[hand_index] = I
@@ -169,7 +176,7 @@
 		return FALSE
 	if(I.pulledby)
 		I.pulledby.stop_pulling()
-	update_held_items()
+	update_inv_hands()
 	I.pixel_x = I.base_pixel_x
 	I.pixel_y = I.base_pixel_y
 	return hand_index
@@ -204,38 +211,38 @@
 //Puts the item our active hand if possible. Failing that it tries other hands. Returns TRUE on success.
 //If both fail it drops it on the floor and returns FALSE.
 //This is probably the main one you need to know :)
-/mob/proc/put_in_hands(obj/item/I, del_on_fail = FALSE, merge_stacks = TRUE, forced = FALSE, ignore_animation = TRUE)
+/mob/proc/put_in_hands(obj/item/I, del_on_fail = FALSE, merge_stacks = TRUE, forced = FALSE)
 	if(QDELETED(I))
 		return FALSE
 
 	// If the item is a stack and we're already holding a stack then merge
-	if (isstack(I))
-		var/obj/item/stack/item_stack = I
+	if (istype(I, /obj/item/stack))
+		var/obj/item/stack/I_stack = I
 		var/obj/item/stack/active_stack = get_active_held_item()
 
-		if (item_stack.is_zero_amount(delete_if_zero = TRUE))
+		if (I_stack.zero_amount())
 			return FALSE
 
 		if (merge_stacks)
-			if (istype(active_stack) && active_stack.can_merge(item_stack))
-				if (item_stack.merge(active_stack))
-					to_chat(usr, span_notice("Your [active_stack.name] stack now contains [active_stack.get_amount()] [active_stack.singular_name]\s."))
+			if (istype(active_stack) && active_stack.can_merge(I_stack))
+				if (I_stack.merge(active_stack))
+					to_chat(usr, SPAN_NOTICE("Your [active_stack.name] stack now contains [active_stack.get_amount()] [active_stack.singular_name]\s."))
 					return TRUE
 			else
 				var/obj/item/stack/inactive_stack = get_inactive_held_item()
-				if (istype(inactive_stack) && inactive_stack.can_merge(item_stack))
-					if (item_stack.merge(inactive_stack))
-						to_chat(usr, span_notice("Your [inactive_stack.name] stack now contains [inactive_stack.get_amount()] [inactive_stack.singular_name]\s."))
+				if (istype(inactive_stack) && inactive_stack.can_merge(I_stack))
+					if (I_stack.merge(inactive_stack))
+						to_chat(usr, SPAN_NOTICE("Your [inactive_stack.name] stack now contains [inactive_stack.get_amount()] [inactive_stack.singular_name]\s."))
 						return TRUE
 
-	if(put_in_active_hand(I, forced, ignore_animation))
+	if(put_in_active_hand(I, forced))
 		return TRUE
 
 	var/hand = get_empty_held_index_for_side(LEFT_HANDS)
 	if(!hand)
-		hand = get_empty_held_index_for_side(RIGHT_HANDS)
+		hand =  get_empty_held_index_for_side(RIGHT_HANDS)
 	if(hand)
-		if(put_in_hand(I, hand, forced, ignore_animation))
+		if(put_in_hand(I, hand, forced))
 			return TRUE
 	if(del_on_fail)
 		qdel(I)
@@ -288,9 +295,16 @@
 		I.pixel_y = I.base_pixel_y + rand(-6, 6)
 	I.do_drop_animation(src)
 
-//for when the item will be immediately placed in a loc other than the ground
-/mob/proc/transferItemToLoc(obj/item/I, newloc = null, force = FALSE, silent = TRUE)
+//for when the item will be immediately placed in a loc other than the ground. Supports shifting the item's x and y from click modifiers.
+/mob/proc/transferItemToLoc(obj/item/I, newloc = null, force = FALSE, silent = TRUE, list/user_click_modifiers)
 	. = doUnEquip(I, force, newloc, FALSE, silent = silent)
+	if(. && user_click_modifiers)
+		//Center the icon where the user clicked.
+		if(!LAZYACCESS(user_click_modifiers, ICON_X) || !LAZYACCESS(user_click_modifiers, ICON_Y))
+			return
+		//Clamp it so that the icon never moves more than 16 pixels in either direction (thus leaving the location)
+		I.pixel_x = clamp(text2num(LAZYACCESS(user_click_modifiers, ICON_X)) - 16, -(world.icon_size/2), world.icon_size/2)
+		I.pixel_y = clamp(text2num(LAZYACCESS(user_click_modifiers, ICON_Y)) - 16, -(world.icon_size/2), world.icon_size/2)
 	I.do_drop_animation(src)
 
 //visibly unequips I but it is NOT MOVED AND REMAINS IN SRC
@@ -317,7 +331,7 @@
 	var/hand_index = get_held_index_of_item(I)
 	if(hand_index)
 		held_items[hand_index] = null
-		update_held_items()
+		update_inv_hands()
 	if(I)
 		if(client)
 			client.screen -= I
@@ -331,7 +345,6 @@
 				I.forceMove(newloc)
 		I.dropped(src, silent)
 	SEND_SIGNAL(I, COMSIG_ITEM_POST_UNEQUIP, force, newloc, no_move, invdrop, silent)
-	SEND_SIGNAL(src, COMSIG_MOB_UNEQUIPPED_ITEM, I, force, newloc, no_move, invdrop, silent)
 	return TRUE
 
 /**
@@ -403,13 +416,13 @@
 
 /obj/item/proc/equip_to_best_slot(mob/M)
 	if(M.equip_to_appropriate_slot(src))
-		M.update_held_items()
+		M.update_inv_hands()
 		return TRUE
 	else
 		if(equip_delay_self)
 			return
 
-	if(M.active_storage?.attempt_insert(src, M))
+	if(M.active_storage && M.active_storage.parent && SEND_SIGNAL(M.active_storage.parent, COMSIG_TRY_STORAGE_INSERT, src,M))
 		return TRUE
 
 	var/list/obj/item/possible = list(M.get_inactive_held_item(), M.get_item_by_slot(ITEM_SLOT_BELT), M.get_item_by_slot(ITEM_SLOT_DEX_STORAGE), M.get_item_by_slot(ITEM_SLOT_BACK))
@@ -417,10 +430,10 @@
 		if(!i)
 			continue
 		var/obj/item/I = i
-		if(I.atom_storage?.attempt_insert(src, M))
+		if(SEND_SIGNAL(I, COMSIG_TRY_STORAGE_INSERT, src, M))
 			return TRUE
 
-	to_chat(M, span_warning("You are unable to equip that!"))
+	to_chat(M, SPAN_WARNING("You are unable to equip that!"))
 	return FALSE
 
 
@@ -428,13 +441,9 @@
 	set name = "quick-equip"
 	set hidden = TRUE
 
-	DEFAULT_QUEUE_OR_CALL_VERB(VERB_CALLBACK(src, .proc/execute_quick_equip))
-
-///proc extender of [/mob/verb/quick_equip] used to make the verb queuable if the server is overloaded
-/mob/proc/execute_quick_equip()
 	var/obj/item/I = get_active_held_item()
 	if(!I)
-		to_chat(src, span_warning("You are not holding anything to equip!"))
+		to_chat(src, SPAN_WARNING("You are not holding anything to equip!"))
 		return
 	if (temporarilyRemoveItemFromInventory(I) && !QDELETED(I))
 		if(I.equip_to_best_slot(src))
@@ -484,6 +493,7 @@
 				path = /obj/item/bodypart/r_arm
 
 			var/obj/item/bodypart/BP = new path ()
+			BP.owner = src
 			BP.held_index = i
 			add_bodypart(BP)
 			hand_bodyparts[i] = BP
@@ -492,12 +502,12 @@
 //GetAllContents that is reasonable and not stupid
 /mob/living/carbon/proc/get_all_gear()
 	var/list/processing_list = get_equipped_items(include_pockets = TRUE) + held_items
-	list_clear_nulls(processing_list) // handles empty hands
+	listclearnulls(processing_list) // handles empty hands
 	var/i = 0
 	while(i < length(processing_list) )
 		var/atom/A = processing_list[++i]
-		if(A.atom_storage)
+		if(SEND_SIGNAL(A, COMSIG_CONTAINS_STORAGE))
 			var/list/item_stuff = list()
-			A.atom_storage.return_inv(item_stuff)
+			SEND_SIGNAL(A, COMSIG_TRY_STORAGE_RETURN_INVENTORY, item_stuff)
 			processing_list += item_stuff
 	return processing_list

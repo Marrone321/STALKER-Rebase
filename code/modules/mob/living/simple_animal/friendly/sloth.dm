@@ -1,5 +1,3 @@
-GLOBAL_DATUM(cargo_sloth, /mob/living/simple_animal/sloth)
-
 /mob/living/simple_animal/sloth
 	name = "sloth"
 	desc = "An adorable, sleepy creature."
@@ -39,15 +37,6 @@ GLOBAL_DATUM(cargo_sloth, /mob/living/simple_animal/sloth)
 /mob/living/simple_animal/sloth/Initialize(mapload)
 	. = ..()
 	AddElement(/datum/element/pet_bonus, "slowly smiles!")
-	// If someone adds non-cargo sloths to maps we'll have a problem but we're fine for now
-	if(!GLOB.cargo_sloth && mapload && is_station_level(z))
-		GLOB.cargo_sloth = src
-
-/mob/living/simple_animal/sloth/Destroy()
-	if(GLOB.cargo_sloth == src)
-		GLOB.cargo_sloth = null
-
-	return ..()
 
 //Cargo Sloth
 /mob/living/simple_animal/sloth/paperwork
@@ -64,5 +53,5 @@ GLOBAL_DATUM(cargo_sloth, /mob/living/simple_animal/sloth)
 	icon_living = "cool_sloth"
 	icon_dead = "cool_sloth_dead"
 	gender = FEMALE
-	butcher_results = list(/obj/item/toy/spinningtoy = 1)
+	butcher_results = list()
 	gold_core_spawnable = NO_SPAWN

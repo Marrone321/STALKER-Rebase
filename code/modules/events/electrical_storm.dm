@@ -4,8 +4,10 @@
 	earliest_start = 10 MINUTES
 	min_players = 5
 	weight = 20
-	category = EVENT_CATEGORY_ENGINEERING
-	description = "Destroys all lights in a large area."
+	alert_observers = FALSE
+
+	track = EVENT_TRACK_MUNDANE
+	tags = list(TAG_SPOOKY) //Ever so slightly destructive? Not enough to warrant a tag?
 
 /datum/round_event/electrical_storm
 	var/lightsoutAmount = 1
@@ -17,18 +19,4 @@
 
 
 /datum/round_event/electrical_storm/start()
-	var/list/epicentreList = list()
-
-	for(var/i in 1 to lightsoutAmount)
-		var/turf/T = find_safe_turf()
-		if(istype(T))
-			epicentreList += T
-
-	if(!epicentreList.len)
-		return
-
-	for(var/centre in epicentreList)
-		for(var/a in GLOB.apcs_list)
-			var/obj/machinery/power/apc/A = a
-			if(get_dist(centre, A) <= lightsoutRange)
-				A.overload_lighting()
+	return

@@ -4,16 +4,15 @@
 	icon = 'icons/obj/bureaucracy.dmi'
 	icon_state = "folder"
 	w_class = WEIGHT_CLASS_SMALL
-	pressure_resistance = 2
 	resistance_flags = FLAMMABLE
 	/// The background color for tgui in hex (with a `#`)
 	var/bg_color = "#7f7f7f"
 
 /obj/item/folder/suicide_act(mob/living/user)
-	user.visible_message(span_suicide("[user] begins filing an imaginary death warrant! It looks like [user.p_theyre()] trying to commit suicide!"))
+	user.visible_message(SPAN_SUICIDE("[user] begins filing an imaginary death warrant! It looks like [user.p_theyre()] trying to commit suicide!"))
 	return OXYLOSS
 
-/obj/item/folder/Initialize(mapload)
+/obj/item/folder/Initialize()
 	update_icon()
 	. = ..()
 
@@ -26,14 +25,15 @@
 
 /obj/item/folder/examine()
 	. = ..()
-	if(length(contents))
-		. += span_notice("Right-click to remove [contents[1]].")
+	if(contents)
+		. += SPAN_NOTICE("Right-click to remove [contents[1]].")
 
-/obj/item/folder/proc/rename(mob/user, obj/item/writing_instrument)
-	if(!user.can_write(writing_instrument))
+/obj/item/folder/proc/rename(mob/user)
+	if(!user.is_literate())
+		to_chat(user, SPAN_NOTICE("You scribble illegibly on the cover of [src]!"))
 		return
 
-	var/inputvalue = tgui_input_text(user, "What would you like to label the folder?", "Folder Labelling", max_length = MAX_NAME_LEN)
+	var/inputvalue = stripped_input(user, "What would you like to label the folder?", "Folder Labelling", "", MAX_NAME_LEN)
 
 	if(!inputvalue)
 		return
@@ -45,11 +45,11 @@
 	if(istype(Item))
 		Item.forceMove(user.loc)
 		user.put_in_hands(Item)
-		to_chat(user, span_notice("You remove [Item] from [src]."))
+		to_chat(user, SPAN_NOTICE("You remove [Item] from [src]."))
 		update_icon()
 
 /obj/item/folder/attack_hand(mob/user, list/modifiers)
-	if(length(contents) && LAZYACCESS(modifiers, RIGHT_CLICK))
+	if(LAZYACCESS(modifiers, RIGHT_CLICK))
 		remove_item(contents[1], user)
 		return TRUE
 	. = ..()
@@ -62,14 +62,14 @@
 /obj/item/folder/attackby(obj/item/weapon, mob/user, params)
 	if(burn_paper_product_attackby_check(weapon, user))
 		return
-	if(istype(weapon, /obj/item/paper) || istype(weapon, /obj/item/photo) || istype(weapon, /obj/item/documents))
+	if(istype(weapon, /obj/item/paper))
 		//Add paper, photo or documents into the folder
 		if(!user.transferItemToLoc(weapon, src))
 			return
-		to_chat(user, span_notice("You put [weapon] into [src]."))
+		to_chat(user, SPAN_NOTICE("You put [weapon] into [src]."))
 		update_appearance()
 	else if(istype(weapon, /obj/item/pen))
-		rename(user, weapon)
+		rename(user)
 
 /obj/item/folder/attack_self(mob/user)
 	add_fingerprint(usr)
@@ -84,8 +84,6 @@
 
 /obj/item/folder/ui_data(mob/user)
 	var/list/data = list()
-	if(istype(src, /obj/item/folder/syndicate))
-		data["theme"] = "syndicate"
 	data["bg_color"] = "[bg_color]"
 	data["folder_name"] = "[name]"
 

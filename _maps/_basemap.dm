@@ -1,17 +1,19 @@
 //#define LOWMEMORYMODE //uncomment this to load centcom and runtime station and thats it.
 
-#include "map_files\generic\CentCom.dmm"
+#include "map_files\generic\empty.dmm"
+#include "map_files/ZonaRemastered/backwater.dmm"
+#include "map_files/ZonaRemastered/under.dmm"
+#include "map_files/ZonaRemastered/kordon.dmm"
+#include "map_files/ZonaRemastered/bar.dmm"
+#include "map_files/ZonaRemastered/agroprom.dmm"
+#include "map_files/ZonaRemastered/svalka.dmm"
+#include "map_files/ZonaRemastered/radar.dmm"
+#include "map_files/ZonaRemastered/yantar.dmm"
+#include "map_files/ZonaRemastered/ArmyWarehouses.dmm"
+
 
 #ifndef LOWMEMORYMODE
 	#ifdef ALL_MAPS
-		#include "map_files\Mining\Lavaland.dmm"
-		#include "map_files\debug\runtimestation.dmm"
-		#include "map_files\debug\multiz.dmm"
-		#include "map_files\Deltastation\DeltaStation2.dmm"
-		#include "map_files\KiloStation\KiloStation.dmm"
-		#include "map_files\MetaStation\MetaStation.dmm"
-		#include "map_files\IceBoxStation\IceBoxStation.dmm"
-		#include "map_files\tramstation\tramstation.dmm"
 
 		#ifdef CIBUILDING
 			#include "templates.dm"

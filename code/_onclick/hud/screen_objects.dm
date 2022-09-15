@@ -11,7 +11,7 @@
 	icon = 'icons/hud/screen_gen.dmi'
 	plane = HUD_PLANE
 	animate_movement = SLIDE_STEPS
-	speech_span = SPAN_ROBOT
+	speech_span = SPEECH_SPAN_ROBOT
 	vis_flags = VIS_INHERIT_PLANE
 	appearance_flags = APPEARANCE_UI
 	/// A reference to the object in the slot. Grabs or items, generally.
@@ -72,23 +72,17 @@
 		M.swap_hand()
 	return 1
 
-/atom/movable/screen/navigate
-	name = "navigate"
-	icon = 'icons/hud/screen_midnight.dmi'
-	icon_state = "navigate"
-	screen_loc = ui_navigate_menu
-
-/atom/movable/screen/navigate/Click()
-	if(!isliving(usr))
-		return TRUE
-	var/mob/living/navigator = usr
-	navigator.navigate()
-
 /atom/movable/screen/craft
 	name = "crafting menu"
 	icon = 'icons/hud/screen_midnight.dmi'
 	icon_state = "craft"
 	screen_loc = ui_crafting
+
+/atom/movable/screen/craft/Click()
+	var/mob/user = usr
+	if(!user.client)
+		return
+	user.client.crafting_menu.show_menu(user)
 
 /atom/movable/screen/area_creator
 	name = "create new area"
@@ -101,7 +95,7 @@
 		return TRUE
 	var/area/A = get_area(usr)
 	if(!A.outdoors)
-		to_chat(usr, span_warning("There is already a defined structure here."))
+		to_chat(usr, SPAN_WARNING("There is already a defined structure here."))
 		return TRUE
 	create_area(usr)
 
@@ -133,9 +127,7 @@
 	if(world.time <= usr.next_move)
 		return TRUE
 
-	if(usr.incapacitated(IGNORE_STASIS))
-		return TRUE
-	if(ismecha(usr.loc)) // stops inventory actions in a mech
+	if(usr.incapacitated(ignore_stasis = TRUE))
 		return TRUE
 
 	if(hud?.mymob && slot_id)
@@ -144,7 +136,7 @@
 			return inv_item.Click(location, control, params)
 
 	if(usr.attack_ui(slot_id, params))
-		usr.update_held_items()
+		usr.update_inv_hands()
 	return TRUE
 
 /atom/movable/screen/inventory/MouseEntered(location, control, params)
@@ -226,8 +218,6 @@
 		return TRUE
 	if(user.incapacitated())
 		return TRUE
-	if (ismecha(user.loc)) // stops inventory actions in a mech
-		return TRUE
 
 	if(user.active_hand_index == held_index)
 		var/obj/item/I = user.get_active_held_item()
@@ -247,8 +237,8 @@
 	master = new_master
 
 /atom/movable/screen/close/Click()
-	var/datum/storage/storage = master
-	storage.hide_contents(usr)
+	var/datum/component/storage/S = master
+	S.hide_from(usr)
 	return TRUE
 
 /atom/movable/screen/drop
@@ -267,7 +257,7 @@
 	icon_state = "combat_off"
 	screen_loc = ui_combat_toggle
 
-/atom/movable/screen/combattoggle/Initialize(mapload)
+/atom/movable/screen/combattoggle/New(loc, ...)
 	. = ..()
 	update_appearance()
 
@@ -302,15 +292,6 @@
 		flashy = mutable_appearance('icons/hud/screen_gen.dmi', "togglefull_flash")
 		flashy.color = "#C62727"
 	. += flashy
-
-/atom/movable/screen/combattoggle/robot
-	icon = 'icons/hud/screen_cyborg.dmi'
-	screen_loc = ui_borg_intents
-
-/atom/movable/screen/spacesuit
-	name = "Space suit cell status"
-	icon_state = "spacesuit_0"
-	screen_loc = ui_spacesuit
 
 /atom/movable/screen/mov_intent
 	name = "run/walk toggle"
@@ -389,21 +370,14 @@
 	master = new_master
 
 /atom/movable/screen/storage/Click(location, control, params)
-	var/datum/storage/storage_master = master
-	if(!istype(storage_master))
-		return FALSE
-
 	if(world.time <= usr.next_move)
 		return TRUE
 	if(usr.incapacitated())
 		return TRUE
-	if(ismecha(usr.loc)) // stops inventory actions in a mech
-		return TRUE
-
-	var/obj/item/inserted = usr.get_active_held_item()
-	if(inserted)
-		storage_master.attempt_insert(inserted, usr)
-
+	if(master)
+		var/obj/item/I = usr.get_active_held_item()
+		if(I)
+			master.attackby(null, I, usr, params)
 	return TRUE
 
 /atom/movable/screen/throw_catch
@@ -519,7 +493,6 @@
 	if(choice != hud.mymob.zone_selected)
 		hud.mymob.zone_selected = choice
 		update_appearance()
-		SEND_SIGNAL(user, COMSIG_MOB_SELECTED_ZONE_SET, choice)
 
 	return TRUE
 
@@ -528,13 +501,6 @@
 	if(!hud?.mymob)
 		return
 	. += mutable_appearance(overlay_icon, "[hud.mymob.zone_selected]")
-
-/atom/movable/screen/zone_sel/alien
-	icon = 'icons/hud/screen_alien.dmi'
-	overlay_icon = 'icons/hud/screen_alien.dmi'
-
-/atom/movable/screen/zone_sel/robot
-	icon = 'icons/hud/screen_cyborg.dmi'
 
 /atom/movable/screen/flash
 	name = "flash"
@@ -559,37 +525,11 @@
 	icon_state = "health0"
 	screen_loc = ui_health
 
-/atom/movable/screen/healths/alien
-	icon = 'icons/hud/screen_alien.dmi'
-	screen_loc = ui_alien_health
-
-/atom/movable/screen/healths/robot
-	icon = 'icons/hud/screen_cyborg.dmi'
-	screen_loc = ui_borg_health
-
-/atom/movable/screen/healths/blob
-	name = "blob health"
-	icon_state = "block"
-	screen_loc = ui_internal
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-
-/atom/movable/screen/healths/blob/overmind
-	name = "overmind health"
-	icon = 'icons/hud/blob.dmi'
-	icon_state = "corehealth"
-	screen_loc = ui_blobbernaut_overmind_health
-
-/atom/movable/screen/healths/guardian
-	name = "summoner health"
-	icon = 'icons/mob/guardian.dmi'
-	icon_state = "base"
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-
-/atom/movable/screen/healths/revenant
-	name = "essence"
-	icon = 'icons/mob/actions/backgrounds.dmi'
-	icon_state = "bg_revenant"
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+/atom/movable/screen/stamina
+	name = "stamina"
+	icon = 'icons/hud/screen_stamina.dmi'
+	icon_state = "stamina0"
+	screen_loc = ui_stamina
 
 /atom/movable/screen/healthdoll
 	name = "health doll"
@@ -605,27 +545,15 @@
 	screen_loc = ui_living_healthdoll
 	var/filtered = FALSE //so we don't repeatedly create the mask of the mob every update
 
-/atom/movable/screen/mood
-	name = "mood"
-	icon_state = "mood5"
-	screen_loc = ui_mood
-
-/atom/movable/screen/mood/attack_tk()
-	return
-
 /atom/movable/screen/splash
-	icon = 'icons/blanks/blank_title.png'
+	icon = 'icons/blank_title.png'
 	icon_state = ""
 	screen_loc = "1,1"
 	plane = SPLASHSCREEN_PLANE
 	var/client/holder
 
-INITIALIZE_IMMEDIATE(/atom/movable/screen/splash)
-
-/atom/movable/screen/splash/Initialize(mapload, client/C, visible, use_previous_title)
+/atom/movable/screen/splash/New(client/C, visible, use_previous_title) //TODO: Make this use INITIALIZE_IMMEDIATE, except its not easy
 	. = ..()
-	if(!istype(C))
-		return
 
 	holder = C
 
@@ -637,7 +565,8 @@ INITIALIZE_IMMEDIATE(/atom/movable/screen/splash)
 			icon = SStitle.icon
 	else
 		if(!SStitle.previous_icon)
-			return INITIALIZE_HINT_QDEL
+			qdel(src)
+			return
 		icon = SStitle.previous_icon
 
 	holder.screen += src
@@ -701,8 +630,3 @@ INITIALIZE_IMMEDIATE(/atom/movable/screen/splash)
 		intent_icon.pixel_x = 16 * (i - 1) - 8 * length(streak)
 		add_overlay(intent_icon)
 	return ..()
-
-/atom/movable/screen/stamina
-	name = "stamina"
-	icon_state = "stamina0"
-	screen_loc = ui_stamina

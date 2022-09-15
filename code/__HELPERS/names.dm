@@ -4,12 +4,6 @@
 	else
 		return "[pick(GLOB.lizard_names_female)]-[pick(GLOB.lizard_names_female)]"
 
-/proc/ethereal_name()
-	var/tempname = "[pick(GLOB.ethereal_names)] [random_capital_letter()]"
-	if(prob(65))
-		tempname += random_capital_letter()
-	return tempname
-
 /proc/plasmaman_name()
 	return "[pick(GLOB.plasmaman_names)] \Roman[rand(1,99)]"
 
@@ -50,9 +44,9 @@ GLOBAL_VAR(command_name)
 
 	var/config_server_name = CONFIG_GET(string/servername)
 	if(config_server_name)
-		world.name = "[config_server_name][config_server_name == GLOB.station_name ? "" : ": [html_decode(GLOB.station_name)]"]"
+		world.name = "[config_server_name][config_server_name == GLOB.station_name ? "" : ": [GLOB.station_name]"]"
 	else
-		world.name = html_decode(GLOB.station_name)
+		world.name = GLOB.station_name
 
 
 /proc/new_station_name()
@@ -66,17 +60,7 @@ GLOBAL_VAR(command_name)
 		new_station_name = name + " "
 		name = ""
 
-	if(prob(0.1))
-		random = 999999999 //ridiculously long name in written numbers
-
 	// Prefix
-	var/holiday_name = pick(SSevents.holidays)
-	if(holiday_name)
-		var/datum/holiday/holiday = SSevents.holidays[holiday_name]
-		if(istype(holiday, /datum/holiday/friday_thirteenth))
-			random = 13
-		name = holiday.getStationPrefix()
-		//get normal name
 	if(!name)
 		name = pick(GLOB.station_names)
 	if(name)
@@ -97,18 +81,16 @@ GLOBAL_VAR(command_name)
 		if(4)
 			new_station_name += pick(GLOB.phonetic_alphabet)
 		if(5)
-			new_station_name += convert_integer_to_words(rand(-1,99), capitalise = TRUE)
+			new_station_name += pick(GLOB.numbers_as_words)
 		if(13)
 			new_station_name += pick("13","XIII","Thirteen")
-		if(999999999)
-			new_station_name += convert_integer_to_words(rand(111111111,999999999), capitalise = TRUE)
 	return new_station_name
 
 /proc/syndicate_name()
 	var/name = ""
 
 	// Prefix
-	name += pick("Clandestine", "Prima", "Blue", "Zero-G", "Max", "Blasto", "North", "Omni", "Newton", "Cyber", "Bonk", "Gene", "Gib")
+	name += pick("Clandestine", "Prima", "Blue", "Zero-G", "Max", "Blasto", "Waffle", "North", "Omni", "Newton", "Cyber", "Bonk", "Gene", "Gib")
 
 	// Suffix
 	if (prob(80))
@@ -121,11 +103,11 @@ GLOBAL_VAR(command_name)
 		else
 			name += pick("Syndi", "Corp", "Bio", "System", "Prod", "Chem", "Inter", "Hive")
 			name += pick("", "-")
-			name += pick("Tech", "Co", "Tek", "X", "Inc", "Code")
+			name += pick("Tech", "Sun", "Co", "Tek", "X", "Inc", "Code")
 	// Small
 	else
 		name += pick("-", "*", "")
-		name += pick("Tech", "Co", "Tek", "X", "Inc", "Gen", "Star", "Dyne", "Code", "Hive")
+		name += pick("Tech", "Sun", "Co", "Tek", "X", "Inc", "Gen", "Star", "Dyne", "Code", "Hive")
 
 	return name
 
@@ -203,12 +185,7 @@ GLOBAL_DATUM(syndicate_code_response_regex, /regex)
 								new_name += pick(GLOB.last_names)
 								. += new_name
 					if(2)
-						var/datum/job/job = pick(SSjob.joinable_occupations)
-						if(job)
-							. += job.title //Returns a job.
-						else
-							stack_trace("Failed to pick(SSjob.joinable_occupations) on generate_code_phrase()")
-							. += "Bug"
+						. += pick(SSjob.station_jobs)//Returns a job.
 				safety -= 1
 			if(2)
 				switch(rand(1,3))//Food, drinks, or places. Only selectable once.
@@ -237,9 +214,6 @@ GLOBAL_DATUM(syndicate_code_response_regex, /regex)
 
 /proc/odd_organ_name()
 	return "[pick(GLOB.gross_adjectives)], [pick(GLOB.gross_adjectives)] organ"
-
-/proc/hive_name()
-	return "[pick(GLOB.hive_names)]-hive"
 
 /**
  * returns an ic name of the tool needed

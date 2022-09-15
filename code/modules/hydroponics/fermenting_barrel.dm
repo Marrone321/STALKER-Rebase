@@ -5,20 +5,19 @@
 	icon_state = "barrel"
 	density = TRUE
 	anchored = FALSE
-	pressure_resistance = 2 * ONE_ATMOSPHERE
 	max_integrity = 300
 	var/open = FALSE
 	var/can_open = TRUE
 	var/speed_multiplier = 1 //How fast it distills. Defaults to 100% (1.0). Lower is better.
 
-/obj/structure/fermenting_barrel/Initialize(mapload)
+/obj/structure/fermenting_barrel/Initialize()
 	// Bluespace beakers, but without the portability or efficiency in circuits.
 	create_reagents(300, DRAINABLE)
 	. = ..()
 
 /obj/structure/fermenting_barrel/examine(mob/user)
 	. = ..()
-	. += span_notice("It is currently [open?"open, letting you pour liquids in.":"closed, letting you draw liquids from the tap."]")
+	. += SPAN_NOTICE("It is currently [open?"open, letting you pour liquids in.":"closed, letting you draw liquids from the tap."]")
 
 /obj/structure/fermenting_barrel/proc/makeWine(obj/item/food/grown/fruit)
 	if(fruit.reagents)
@@ -43,12 +42,12 @@
 	var/obj/item/food/grown/fruit = I
 	if(istype(fruit))
 		if(!fruit.can_distill)
-			to_chat(user, span_warning("You can't distill this into anything..."))
+			to_chat(user, SPAN_WARNING("You can't distill this into anything..."))
 			return TRUE
 		else if(!user.transferItemToLoc(I,src))
-			to_chat(user, span_warning("[I] is stuck to your hand!"))
+			to_chat(user, SPAN_WARNING("[I] is stuck to your hand!"))
 			return TRUE
-		to_chat(user, span_notice("You place [I] into [src] to start the fermentation process."))
+		to_chat(user, SPAN_NOTICE("You place [I] into [src] to start the fermentation process."))
 		addtimer(CALLBACK(src, .proc/makeWine, fruit), rand(80, 120) * speed_multiplier)
 		return TRUE
 	if(I)
@@ -64,23 +63,16 @@
 	if(open)
 		reagents.flags &= ~(DRAINABLE)
 		reagents.flags |= REFILLABLE | TRANSPARENT
-		to_chat(user, span_notice("You open [src], letting you fill it."))
+		to_chat(user, SPAN_NOTICE("You open [src], letting you fill it."))
 	else
 		reagents.flags |= DRAINABLE
 		reagents.flags &= ~(REFILLABLE | TRANSPARENT)
-		to_chat(user, span_notice("You close [src], letting you draw from its tap."))
+		to_chat(user, SPAN_NOTICE("You close [src], letting you draw from its tap."))
 	update_appearance()
 
 /obj/structure/fermenting_barrel/update_icon_state()
 	icon_state = open ? "barrel_open" : "barrel"
 	return ..()
-
-/datum/crafting_recipe/fermenting_barrel
-	name = "Wooden Barrel"
-	result = /obj/structure/fermenting_barrel
-	reqs = list(/obj/item/stack/sheet/mineral/wood = 8)
-	time = 50
-	category = CAT_PRIMAL
 
 //lil gunpowder barrel fer pirates since it's a nice reagent holder
 
@@ -89,6 +81,6 @@
 	desc = "A large wooden barrel for holding gunpowder. You'll need to take from this to load the cannons."
 	can_open = FALSE
 
-/obj/structure/fermenting_barrel/gunpowder/Initialize(mapload)
+/obj/structure/fermenting_barrel/gunpowder/Initialize()
 	. = ..()
 	reagents.add_reagent(/datum/reagent/gunpowder, 250)

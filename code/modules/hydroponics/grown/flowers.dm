@@ -15,7 +15,6 @@
 	growing_icon = 'icons/obj/hydroponics/growing_flowers.dmi'
 	icon_grow = "poppy-grow"
 	icon_dead = "poppy-dead"
-	genes = list(/datum/plant_gene/trait/preserved)
 	mutatelist = list(/obj/item/seeds/poppy/geranium, /obj/item/seeds/poppy/lily)
 	reagents_add = list(/datum/reagent/medicine/c2/libital = 0.2, /datum/reagent/consumable/nutriment = 0.05)
 
@@ -25,7 +24,6 @@
 	desc = "Long-used as a symbol of rest, peace, and death."
 	icon_state = "map_flower"
 	slot_flags = ITEM_SLOT_HEAD
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
 	bite_consumption_mod = 2
 	foodtypes = VEGETABLES | GROSS
 	distill_reagent = /datum/reagent/consumable/ethanol/vermouth
@@ -41,47 +39,12 @@
 	species = "lily"
 	plantname = "Lily Plants"
 	product = /obj/item/food/grown/poppy/lily
-	mutatelist = list(/obj/item/seeds/poppy/lily/trumpet)
 
 /obj/item/food/grown/poppy/lily
 	seed = /obj/item/seeds/poppy/lily
 	name = "lily"
 	desc = "A beautiful orange flower."
 	greyscale_colors = "#fe881f"
-
-	//Spacemans's Trumpet
-/obj/item/seeds/poppy/lily/trumpet
-	name = "pack of spaceman's trumpet seeds"
-	desc = "A plant sculped by extensive genetic engineering. The spaceman's trumpet is said to bear no resemblance to its wild ancestors. Inside NT AgriSci circles it is better known as NTPW-0372."
-	icon_state = "seed-trumpet"
-	species = "spacemanstrumpet"
-	plantname = "Spaceman's Trumpet Plant"
-	product = /obj/item/food/grown/trumpet
-	lifespan = 80
-	production = 5
-	endurance = 10
-	maturation = 12
-	yield = 4
-	potency = 20
-	growthstages = 4
-	weed_rate = 2
-	weed_chance = 10
-	growing_icon = 'icons/obj/hydroponics/growing_flowers.dmi'
-	icon_grow = "spacemanstrumpet-grow"
-	icon_dead = "spacemanstrumpet-dead"
-	mutatelist = null
-	genes = list(/datum/plant_gene/reagent/preset/polypyr, /datum/plant_gene/trait/preserved)
-	reagents_add = list(/datum/reagent/consumable/nutriment = 0.05)
-	rarity = 30
-	graft_gene = /datum/plant_gene/reagent/preset/polypyr
-
-/obj/item/food/grown/trumpet
-	seed = /obj/item/seeds/poppy/lily/trumpet
-	name = "spaceman's trumpet"
-	desc = "A vivid flower that smells faintly of freshly cut grass. Touching the flower seems to stain the skin some time after contact, yet most other surfaces seem to be unaffected by this phenomenon."
-	icon_state = "spacemanstrumpet"
-	bite_consumption_mod = 2
-	foodtypes = VEGETABLES
 
 // Geranium
 /obj/item/seeds/poppy/geranium
@@ -107,10 +70,9 @@
 	species = "fraxinella"
 	plantname = "Fraxinella Plants"
 	product = /obj/item/food/grown/poppy/geranium/fraxinella
-	mutatelist = null
+	mutatelist = list()
 	rarity = 15
 	reagents_add = list(/datum/reagent/consumable/nutriment = 0.05, /datum/reagent/fuel/oil = 0.05)
-	graft_gene = /datum/plant_gene/trait/preserved
 
 ///Fraxinella Flowers.
 /obj/item/food/grown/poppy/geranium/fraxinella
@@ -139,7 +101,7 @@
 	potency = 30
 	instability = 1
 	growthstages = 4
-	genes = list(/datum/plant_gene/trait/plant_type/weed_hardy, /datum/plant_gene/trait/preserved)
+	genes = list(/datum/plant_gene/trait/plant_type/weed_hardy)
 	growing_icon = 'icons/obj/hydroponics/growing_flowers.dmi'
 	reagents_add = list(/datum/reagent/consumable/nutriment = 0.04)
 	graft_gene = /datum/plant_gene/trait/plant_type/weed_hardy
@@ -150,7 +112,6 @@
 	desc = "\"I'll sweeten thy sad grave: thou shalt not lack the flower that's like thy face, pale primrose, nor the azured hare-bell, like thy veins; no, nor the leaf of eglantine, whom not to slander, out-sweeten'd not thy breath.\""
 	icon_state = "harebell"
 	slot_flags = ITEM_SLOT_HEAD
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
 	bite_consumption_mod = 2
 	distill_reagent = /datum/reagent/consumable/ethanol/vermouth
 
@@ -161,8 +122,8 @@
 	icon_state = "seed-sunflower"
 	species = "sunflower"
 	plantname = "Sunflowers"
-	product = /obj/item/food/grown/sunflower
-	genes = list(/datum/plant_gene/trait/attack/sunflower_attack, /datum/plant_gene/trait/preserved)
+	product = /obj/item/grown/sunflower
+	genes = list(/datum/plant_gene/trait/attack/sunflower_attack)
 	endurance = 20
 	production = 2
 	yield = 2
@@ -174,25 +135,20 @@
 	mutatelist = list(/obj/item/seeds/sunflower/moonflower, /obj/item/seeds/sunflower/novaflower)
 	reagents_add = list(/datum/reagent/consumable/cornoil = 0.08, /datum/reagent/consumable/nutriment = 0.04)
 
-/obj/item/food/grown/sunflower // FLOWER POWER!
+/obj/item/grown/sunflower // FLOWER POWER!
 	seed = /obj/item/seeds/sunflower
 	name = "sunflower"
 	desc = "It's beautiful! A certain person might beat you to death if you trample these."
 	icon_state = "sunflower"
 	lefthand_file = 'icons/mob/inhands/weapons/plants_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/weapons/plants_righthand.dmi'
-	foodtypes = VEGETABLES
 	damtype = BURN
 	force = 0
 	slot_flags = ITEM_SLOT_HEAD
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
 	throwforce = 0
 	w_class = WEIGHT_CLASS_TINY
 	throw_speed = 1
 	throw_range = 3
-
-/obj/item/food/grown/sunflower/make_dryable()
-	AddElement(/datum/element/dryable, /obj/item/food/semki/healthy) //yum
 
 // Moonflower
 /obj/item/seeds/sunflower/moonflower
@@ -206,8 +162,8 @@
 	icon_grow = "moonflower-grow"
 	icon_dead = "sunflower-dead"
 	product = /obj/item/food/grown/moonflower
-	genes = list(/datum/plant_gene/trait/glow/purple, /datum/plant_gene/trait/preserved)
-	mutatelist = null
+	genes = list(/datum/plant_gene/trait/glow/purple)
+	mutatelist = list()
 	reagents_add = list(/datum/reagent/consumable/ethanol/moonshine = 0.2, /datum/reagent/consumable/nutriment/vitamin = 0.02, /datum/reagent/consumable/nutriment = 0.02)
 	rarity = 15
 	graft_gene = /datum/plant_gene/trait/glow/purple
@@ -218,7 +174,6 @@
 	desc = "Store in a location at least 50 yards away from werewolves."
 	icon_state = "moonflower"
 	slot_flags = ITEM_SLOT_HEAD
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
 	distill_reagent = /datum/reagent/consumable/ethanol/absinthe //It's made from flowers.
 
 // Novaflower
@@ -231,9 +186,9 @@
 	icon_grow = "novaflower-grow"
 	icon_dead = "sunflower-dead"
 	product = /obj/item/grown/novaflower
-	genes = list(/datum/plant_gene/trait/backfire/novaflower_heat, /datum/plant_gene/trait/attack/novaflower_attack, /datum/plant_gene/trait/preserved)
-	mutatelist = null
-	reagents_add = list(/datum/reagent/consumable/condensedcapsaicin = 0.25, /datum/reagent/consumable/capsaicin = 0.3, /datum/reagent/consumable/nutriment = 0, /datum/reagent/toxin/acid = 0.05)
+	genes = list(/datum/plant_gene/trait/backfire/novaflower_heat, /datum/plant_gene/trait/attack/novaflower_attack)
+	mutatelist = list()
+	reagents_add = list(/datum/reagent/consumable/condensedcapsaicin = 0.25, /datum/reagent/consumable/capsaicin = 0.3, /datum/reagent/consumable/nutriment = 0)
 	rarity = 20
 
 /obj/item/grown/novaflower
@@ -246,7 +201,6 @@
 	damtype = BURN
 	force = 0
 	slot_flags = ITEM_SLOT_HEAD
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
 	throwforce = 0
 	w_class = WEIGHT_CLASS_TINY
 	throw_speed = 1
@@ -268,11 +222,10 @@
 	potency = 15
 	instability = 20 //Roses crossbreed easily, and there's many many species of them.
 	growthstages = 3
-	genes = list(/datum/plant_gene/trait/repeated_harvest, /datum/plant_gene/trait/backfire/rose_thorns, /datum/plant_gene/trait/preserved)
+	genes = list(/datum/plant_gene/trait/repeated_harvest, /datum/plant_gene/trait/backfire/rose_thorns)
 	growing_icon = 'icons/obj/hydroponics/growing_flowers.dmi'
 	icon_grow = "rose-grow"
 	icon_dead = "rose-dead"
-	mutatelist = list(/obj/item/seeds/carbon_rose)
 	//Roses are commonly used as herbal medicines (diarrhodons) and for their 'rose oil'.
 	reagents_add = list(/datum/reagent/consumable/nutriment = 0.05, /datum/reagent/medicine/granibitaluri = 0.1, /datum/reagent/fuel/oil = 0.05)
 
@@ -280,56 +233,201 @@
 	seed = /obj/item/seeds/rose
 	name = "\improper rose"
 	desc = "The classic fleur d'amour - flower of love. Watch for its thorns!"
-	base_icon_state = "rose"
 	icon_state = "rose"
-	worn_icon_state = "rose"
 	lefthand_file = 'icons/mob/inhands/misc/food_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/misc/food_righthand.dmi'
-	slot_flags = ITEM_SLOT_HEAD | ITEM_SLOT_MASK
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
+	slot_flags = ITEM_SLOT_HEAD|ITEM_SLOT_MASK
 	bite_consumption_mod = 2
 	foodtypes = VEGETABLES | GROSS
 
-/obj/item/food/grown/rose/equipped(mob/user, slot, initial)
-	. = ..()
-	if(slot == ITEM_SLOT_MASK)
-		worn_icon_state = "[base_icon_state]_mouth"
-		user.update_worn_mask()
-	else
-		worn_icon_state = base_icon_state
-		user.update_worn_head()
+/obj/item/seeds/hibiscus
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-hibiscus"
+	product = /obj/item/food/grown/hibiscus
 
-// Carbon Rose
-/obj/item/seeds/carbon_rose
-	name = "pack of carbon rose seeds"
-	desc = "These seeds grow into carbon roses."
-	icon_state = "seed-carbonrose"
-	species = "carbonrose"
-	plantname = "Carbon Rose Flower"
-	product = /obj/item/grown/carbon_rose
-	endurance = 12
-	yield = 6
-	potency = 15
-	instability = 3
-	growthstages = 3
-	genes = list(/datum/plant_gene/reagent/preset/carbon, /datum/plant_gene/trait/preserved)
-	growing_icon = 'icons/obj/hydroponics/growing_flowers.dmi'
-	icon_grow = "carbonrose-grow"
-	icon_dead = "carbonrose-dead"
-	reagents_add = list(/datum/reagent/plastic_polymers = 0.05)
-	rarity = 10
-	graft_gene = /datum/plant_gene/reagent/preset/carbon
+/obj/item/food/grown/hibiscus
+	seed = /obj/item/seeds/hibiscus
+	name = "hibiscus"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "hibiscus"
 
-/obj/item/grown/carbon_rose
-	seed = /obj/item/seeds/carbon_rose
-	name = "carbon rose"
-	desc = "The all new fleur d'amour gris - the flower of love, modernized, with no harsh thorns."
-	icon_state = "carbonrose"
-	lefthand_file = 'icons/mob/inhands/weapons/plants_lefthand.dmi'
-	righthand_file = 'icons/mob/inhands/weapons/plants_righthand.dmi'
-	force = 0
-	throwforce = 0
-	slot_flags = ITEM_SLOT_HEAD
-	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
-	throw_speed = 1
-	throw_range = 3
+/obj/item/seeds/yarrow
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-yarrow"
+	product = /obj/item/food/grown/yarrow
+
+/obj/item/food/grown/yarrow
+	seed = /obj/item/seeds/hibiscus
+	name = "yarrow"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "yarrow"
+
+/obj/item/seeds/witchhazel
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-witchhazel"
+	product = /obj/item/food/grown/witchhazel
+
+/obj/item/food/grown/witchhazel
+	seed = /obj/item/seeds/hibiscus
+	name = "witchhazel"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "witchhazel"
+
+/obj/item/seeds/spearmint
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-spearmint"
+	product = /obj/item/food/grown/spearmint
+
+/obj/item/food/grown/spearmint
+	seed = /obj/item/seeds/spearmint
+	name = "spearmint"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "spearmint"
+
+/obj/item/seeds/lavender
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-lavender"
+	product = /obj/item/food/grown/lavender
+
+/obj/item/food/grown/lavender
+	seed = /obj/item/seeds/lavender
+	name = "lavender"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "lavender"
+
+/obj/item/seeds/peppermint
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-peppermint"
+	product = /obj/item/food/grown/peppermint
+
+/obj/item/food/grown/peppermint
+	seed = /obj/item/seeds/peppermint
+	name = "peppermint"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "peppermint"
+
+/obj/item/seeds/dandelion
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-dandelion"
+	product = /obj/item/food/grown/dandelion
+
+/obj/item/food/grown/dandelion
+	seed = /obj/item/seeds/dandelion
+	name = "dandelion"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "dandelion"
+
+/obj/item/seeds/hydrangea
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-hydrangea"
+	product = /obj/item/food/grown/hydrangea
+
+/obj/item/food/grown/hydrangea
+	seed = /obj/item/seeds/hydrangea
+	name = "hydrangea"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "hydrangea"
+
+/obj/item/seeds/lilac
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-lilac"
+	product = /obj/item/food/grown/lilac
+
+/obj/item/food/grown/lilac
+	seed = /obj/item/seeds/lilac
+	name = "lilac"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "lilac"
+
+/obj/item/seeds/dahlia
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-dahlia"
+	product = /obj/item/food/grown/dahlia
+
+/obj/item/food/grown/dahlia
+	seed = /obj/item/seeds/dahlia
+	name = "dahlia"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "dahlia"
+
+/obj/item/seeds/chamomile
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-chamomile"
+	product = /obj/item/food/grown/chamomile
+
+/obj/item/food/grown/chamomile
+	seed = /obj/item/seeds/chamomile
+	name = "chamomile"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "chamomile"
+
+/obj/item/seeds/peanut
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-peanut"
+	product = /obj/item/food/grown/peanut
+
+/obj/item/food/grown/peanut
+	seed = /obj/item/seeds/peanut
+	name = "peanut"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "peanut"
+
+/obj/item/seeds/milkweed
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-milkweed"
+	product = /obj/item/food/grown/milkweed
+
+/obj/item/food/grown/milkweed
+	seed = /obj/item/seeds/milkweed
+	name = "milkweed"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "milkweed"
+
+/obj/item/seeds/peach
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-peach"
+	product = /obj/item/food/grown/peach
+
+/obj/item/food/grown/peach
+	seed = /obj/item/seeds/peach
+	name = "peach"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "peach"
+
+/obj/item/seeds/mulberry
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-mulberry"
+	product = /obj/item/food/grown/mulberry
+
+/obj/item/food/grown/mulberry
+	seed = /obj/item/seeds/mulberry
+	name = "mulberry"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "mulberry"
+
+/obj/item/seeds/chestnut
+	name = "seeds"
+	desc = "Relatively large irregularly shaped seeds with fuzzy filament protruding out of it."
+	icon_state = "seed-chestnut"
+	product = /obj/item/food/grown/chestnut
+
+/obj/item/food/grown/chestnut
+	seed = /obj/item/seeds/chestnut
+	name = "chestnut"
+	desc = "A purple-white flower with large pedals, the color getting darker as it comes to the center."
+	icon_state = "chestnut"

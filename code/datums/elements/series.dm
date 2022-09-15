@@ -28,8 +28,6 @@
 
 ///signal called examining
 /datum/element/series/proc/on_examine(datum/target, mob/user, list/examine_list)
-	SIGNAL_HANDLER
-
 	var/series_number = subtype_list.Find(target.type)
-	examine_list += span_boldnotice("[target] is part of the \"[series_name]\" series!")
-	examine_list += span_notice("Collect them all: [series_number]/[length(subtype_list)].")
+	examine_list += SPAN_BOLDNOTICE("[target] is part of the \"[series_name]\" series!")
+	examine_list += SPAN_NOTICE("Collect them all: [series_number]/[length(subtype_list)].")

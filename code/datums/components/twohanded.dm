@@ -17,11 +17,6 @@
 	var/icon_wielded = FALSE /// The icon that will be used when wielded
 	var/obj/item/offhand/offhand_item = null /// Reference to the offhand created for the item
 	var/sharpened_increase = 0 /// The amount of increase recived from sharpening the item
-	/// A callback on the parent to be called when the item is wielded
-	var/datum/callback/wield_callback
-	/// A callback on the parent to be called when the item is unwielded
-	var/datum/callback/unwield_callback
-
 /**
 
  * Two Handed component
@@ -37,8 +32,7 @@
  * * icon_wielded (optional) The icon to be used when wielded
  */
 /datum/component/two_handed/Initialize(require_twohands=FALSE, wieldsound=FALSE, unwieldsound=FALSE, attacksound=FALSE, \
-										force_multiplier=0, force_wielded=0, force_unwielded=0, icon_wielded=FALSE, \
-										datum/callback/wield_callback, datum/callback/unwield_callback)
+										force_multiplier=0, force_wielded=0, force_unwielded=0, icon_wielded=FALSE)
 	if(!isitem(parent))
 		return COMPONENT_INCOMPATIBLE
 
@@ -50,16 +44,13 @@
 	src.force_wielded = force_wielded
 	src.force_unwielded = force_unwielded
 	src.icon_wielded = icon_wielded
-	src.wield_callback = wield_callback
-	src.unwield_callback = unwield_callback
 
 	if(require_twohands)
 		ADD_TRAIT(parent, TRAIT_NEEDS_TWO_HANDS, ABSTRACT_ITEM_TRAIT)
 
 // Inherit the new values passed to the component
 /datum/component/two_handed/InheritComponent(datum/component/two_handed/new_comp, original, require_twohands, wieldsound, unwieldsound, \
-											force_multiplier, force_wielded, force_unwielded, icon_wielded, \
-											datum/callback/wield_callback, datum/callback/unwield_callback)
+											force_multiplier, force_wielded, force_unwielded, icon_wielded)
 	if(!original)
 		return
 	if(require_twohands)
@@ -78,10 +69,6 @@
 		src.force_unwielded = force_unwielded
 	if(icon_wielded)
 		src.icon_wielded = icon_wielded
-	if(wield_callback)
-		src.wield_callback = wield_callback
-	if(unwield_callback)
-		src.unwield_callback = unwield_callback
 
 // register signals withthe parent item
 /datum/component/two_handed/RegisterWithParent()
@@ -121,13 +108,7 @@
 	if(wielded)
 		unwield(user)
 	if(source == offhand_item && !QDELETED(source))
-		offhand_item = null
 		qdel(source)
-
-/// Triggered on destroy of the component's offhand
-/datum/component/two_handed/proc/on_destroy(datum/source)
-	SIGNAL_HANDLER
-	offhand_item = null
 
 /// Triggered on attack self of the item containing the component
 /datum/component/two_handed/proc/on_attack_self(datum/source, mob/user)
@@ -149,22 +130,22 @@
 		return
 	if(ismonkey(user))
 		if(require_twohands)
-			to_chat(user, span_notice("[parent] is too heavy and cumbersome for you to carry!"))
+			to_chat(user, SPAN_NOTICE("[parent] is too heavy and cumbersome for you to carry!"))
 			user.dropItemToGround(parent, force=TRUE)
 		else
-			to_chat(user, span_notice("It's too heavy for you to wield fully."))
+			to_chat(user, SPAN_NOTICE("It's too heavy for you to wield fully."))
 		return
 	if(user.get_inactive_held_item())
 		if(require_twohands)
-			to_chat(user, span_notice("[parent] is too cumbersome to carry in one hand!"))
+			to_chat(user, SPAN_NOTICE("[parent] is too cumbersome to carry in one hand!"))
 			user.dropItemToGround(parent, force=TRUE)
 		else
-			to_chat(user, span_warning("You need your other hand to be empty!"))
+			to_chat(user, SPAN_WARNING("You need your other hand to be empty!"))
 		return
 	if(user.usable_hands < 2)
 		if(require_twohands)
 			user.dropItemToGround(parent, force=TRUE)
-		to_chat(user, span_warning("You don't have enough intact hands."))
+		to_chat(user, SPAN_WARNING("You don't have enough intact hands."))
 		return
 
 	// wield update status
@@ -173,7 +154,6 @@
 	wielded = TRUE
 	ADD_TRAIT(parent,TRAIT_WIELDED,src)
 	RegisterSignal(user, COMSIG_MOB_SWAP_HANDS, .proc/on_swap_hands)
-	wield_callback?.Invoke(parent, user)
 
 	// update item stats and name
 	var/obj/item/parent_item = parent
@@ -186,10 +166,7 @@
 	parent_item.name = "[parent_item.name] (Wielded)"
 	parent_item.update_appearance()
 
-	if(iscyborg(user))
-		to_chat(user, span_notice("You dedicate your module to [parent]."))
-	else
-		to_chat(user, span_notice("You grab [parent] with both hands."))
+	to_chat(user, SPAN_NOTICE("You grab [parent] with both hands."))
 
 	// Play sound if one is set
 	if(wieldsound)
@@ -201,7 +178,6 @@
 	offhand_item.desc = "Your second grip on [parent_item]."
 	offhand_item.wielded = TRUE
 	RegisterSignal(offhand_item, COMSIG_ITEM_DROPPED, .proc/on_drop)
-	RegisterSignal(offhand_item, COMSIG_PARENT_QDELETING, .proc/on_destroy)
 	user.put_in_inactive_hand(offhand_item)
 
 /**
@@ -221,7 +197,6 @@
 	UnregisterSignal(user, COMSIG_MOB_SWAP_HANDS)
 	SEND_SIGNAL(parent, COMSIG_TWOHANDED_UNWIELD, user)
 	REMOVE_TRAIT(parent,TRAIT_WIELDED,src)
-	unwield_callback?.Invoke(parent, user)
 
 	// update item stats
 	var/obj/item/parent_item = parent
@@ -244,9 +219,9 @@
 
 	if(istype(user)) // tk showed that we might not have a mob here
 		if(user.get_item_by_slot(ITEM_SLOT_BACK) == parent)
-			user.update_worn_back()
+			user.update_inv_back()
 		else
-			user.update_held_items()
+			user.update_inv_hands()
 
 		// if the item requires two handed drop the item on unwield
 		if(require_twohands && can_drop)
@@ -254,12 +229,10 @@
 
 		// Show message if requested
 		if(show_message)
-			if(iscyborg(user))
-				to_chat(user, span_notice("You free up your module."))
-			else if(require_twohands)
-				to_chat(user, span_notice("You drop [parent]."))
+			if(require_twohands)
+				to_chat(user, SPAN_NOTICE("You drop [parent]."))
 			else
-				to_chat(user, span_notice("You are now carrying [parent] with one hand."))
+				to_chat(user, SPAN_NOTICE("You are now carrying [parent] with one hand."))
 
 	// Play sound if set
 	if(unwieldsound)
@@ -267,7 +240,7 @@
 
 	// Remove the object in the offhand
 	if(offhand_item)
-		UnregisterSignal(offhand_item, list(COMSIG_ITEM_DROPPED, COMSIG_PARENT_QDELETING))
+		UnregisterSignal(offhand_item, COMSIG_ITEM_DROPPED)
 		qdel(offhand_item)
 	// Clear any old refrence to an item that should be gone now
 	offhand_item = null
@@ -350,7 +323,7 @@
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	var/wielded = FALSE // Off Hand tracking of wielded status
 
-/obj/item/offhand/Initialize(mapload)
+/obj/item/offhand/Initialize()
 	. = ..()
 	ADD_TRAIT(src, TRAIT_NODROP, ABSTRACT_ITEM_TRAIT)
 

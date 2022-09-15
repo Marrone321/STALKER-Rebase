@@ -44,19 +44,6 @@
 	strengthdiv = 7
 	modifier = 2
 
-/datum/chemical_reaction/reagent_explosion/rdx_explosion2 //makes rdx unique , on its own it is a good bomb, but when combined with liquid electricity it becomes truly destructive
-	required_reagents = list(/datum/reagent/rdx = 1 , /datum/reagent/consumable/liquidelectricity = 1)
-	strengthdiv = 3.5 //actually a decrease of 1 becaused of how explosions are calculated. This is due to the fact we require 2 reagents
-	modifier = 4
-
-/datum/chemical_reaction/reagent_explosion/rdx_explosion2/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
-	var/fire_range = round(created_volume/30)
-	var/turf/T = get_turf(holder.my_atom)
-	for(var/turf/target as anything in RANGE_TURFS(fire_range,T))
-		new /obj/effect/hotspot(target)
-	holder.chem_temp = 500
-	..()
-
 /datum/chemical_reaction/reagent_explosion/rdx_explosion3
 	required_reagents = list(/datum/reagent/rdx = 1 , /datum/reagent/teslium = 1)
 	strengthdiv = 3.5 //actually a decrease of 1 becaused of how explosions are calculated. This is due to the fact we require 2 reagents
@@ -125,22 +112,6 @@
 		///special size for anti cult effect
 		var/effective_size = round(created_volume/48)
 		playsound(T, 'sound/effects/pray.ogg', 80, FALSE, effective_size)
-		for(var/mob/living/simple_animal/revenant/R in get_hearers_in_view(7,T))
-			var/deity
-			if(GLOB.deity)
-				deity = GLOB.deity
-			else
-				deity = "Christ"
-			to_chat(R, span_userdanger("The power of [deity] compels you!"))
-			R.stun(20)
-			R.reveal(100)
-			R.adjustHealth(50)
-		for(var/mob/living/carbon/C in get_hearers_in_view(effective_size,T))
-			if(IS_CULTIST(C))
-				to_chat(C, span_userdanger("The divine explosion sears you!"))
-				C.Paralyze(40)
-				C.adjust_fire_stacks(5)
-				C.ignite_mob()
 	..()
 
 /datum/chemical_reaction/gunpowder
@@ -153,10 +124,10 @@
 	required_temp = 474
 	strengthdiv = 10
 	modifier = 5
-	mix_message = "<span class='boldnotice'>Sparks start flying around the gunpowder!</span>"
+	mix_message = SPAN_BOLDANNOUNCE("Sparks start flying around the gunpowder!")
 
 /datum/chemical_reaction/reagent_explosion/gunpowder_explosion/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
-	addtimer(CALLBACK(src, .proc/default_explode, holder, created_volume, modifier, strengthdiv), rand(5,10) SECONDS)
+	addtimer(CALLBACK(src, .proc/default_explode, holder, created_volume), rand(5,10) SECONDS)
 
 /datum/chemical_reaction/thermite
 	results = list(/datum/reagent/thermite = 3)
@@ -173,29 +144,6 @@
 	// 200 created volume = 8 heavy range & 14 light range. 4 tiles larger than traitor EMP grenades.
 	empulse(location, round(created_volume / 12), round(created_volume / 7), 1)
 	holder.clear_reagents()
-
-
-/datum/chemical_reaction/beesplosion
-	required_reagents = list(/datum/reagent/consumable/honey = 1, /datum/reagent/medicine/strange_reagent = 1, /datum/reagent/uranium/radium = 1)
-	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_EXPLOSIVE | REACTION_TAG_DANGEROUS
-
-/datum/chemical_reaction/beesplosion/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
-	var/location = holder.my_atom.drop_location()
-	if(created_volume < 5)
-		playsound(location,'sound/effects/sparks1.ogg', 100, TRUE)
-	else
-		playsound(location,'sound/creatures/bee.ogg', 100, TRUE)
-		var/list/beeagents = list()
-		for(var/R in holder.reagent_list)
-			if(required_reagents[R])
-				continue
-			beeagents += R
-		var/bee_amount = round(created_volume * 0.2)
-		for(var/i in 1 to bee_amount)
-			var/mob/living/simple_animal/hostile/bee/short/new_bee = new(location)
-			if(LAZYLEN(beeagents))
-				new_bee.assign_reagent(pick(beeagents))
-
 
 /datum/chemical_reaction/stabilizing_agent
 	results = list(/datum/reagent/stabilizing_agent = 3)
@@ -331,13 +279,14 @@
 	if(holder.has_reagent(/datum/reagent/stabilizing_agent))
 		return
 	holder.remove_reagent(/datum/reagent/smoke_powder, created_volume*3)
+	var/smoke_radius = round(sqrt(created_volume * 1.5), 1)
 	var/location = get_turf(holder.my_atom)
-	var/datum/effect_system/fluid_spread/smoke/chem/S = new
+	var/datum/effect_system/smoke_spread/chem/S = new
 	S.attach(location)
 	playsound(location, 'sound/effects/smoke.ogg', 50, TRUE, -3)
 	if(S)
-		S.set_up(amount = created_volume * 3, holder = holder.my_atom, location = location, carry = holder, silent = FALSE)
-		S.start(log = TRUE)
+		S.set_up(holder, smoke_radius, location, 0)
+		S.start()
 	if(holder?.my_atom)
 		holder.clear_reagents()
 
@@ -350,12 +299,13 @@
 
 /datum/chemical_reaction/smoke_powder_smoke/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
 	var/location = get_turf(holder.my_atom)
-	var/datum/effect_system/fluid_spread/smoke/chem/S = new
+	var/smoke_radius = round(sqrt(created_volume / 2), 1)
+	var/datum/effect_system/smoke_spread/chem/S = new
 	S.attach(location)
 	playsound(location, 'sound/effects/smoke.ogg', 50, TRUE, -3)
 	if(S)
-		S.set_up(amount = created_volume, holder = holder.my_atom, location = location, carry = holder, silent = FALSE)
-		S.start(log = TRUE)
+		S.set_up(holder, smoke_radius, location, 0)
+		S.start()
 	if(holder?.my_atom)
 		holder.clear_reagents()
 
@@ -392,9 +342,6 @@
 /datum/chemical_reaction/phlogiston/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
 	if(holder.has_reagent(/datum/reagent/stabilizing_agent))
 		return
-	var/turf/open/T = get_turf(holder.my_atom)
-	if(istype(T))
-		T.atmos_spawn_air("plasma=[created_volume];TEMP=1000")
 	holder.clear_reagents()
 	return
 
@@ -428,7 +375,7 @@
 /datum/chemical_reaction/cryostylane/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
 	var/datum/reagent/oxygen = holder.has_reagent(/datum/reagent/oxygen) //If we have oxygen, bring in the old cooling effect
 	if(oxygen)
-		holder.chem_temp = max(holder.chem_temp - (10 * oxygen.volume * 2),0)
+		holder.chem_temp =  max(holder.chem_temp - (10 * oxygen.volume * 2),0)
 		holder.remove_reagent(/datum/reagent/oxygen, oxygen.volume) // halves the temperature - tried to bring in some of the old effects at least!
 	return
 
@@ -467,7 +414,6 @@
 	playsound(local_turf, 'sound/magic/ethereal_exit.ogg', 50, 1)
 	local_turf.visible_message("The reaction furiously freezes up as a snowman suddenly rises out of the [holder.my_atom.name]!")
 	freeze_radius(holder, equilibrium, holder.chem_temp, clamp(cryostylane.volume/15, 3, 10), 180 SECONDS, 5)
-	new /obj/structure/statue/snow/snowman(local_turf)
 	clear_reactants(holder)
 	clear_products(holder)
 
@@ -521,23 +467,17 @@
 /datum/chemical_reaction/teslium
 	results = list(/datum/reagent/teslium = 3)
 	required_reagents = list(/datum/reagent/stable_plasma = 1, /datum/reagent/silver = 1, /datum/reagent/gunpowder = 1)
-	mix_message = "<span class='danger'>A jet of sparks flies from the mixture as it merges into a flickering slurry.</span>"
+	mix_message = SPAN_DANGER("A jet of sparks flies from the mixture as it merges into a flickering slurry.")
 	required_temp = 400
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_EXPLOSIVE
-
-/datum/chemical_reaction/energized_jelly
-	results = list(/datum/reagent/teslium/energized_jelly = 2)
-	required_reagents = list(/datum/reagent/toxin/slimejelly = 1, /datum/reagent/teslium = 1)
-	mix_message = "<span class='danger'>The slime jelly starts glowing intermittently.</span>"
-	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DANGEROUS | REACTION_TAG_HEALING | REACTION_TAG_OTHER
 
 /datum/chemical_reaction/reagent_explosion/teslium_lightning
 	required_reagents = list(/datum/reagent/teslium = 1, /datum/reagent/water = 1)
 	strengthdiv = 100
 	modifier = -100
-	mix_message = "<span class='boldannounce'>The teslium starts to spark as electricity arcs away from it!</span>"
+	mix_message = SPAN_BOLDANNOUNCE("The teslium starts to spark as electricity arcs away from it!")
 	mix_sound = 'sound/machines/defib_zap.ogg'
-	var/zap_flags = ZAP_MOB_DAMAGE | ZAP_OBJ_DAMAGE | ZAP_MOB_STUN | ZAP_LOW_POWER_GEN
+	var/zap_flags = ZAP_MOB_DAMAGE | ZAP_OBJ_DAMAGE | ZAP_MOB_STUN
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_EXPLOSIVE | REACTION_TAG_DANGEROUS
 
 /datum/chemical_reaction/reagent_explosion/teslium_lightning/on_reaction(datum/reagents/holder, datum/equilibrium/reaction, created_volume)
@@ -553,12 +493,11 @@
 		added_delay += 1.5 SECONDS
 	if(created_volume >= 10) //10 units minimum for lightning, 40 units for secondary blast, 75 units for tertiary blast.
 		addtimer(CALLBACK(src, .proc/zappy_zappy, holder, T3), added_delay)
-	addtimer(CALLBACK(src, .proc/default_explode, holder, created_volume, modifier, strengthdiv), added_delay)
+	addtimer(CALLBACK(src, .proc/default_explode, holder, created_volume), added_delay)
 
 /datum/chemical_reaction/reagent_explosion/teslium_lightning/proc/zappy_zappy(datum/reagents/holder, power)
 	if(QDELETED(holder.my_atom))
 		return
-	tesla_zap(holder.my_atom, 7, power, zap_flags)
 	playsound(holder.my_atom, 'sound/machines/defib_zap.ogg', 50, TRUE)
 
 /datum/chemical_reaction/reagent_explosion/teslium_lightning/heat
@@ -578,22 +517,9 @@
 	var/range = clamp(sqrt(created_volume*2), 1, 6)
 	//This first throws people away and then it explodes
 	goonchem_vortex(turfie, 1, range)
-	turfie.atmos_spawn_air("o2=[created_volume/2];TEMP=[575]")
-	turfie.atmos_spawn_air("n2=[created_volume/2];TEMP=[575]")
 	return ..()
-
-/datum/chemical_reaction/firefighting_foam
-	results = list(/datum/reagent/firefighting_foam = 3)
-	required_reagents = list(/datum/reagent/stabilizing_agent = 1,/datum/reagent/fluorosurfactant = 1,/datum/reagent/carbon = 1)
-	required_temp = 200
-	is_cold_recipe = 1
-	optimal_temp = 50
-	overheat_temp = 5
-	thermic_constant= -1
-	H_ion_release = -0.02
-	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE
 
 /datum/chemical_reaction/reagent_explosion/patriotism_overload
 	required_reagents = list(/datum/reagent/consumable/ethanol/planet_cracker = 1, /datum/reagent/consumable/ethanol/triumphal_arch = 1)
 	strengthdiv = 20
-	mix_message = "<span class='boldannounce'>The two patriotic drinks instantly reject each other!</span>"
+	mix_message = SPAN_BOLDANNOUNCE("The two patriotic drinks instantly reject each other!")

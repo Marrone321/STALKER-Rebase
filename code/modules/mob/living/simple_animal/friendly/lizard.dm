@@ -7,7 +7,7 @@
 	speak_emote = list("hisses")
 	health = 5
 	maxHealth = 5
-	faction = list("Lizard")
+	faction = list("Lizard", "planet")
 	attack_verb_continuous = "bites"
 	attack_verb_simple = "bite"
 	melee_damage_lower = 1
@@ -25,10 +25,9 @@
 	gold_core_spawnable = FRIENDLY_SPAWN
 	obj_damage = 0
 	environment_smash = ENVIRONMENT_SMASH_NONE
-	can_be_held = TRUE
-	var/static/list/edibles = typecacheof(list(/mob/living/simple_animal/butterfly, /mob/living/basic/cockroach)) //list of atoms, however turfs won't affect AI, but will affect consumption.
+	var/static/list/edibles = typecacheof(list(/mob/living/simple_animal/butterfly, /mob/living/simple_animal/hostile/cockroach)) //list of atoms, however turfs won't affect AI, but will affect consumption.
 
-/mob/living/simple_animal/hostile/lizard/Initialize(mapload)
+/mob/living/simple_animal/hostile/lizard/Initialize()
 	. = ..()
 	AddElement(/datum/element/pet_bonus, "sticks its tongue out contentedly!")
 	ADD_TRAIT(src, TRAIT_VENTCRAWLER_ALWAYS, INNATE_TRAIT)
@@ -42,7 +41,7 @@
 
 /mob/living/simple_animal/hostile/lizard/AttackingTarget()
 	if(is_type_in_typecache(target,edibles)) //Makes sure player lizards only consume edibles.
-		visible_message(span_notice("[name] consumes [target] in a single gulp."), span_notice("You consume [target] in a single gulp."))
+		visible_message(SPAN_NOTICE("[name] consumes [target] in a single gulp."), SPAN_NOTICE("You consume [target] in a single gulp."))
 		QDEL_NULL(target) //Nom
 		adjustBruteLoss(-2)
 		return TRUE
@@ -61,7 +60,3 @@
 /mob/living/simple_animal/hostile/lizard/wags_his_tail
 	name = "Wags-His-Tail"
 	desc = "The janitorial department's trusty pet lizard."
-
-/mob/living/simple_animal/hostile/lizard/eats_the_roaches
-	name = "Eats-The-Roaches"
-	desc = "The janitorial department's less trusty pet lizard."

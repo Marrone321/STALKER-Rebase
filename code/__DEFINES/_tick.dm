@@ -1,5 +1,6 @@
 /// Percentage of tick to leave for master controller to run
 #define MAPTICK_MC_MIN_RESERVE 70
+/// see http://www.byond.com/docs/ref/index.html#/world/var/map_cpu
 #define MAPTICK_LAST_INTERNAL_TICK_USAGE (world.map_cpu)
 
 /// Tick limit while running normally
@@ -9,6 +10,8 @@
 #define TICK_LIMIT_TO_RUN 70
 /// Tick limit for MC while running
 #define TICK_LIMIT_MC 70
+/// Tick limit while initializing
+#define TICK_LIMIT_MC_INIT_DEFAULT (100 - TICK_BYOND_RESERVE)
 
 /// for general usage of tick_usage
 #define TICK_USAGE world.tick_usage

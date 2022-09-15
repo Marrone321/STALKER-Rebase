@@ -7,7 +7,7 @@
 #define LANGUAGE_EXTENSION "language specific"
 
 //Message modes. Each one defines a radio channel, more or less.
-//if you use ! as a mode key for some ungodly reason, change the first character for ion_num() so get_message_mode() doesn't freak out with state law prompts - shiz.
+//if you use ! as a mode key for some ungodly reason, change the first character for ionnum() so get_message_mode() doesn't freak out with state law prompts - shiz.
 #define MODE_HEADSET "headset"
 #define MODE_ROBOT "robot"
 
@@ -39,9 +39,6 @@
 #define MODE_DEADMIN "deadmin"
 #define MODE_KEY_DEADMIN "d"
 
-#define MODE_PUPPET "puppet"
-#define MODE_KEY_PUPPET "j"
-
 #define MODE_ALIEN "alientalk"
 #define MODE_HOLOPAD "holopad"
 
@@ -50,26 +47,19 @@
 
 #define MODE_MONKEY "monkeyhive"
 
-#define MODE_MAFIA "mafia"
-
 #define MODE_SING "sing"
 
-#define MODE_CUSTOM_SAY_EMOTE "custom_say"
-
-#define MODE_CUSTOM_SAY_ERASE_INPUT "erase_input"
-
 //Spans. Robot speech, italics, etc. Applied in compose_message().
-#define SPAN_ROBOT "robot"
-#define SPAN_YELL "yell"
-#define SPAN_ITALICS "italics"
-#define SPAN_SANS "sans"
-#define SPAN_PAPYRUS "papyrus"
-#define SPAN_REALLYBIG "reallybig"
-#define SPAN_COMMAND "command_headset"
-#define SPAN_CLOWN "clown"
-#define SPAN_SINGING "singing"
-#define SPAN_TAPE_RECORDER "tape_recorder"
-#define SPAN_HELIUM "small"
+#define SPEECH_SPAN_ROBOT "robot"
+#define SPEECH_SPAN_YELL "yell"
+#define SPEECH_SPAN_ITALICS "italics"
+#define SPEECH_SPAN_SANS "sans"
+#define SPEECH_SPAN_PAPYRUS "papyrus"
+#define SPEECH_SPAN_REALLYBIG "reallybig"
+#define SPEECH_SPAN_COMMAND "command_headset"
+#define SPEECH_SPAN_CLOWN "clown"
+#define SPEECH_SPAN_SINGING "singing"
+#define SPEECH_SPAN_TAPE_RECORDER "tape_recorder"
 
 //bitflag #defines for return value of the radio() proc.
 #define ITALICS (1<<0)
@@ -88,10 +78,14 @@
 #define FOLLOW_OR_TURF_LINK(alice, bob, turfy) "<a href=?src=[REF(alice)];follow=[REF(bob)];x=[turfy.x];y=[turfy.y];z=[turfy.z]>(F)</a>"
 
 //Don't set this very much higher then 1024 unless you like inviting people in to dos your server with message spam
-#define MAX_MESSAGE_LEN 1024
-#define MAX_NAME_LEN 42
-#define MAX_BROADCAST_LEN 512
-#define MAX_CHARTER_LEN 80
+#define MAX_MESSAGE_LEN			1024
+#define MAX_NAME_LEN			42
+#define MAX_BROADCAST_LEN		512
+#define MAX_CHARTER_LEN			80
+#define MAX_FLAVOR_LEN			4096
+
+// Is something in the IC chat filter? This is config dependent.
+#define CHAT_FILTER_CHECK(T) (config.ic_filter_regex && findtext(T, config.ic_filter_regex))
 
 // Audio/Visual Flags. Used to determine what sense are required to notice a message.
 #define MSG_VISUAL (1<<0)

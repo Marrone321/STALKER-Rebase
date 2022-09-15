@@ -32,6 +32,8 @@
 #define WOUND_PIERCE 3
 /// any concentrated burn attack (lasers really). rolls for burning wounds
 #define WOUND_BURN 4
+/// any brute attacks, rolled on a chance
+#define WOUND_MUSCLE 5
 
 
 // ~determination second wind defines
@@ -51,14 +53,16 @@
 GLOBAL_LIST_INIT(global_wound_types, list(WOUND_BLUNT = list(/datum/wound/blunt/critical, /datum/wound/blunt/severe, /datum/wound/blunt/moderate),
 		WOUND_SLASH = list(/datum/wound/slash/critical, /datum/wound/slash/severe, /datum/wound/slash/moderate),
 		WOUND_PIERCE = list(/datum/wound/pierce/critical, /datum/wound/pierce/severe, /datum/wound/pierce/moderate),
-		WOUND_BURN = list(/datum/wound/burn/critical, /datum/wound/burn/severe, /datum/wound/burn/moderate)
+		WOUND_BURN = list(/datum/wound/burn/critical, /datum/wound/burn/severe, /datum/wound/burn/moderate),
+		WOUND_MUSCLE = list(/datum/wound/muscle/severe, /datum/wound/muscle/moderate)
 		))
 
 // every single type of wound that can be rolled naturally, in case you need to pull a random one
 GLOBAL_LIST_INIT(global_all_wound_types, list(/datum/wound/blunt/critical, /datum/wound/blunt/severe, /datum/wound/blunt/moderate,
 	/datum/wound/slash/critical, /datum/wound/slash/severe, /datum/wound/slash/moderate,
 	/datum/wound/pierce/critical, /datum/wound/pierce/severe, /datum/wound/pierce/moderate,
-	/datum/wound/burn/critical, /datum/wound/burn/severe, /datum/wound/burn/moderate))
+	/datum/wound/burn/critical, /datum/wound/burn/severe, /datum/wound/burn/moderate,
+	/datum/wound/muscle/severe, /datum/wound/muscle/moderate))
 
 
 // ~burn wound infection defines
@@ -77,14 +81,14 @@ GLOBAL_LIST_INIT(global_all_wound_types, list(/datum/wound/blunt/critical, /datu
 // ~random wound balance defines
 /// how quickly sanitization removes infestation and decays per second
 #define WOUND_BURN_SANITIZATION_RATE 0.075
-/// how much blood you can lose per tick per slash max.
-#define WOUND_SLASH_MAX_BLOODFLOW 4.5
+/// how much blood you can lose per second per slash max. 4 is a LOT of blood for one cut so don't worry about hitting it easily
+#define WOUND_SLASH_MAX_BLOODFLOW 4
 /// dead people don't bleed, but they can clot! this is the minimum amount of clotting per tick on dead people, so even critical cuts will slowly clot in dead people
 #define WOUND_SLASH_DEAD_CLOT_MIN 0.025
-/// further slash attacks on a bodypart with a slash wound have their blood_flow further increased by damage * this (10 damage slash adds .25 flow)
-#define WOUND_SLASH_DAMAGE_FLOW_COEFF 0.025
 /// if we suffer a bone wound to the head that creates brain traumas, the timer for the trauma cycle is +/- by this percent (0-100)
 #define WOUND_BONE_HEAD_TIME_VARIANCE 20
+/// Chance to roll a muscle wound from brute damage
+#define MUSCLE_WOUND_CHANCE 35
 
 
 
@@ -122,6 +126,8 @@ GLOBAL_LIST_INIT(global_all_wound_types, list(/datum/wound/blunt/critical, /datu
 #define MANGLES_BONE (1<<3)
 /// If this wound marks the limb as being allowed to have gauze applied
 #define ACCEPTS_GAUZE (1<<4)
+/// If this wound marks the limb as being allowed to have splints applied
+#define ACCEPTS_SPLINT (1<<5)
 
 
 // ~scar persistence defines
@@ -148,6 +154,11 @@ GLOBAL_LIST_INIT(global_all_wound_types, list(/datum/wound/blunt/critical, /datu
 /// how many scar slots, per character slot, we have to cycle through for persistent scarring, if enabled in character prefs
 #define PERSISTENT_SCAR_SLOTS 3
 
+/// When a wound is staining the gauze with blood
+#define GAUZE_STAIN_BLOOD 1
+/// When a wound is staining the gauze with pus
+#define GAUZE_STAIN_PUS 2
+
 // ~blood_flow rates of change, these are used by [/datum/wound/proc/get_bleed_rate_of_change] from [/mob/living/carbon/proc/bleed_warn] to let the player know if their bleeding is getting better/worse/the same
 /// Our wound is clotting and will eventually stop bleeding if this continues
 #define BLOOD_FLOW_DECREASING -1
@@ -158,6 +169,3 @@ GLOBAL_LIST_INIT(global_all_wound_types, list(/datum/wound/blunt/critical, /datu
 
 /// How often can we annoy the player about their bleeding? This duration is extended if it's not serious bleeding
 #define BLEEDING_MESSAGE_BASE_CD 10 SECONDS
-
-/// Skeletons and other BIO_ONLY_BONE creatures respond much better to bone gel and can have severe and critical bone wounds healed by bone gel alone. The duration it takes to heal is also multiplied by this, lucky them!
-#define WOUND_BONE_BIO_BONE_GEL_MULT 0.25

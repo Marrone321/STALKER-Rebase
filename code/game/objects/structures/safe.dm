@@ -42,45 +42,39 @@ FLOOR SAFES
 	. = ..()
 
 	// Combination generation
-	for(var/iterating in 1 to number_of_tumblers)
+	for(var/i in 1 to number_of_tumblers)
 		tumblers.Add(rand(0, 99))
 
-	if(!mapload)
-		return
+	if(mapload)
+		return INITIALIZE_HINT_LATELOAD
 
+/obj/structure/safe/LateInitialize()
 	// Put as many items on our turf inside as possible
-	for(var/obj/item/inserting_item in loc)
+	for(var/obj/item/I in loc)
 		if(space >= maxspace)
 			return
-		if(inserting_item.w_class + space <= maxspace)
-			space += inserting_item.w_class
-			inserting_item.forceMove(src)
+		if(I.w_class + space <= maxspace)
+			space += I.w_class
+			I.forceMove(src)
 
 /obj/structure/safe/update_icon_state()
 	icon_state = "[initial(icon_state)][open ? "-open" : null]"
 	return ..()
 
-/obj/structure/safe/attackby(obj/item/attacking_item, mob/user, params)
+/obj/structure/safe/attackby(obj/item/I, mob/user, params)
 	if(open)
 		. = TRUE //no afterattack
-		if(attacking_item.w_class + space <= maxspace)
-			if(!user.transferItemToLoc(attacking_item, src))
-				to_chat(user, span_warning("\The [attacking_item] is stuck to your hand, you cannot put it in the safe!"))
+		if(I.w_class + space <= maxspace)
+			space += I.w_class
+			if(!user.transferItemToLoc(I, src))
+				to_chat(user, SPAN_WARNING("\The [I] is stuck to your hand, you cannot put it in the safe!"))
 				return
-			space += attacking_item.w_class
-			to_chat(user, span_notice("You put [attacking_item] in [src]."))
+			to_chat(user, SPAN_NOTICE("You put [I] in [src]."))
 		else
-			to_chat(user, span_warning("[attacking_item] won't fit in [src]."))
+			to_chat(user, SPAN_WARNING("[I] won't fit in [src]."))
 	else
-		if(istype(attacking_item, /obj/item/clothing/neck/stethoscope))
-			attack_hand(user)
-			return
-		else
-			to_chat(user, span_warning("You can't put [attacking_item] into the safe while it is closed!"))
-			return
-
-/obj/structure/safe/blob_act(obj/structure/blob/B)
-	return
+		to_chat(user, SPAN_WARNING("You can't put [I] into the safe while it is closed!"))
+		return
 
 /obj/structure/safe/ex_act(severity, target)
 	if(((severity == EXPLODE_HEAVY && target == src) || severity == EXPLODE_DEVASTATE) && explosion_count < BROKEN_THRESHOLD)
@@ -135,15 +129,13 @@ FLOOR SAFES
 		return
 
 	var/canhear = FALSE
-	if(user.is_holding_item_of_type(/obj/item/clothing/neck/stethoscope))
-		canhear = TRUE
 
 	switch(action)
 		if("open")
 			if(!check_unlocked() && !open && !broken)
-				to_chat(user, span_warning("You cannot open [src], as its lock is engaged!"))
+				to_chat(user, SPAN_WARNING("You cannot open [src], as its lock is engaged!"))
 				return
-			to_chat(user, span_notice("You [open ? "close" : "open"] [src]."))
+			to_chat(user, SPAN_NOTICE("You [open ? "close" : "open"] [src]."))
 			open = !open
 			update_appearance()
 			return TRUE
@@ -151,10 +143,10 @@ FLOOR SAFES
 			if(open)
 				return
 			if(broken)
-				to_chat(user, span_warning("The dial will not turn, as the mechanism is destroyed!"))
+				to_chat(user, SPAN_WARNING("The dial will not turn, as the mechanism is destroyed!"))
 				return
 			var/ticks = text2num(params["num"])
-			for(var/iterate in 1 to ticks)
+			for(var/i = 1 to ticks)
 				dial = WRAP(dial - 1, 0, 100)
 
 				var/invalid_turn = current_tumbler_index % 2 == 0 || current_tumbler_index > number_of_tumblers
@@ -162,20 +154,20 @@ FLOOR SAFES
 					current_tumbler_index = 1
 
 				if(!invalid_turn && dial == tumblers[current_tumbler_index])
-					notify_user(user, canhear, list("tink", "krink", "plink"), ticks, iterate)
+					notify_user(user, canhear, list("tink", "krink", "plink"), ticks, i)
 					current_tumbler_index++
 				else
-					notify_user(user, canhear, list("clack", "scrape", "clank"), ticks, iterate)
+					notify_user(user, canhear, list("clack", "scrape", "clank"), ticks, i)
 			check_unlocked()
 			return TRUE
 		if("turnleft")
 			if(open)
 				return
 			if(broken)
-				to_chat(user, span_warning("The dial will not turn, as the mechanism is destroyed!"))
+				to_chat(user, SPAN_WARNING("The dial will not turn, as the mechanism is destroyed!"))
 				return
 			var/ticks = text2num(params["num"])
-			for(var/iterate in 1 to ticks)
+			for(var/i = 1 to ticks)
 				dial = WRAP(dial + 1, 0, 100)
 
 				var/invalid_turn = current_tumbler_index % 2 != 0 || current_tumbler_index > number_of_tumblers
@@ -183,10 +175,10 @@ FLOOR SAFES
 					current_tumbler_index = 1
 
 				if(!invalid_turn && dial == tumblers[current_tumbler_index])
-					notify_user(user, canhear, list("tonk", "krunk", "plunk"), ticks, iterate)
+					notify_user(user, canhear, list("tonk", "krunk", "plunk"), ticks, i)
 					current_tumbler_index++
 				else
-					notify_user(user, canhear, list("click", "chink", "clink"), ticks, iterate)
+					notify_user(user, canhear, list("click", "chink", "clink"), ticks, i)
 			check_unlocked()
 			return TRUE
 		if("retrieve")
@@ -195,11 +187,11 @@ FLOOR SAFES
 			var/index = text2num(params["index"])
 			if(!index)
 				return
-			var/obj/item/retrieved_item = contents[index]
-			if(!retrieved_item || !in_range(src, user))
+			var/obj/item/I = contents[index]
+			if(!I || !in_range(src, user))
 				return
-			user.put_in_hands(retrieved_item)
-			space -= retrieved_item.w_class
+			user.put_in_hands(I)
+			space -= I.w_class
 			return TRUE
 
 /**
@@ -216,7 +208,7 @@ FLOOR SAFES
 		return TRUE
 	if(current_tumbler_index > number_of_tumblers)
 		locked = FALSE
-		visible_message(span_boldnotice("[pick("Spring", "Sprang", "Sproing", "Clunk", "Krunk")]!"))
+		visible_message(SPAN_BOLDNOTICE("[pick("Spring", "Sprang", "Sproing", "Clunk", "Krunk")]!"))
 		return TRUE
 	locked = TRUE
 	return FALSE
@@ -230,7 +222,7 @@ FLOOR SAFES
 	if(current_tick == 2)
 		to_chat(user, "<span class='italics'>The sounds from [src] are too fast and blend together.</span>")
 	if(total_ticks == 1 || prob(SOUND_CHANCE))
-		balloon_alert(user, pick(sounds))
+		to_chat(user, "<span class='italics'>You hear a [pick(sounds)] from [src].</span>")
 
 //FLOOR SAFES
 /obj/structure/safe/floor

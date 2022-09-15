@@ -14,6 +14,10 @@
 	if (lighting_object)
 		qdel(lighting_object, force=TRUE) //Shitty fix for lighting objects persisting after death
 
+	var/area/our_area = loc
+	if (!IS_DYNAMIC_LIGHTING(our_area) && !light_sources)
+		return
+
 	new/datum/lighting_object(src)
 
 // Used to get a scaled lumcount.
@@ -42,6 +46,10 @@
 	totallums = (totallums - minlum) / (maxlum - minlum)
 
 	totallums += dynamic_lumcount
+
+	/// Nessecary for day/night and thunder to properly illuminate stuff
+	var/area/A = loc
+	totallums += A.luminosity
 
 	return CLAMP01(totallums)
 
@@ -91,19 +99,13 @@
 		reconsider_lights() //The lighting system only cares whether the tile is fully concealed from all directions or not.
 
 
-///Transfer the lighting of one area to another
-/turf/proc/transfer_area_lighting(area/old_area, area/new_area)
+/turf/proc/change_area(area/old_area, area/new_area)
 	if(SSlighting.initialized)
-		if (new_area.static_lighting != old_area.static_lighting)
-			if (new_area.static_lighting)
+		if (new_area.dynamic_lighting != old_area.dynamic_lighting)
+			if (new_area.dynamic_lighting)
 				lighting_build_overlay()
 			else
 				lighting_clear_overlay()
-	//Inherit overlay of new area
-	if(old_area.lighting_effect)
-		cut_overlay(old_area.lighting_effect)
-	if(new_area.lighting_effect)
-		add_overlay(new_area.lighting_effect)
 
 /turf/proc/generate_missing_corners()
 	if (!lighting_corner_NE)

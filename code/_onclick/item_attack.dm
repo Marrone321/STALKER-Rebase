@@ -8,6 +8,7 @@
  * * [/obj/item/proc/afterattack]. The return value does not matter.
  */
 /obj/item/proc/melee_attack_chain(mob/user, atom/target, params)
+
 	var/is_right_clicking = LAZYACCESS(params2list(params), RIGHT_CLICK)
 
 	if(tool_behaviour && (target.tool_act(user, src, tool_behaviour, is_right_clicking) & TOOL_ACT_MELEE_CHAIN_BLOCKING))
@@ -98,28 +99,20 @@
  * See: [/obj/item/proc/melee_attack_chain]
  */
 /obj/item/proc/pre_attack_secondary(atom/target, mob/living/user, params)
-	var/signal_result = SEND_SIGNAL(src, COMSIG_ITEM_PRE_ATTACK_SECONDARY, target, user, params)
-
-	if(signal_result & COMPONENT_SECONDARY_CANCEL_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-
-	if(signal_result & COMPONENT_SECONDARY_CONTINUE_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CONTINUE_CHAIN
-
 	return SECONDARY_ATTACK_CALL_NORMAL
 
 /**
  * Called on an object being hit by an item
  *
  * Arguments:
- * * obj/item/attacking_item - The item hitting this atom
+ * * obj/item/W - The item hitting this atom
  * * mob/user - The wielder of this item
  * * params - click params such as alt/shift etc
  *
  * See: [/obj/item/proc/melee_attack_chain]
  */
-/atom/proc/attackby(obj/item/attacking_item, mob/user, params)
-	if(SEND_SIGNAL(src, COMSIG_PARENT_ATTACKBY, attacking_item, user, params) & COMPONENT_NO_AFTERATTACK)
+/atom/proc/attackby(obj/item/W, mob/user, params)
+	if(SEND_SIGNAL(src, COMSIG_PARENT_ATTACKBY, W, user, params) & COMPONENT_NO_AFTERATTACK)
 		return TRUE
 	return FALSE
 
@@ -134,24 +127,16 @@
  * See: [/obj/item/proc/melee_attack_chain]
  */
 /atom/proc/attackby_secondary(obj/item/weapon, mob/user, params)
-	var/signal_result = SEND_SIGNAL(src, COMSIG_PARENT_ATTACKBY_SECONDARY, weapon, user, params)
-
-	if(signal_result & COMPONENT_SECONDARY_CANCEL_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-
-	if(signal_result & COMPONENT_SECONDARY_CONTINUE_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CONTINUE_CHAIN
-
 	return SECONDARY_ATTACK_CALL_NORMAL
 
-/obj/attackby(obj/item/attacking_item, mob/user, params)
-	return ..() || ((obj_flags & CAN_BE_HIT) && attacking_item.attack_atom(src, user, params))
+/obj/attackby(obj/item/I, mob/living/user, params)
+	return ..() || ((obj_flags & CAN_BE_HIT) && I.attack_obj(src, user, params))
 
-/mob/living/attackby(obj/item/attacking_item, mob/living/user, params)
+/mob/living/attackby(obj/item/I, mob/living/user, params)
 	if(..())
 		return TRUE
 	user.changeNext_move(CLICK_CD_MELEE)
-	return attacking_item.attack(src, user, params)
+	return I.attack(src, user, params)
 
 /mob/living/attackby_secondary(obj/item/weapon, mob/living/user, params)
 	var/result = weapon.attack_secondary(src, user, params)
@@ -166,105 +151,91 @@
  * Called from [/mob/living/proc/attackby]
  *
  * Arguments:
- * * mob/living/target_mob - The mob being hit by this item
+ * * mob/living/M - The mob being hit by this item
  * * mob/living/user - The mob hitting with this item
  * * params - Click params of this attack
  */
-/obj/item/proc/attack(mob/living/target_mob, mob/living/user, params)
-	var/signal_return = SEND_SIGNAL(src, COMSIG_ITEM_ATTACK, target_mob, user, params)
+/obj/item/proc/attack(mob/living/M, mob/living/user, params)
+	var/signal_return = SEND_SIGNAL(src, COMSIG_ITEM_ATTACK, M, user, params)
 	if(signal_return & COMPONENT_CANCEL_ATTACK_CHAIN)
 		return TRUE
 	if(signal_return & COMPONENT_SKIP_ATTACK)
 		return
 
-	SEND_SIGNAL(user, COMSIG_MOB_ITEM_ATTACK, target_mob, user, params)
+	SEND_SIGNAL(user, COMSIG_MOB_ITEM_ATTACK, M, user, params)
 
 	if(item_flags & NOBLUDGEON)
 		return
 
-	if(force && HAS_TRAIT(user, TRAIT_PACIFISM))
-		to_chat(user, span_warning("You don't want to harm other living beings!"))
-		return
+	if(force)
+		// Attacking costs stamina.
+		if(!user.use_stamina(STAMINA_ATTACK_COST))
+			to_chat(user, SPAN_WARNING("You are too tired to make a swing!"))
+			return
+		if(HAS_TRAIT(user, TRAIT_PACIFISM))
+			to_chat(user, SPAN_WARNING("You don't want to harm other living beings!"))
+			return
 
 	if(!force)
 		playsound(loc, 'sound/weapons/tap.ogg', get_clamped_volume(), TRUE, -1)
 	else if(hitsound)
 		playsound(loc, hitsound, get_clamped_volume(), TRUE, extrarange = stealthy_audio ? SILENCED_SOUND_EXTRARANGE : -1, falloff_distance = 0)
 
-	target_mob.lastattacker = user.real_name
-	target_mob.lastattackerckey = user.ckey
+	M.lastattacker = user.real_name
+	M.lastattackerckey = user.ckey
 
-	if(force && target_mob == user && user.client)
-		user.client.give_award(/datum/award/achievement/misc/selfouch, user)
+	user.do_attack_animation(M)
+	M.attacked_by(src, user)
 
-	user.do_attack_animation(target_mob)
-	target_mob.attacked_by(src, user)
-
-	log_combat(user, target_mob, "attacked", src.name, "(COMBAT MODE: [uppertext(user.combat_mode)]) (DAMTYPE: [uppertext(damtype)])")
+	log_combat(user, M, "attacked", src.name, "(COMBAT MODE: [uppertext(user.combat_mode)]) (DAMTYPE: [uppertext(damtype)])")
 	add_fingerprint(user)
 
 /// The equivalent of [/obj/item/proc/attack] but for alternate attacks, AKA right clicking
 /obj/item/proc/attack_secondary(mob/living/victim, mob/living/user, params)
-	var/signal_result = SEND_SIGNAL(src, COMSIG_ITEM_ATTACK_SECONDARY, victim, user, params)
-
-	if(signal_result & COMPONENT_SECONDARY_CANCEL_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-
-	if(signal_result & COMPONENT_SECONDARY_CONTINUE_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CONTINUE_CHAIN
-
 	return SECONDARY_ATTACK_CALL_NORMAL
 
-/// The equivalent of the standard version of [/obj/item/proc/attack] but for non mob targets.
-/obj/item/proc/attack_atom(atom/attacked_atom, mob/living/user, params)
-	if(SEND_SIGNAL(src, COMSIG_ITEM_ATTACK_OBJ, attacked_atom, user) & COMPONENT_CANCEL_ATTACK_CHAIN)
+/// The equivalent of the standard version of [/obj/item/proc/attack] but for object targets.
+/obj/item/proc/attack_obj(obj/O, mob/living/user, params)
+	if(SEND_SIGNAL(src, COMSIG_ITEM_ATTACK_OBJ, O, user) & COMPONENT_CANCEL_ATTACK_CHAIN)
 		return
 	if(item_flags & NOBLUDGEON)
 		return
-	user.changeNext_move(CLICK_CD_MELEE)
-	user.do_attack_animation(attacked_atom)
-	attacked_atom.attacked_by(src, user)
-
-/// Called from [/obj/item/proc/attack_atom] and [/obj/item/proc/attack] if the attack succeeds
-/atom/proc/attacked_by(obj/item/attacking_item, mob/living/user)
-	if(!uses_integrity)
-		CRASH("attacked_by() was called on an object that doesnt use integrity!")
-
-	if(!attacking_item.force)
+	// Attacking costs stamina.
+	if(force && !user.use_stamina(STAMINA_ATTACK_COST))
+		to_chat(user, SPAN_WARNING("You are too tired to make a swing!"))
 		return
+	user.changeNext_move(CLICK_CD_MELEE)
+	user.do_attack_animation(O)
+	O.attacked_by(src, user)
 
-	var/damage = take_damage(attacking_item.force, attacking_item.damtype, MELEE, 1)
-	//only witnesses close by and the victim see a hit message.
-	user.visible_message(span_danger("[user] hits [src] with [attacking_item][damage ? "." : ", without leaving a mark!"]"), \
-		span_danger("You hit [src] with [attacking_item][damage ? "." : ", without leaving a mark!"]"), null, COMBAT_MESSAGE_RANGE)
-	log_combat(user, src, "attacked", attacking_item)
+/// Called from [/obj/item/proc/attack_obj] and [/obj/item/proc/attack] if the attack succeeds
+/atom/movable/proc/attacked_by()
+	return
 
-/area/attacked_by(obj/item/attacking_item, mob/living/user)
-	CRASH("areas are NOT supposed to have attacked_by() called on them!")
+/obj/attacked_by(obj/item/I, mob/living/user)
+	if(I.force)
+		var/no_damage = TRUE
+		if(take_damage(I.force, I.damtype, MELEE, 1))
+			no_damage = FALSE
+		//only witnesses close by and the victim see a hit message.
+		log_combat(user, src, "attacked", I)
+		user.visible_message(SPAN_DANGER("[user] hits [src] with [I][no_damage ? ", which doesn't leave a mark" : ""]!"), \
+			SPAN_DANGER("You hit [src] with [I][no_damage ? ", which doesn't leave a mark" : ""]!"), null, COMBAT_MESSAGE_RANGE)
 
-/mob/living/attacked_by(obj/item/attacking_item, mob/living/user)
-	send_item_attack_message(attacking_item, user)
-	if(!attacking_item.force)
-		return FALSE
-	var/damage = attacking_item.force
-	if(mob_biotypes & MOB_ROBOTIC)
-		damage *= attacking_item.demolition_mod
-	apply_damage(damage, attacking_item.damtype)
-	if(attacking_item.damtype == BRUTE && prob(33))
-		attacking_item.add_mob_blood(src)
-		var/turf/location = get_turf(src)
-		add_splatter_floor(location)
-		if(get_dist(user, src) <= 1) //people with TK won't get smeared with blood
-			user.add_mob_blood(src)
-	return TRUE //successful attack
+/mob/living/attacked_by(obj/item/I, mob/living/user)
+	send_item_attack_message(I, user)
+	if(I.force)
+		apply_damage(I.force, I.damtype)
+		if(I.damtype == BRUTE)
+			if(prob(33))
+				I.add_mob_blood(src)
+				var/turf/location = get_turf(src)
+				add_splatter_floor(location)
+				if(get_dist(user, src) <= 1) //people with TK won't get smeared with blood
+					user.add_mob_blood(src)
+		return TRUE //successful attack
 
 /mob/living/simple_animal/attacked_by(obj/item/I, mob/living/user)
-	if(!attack_threshold_check(I.force, I.damtype, MELEE, FALSE))
-		playsound(loc, 'sound/weapons/tap.ogg', I.get_clamped_volume(), TRUE, -1)
-	else
-		return ..()
-
-/mob/living/basic/attacked_by(obj/item/I, mob/living/user)
 	if(!attack_threshold_check(I.force, I.damtype, MELEE, FALSE))
 		playsound(loc, 'sound/weapons/tap.ogg', I.get_clamped_volume(), TRUE, -1)
 	else
@@ -281,7 +252,7 @@
  */
 /obj/item/proc/afterattack(atom/target, mob/user, proximity_flag, click_parameters)
 	SEND_SIGNAL(src, COMSIG_ITEM_AFTERATTACK, target, user, proximity_flag, click_parameters)
-	SEND_SIGNAL(user, COMSIG_MOB_ITEM_AFTERATTACK, target, src, proximity_flag, click_parameters)
+	SEND_SIGNAL(user, COMSIG_MOB_ITEM_AFTERATTACK, target, user, proximity_flag, click_parameters)
 
 /**
  * Called at the end of the attack chain if the user right-clicked.
@@ -293,15 +264,6 @@
  * * click_parameters - is the params string from byond [/atom/proc/Click] code, see that documentation.
  */
 /obj/item/proc/afterattack_secondary(atom/target, mob/user, proximity_flag, click_parameters)
-	var/signal_result = SEND_SIGNAL(src, COMSIG_ITEM_AFTERATTACK_SECONDARY, target, user, proximity_flag, click_parameters)
-	SEND_SIGNAL(user, COMSIG_MOB_ITEM_AFTERATTACK_SECONDARY, target, src, proximity_flag, click_parameters)
-
-	if(signal_result & COMPONENT_SECONDARY_CANCEL_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-
-	if(signal_result & COMPONENT_SECONDARY_CONTINUE_ATTACK_CHAIN)
-		return SECONDARY_ATTACK_CONTINUE_CHAIN
-
 	return SECONDARY_ATTACK_CALL_NORMAL
 
 /// Called if the target gets deleted by our attack
@@ -325,16 +287,14 @@
 	if(hit_area)
 		message_hit_area = " in the [hit_area]"
 	var/attack_message_spectator = "[src] [message_verb_continuous][message_hit_area] with [I]!"
-	var/attack_message_victim = "Something [message_verb_continuous] you[message_hit_area] with [I]!"
+	var/attack_message_victim = "You're [message_verb_continuous][message_hit_area] with [I]!"
 	var/attack_message_attacker = "You [message_verb_simple] [src][message_hit_area] with [I]!"
 	if(user in viewers(src, null))
 		attack_message_spectator = "[user] [message_verb_continuous] [src][message_hit_area] with [I]!"
 		attack_message_victim = "[user] [message_verb_continuous] you[message_hit_area] with [I]!"
 	if(user == src)
-		attack_message_victim = "You [message_verb_simple] yourself[message_hit_area] with [I]."
-	visible_message(span_danger("[attack_message_spectator]"),\
-		span_userdanger("[attack_message_victim]"), null, COMBAT_MESSAGE_RANGE, user)
-	if(is_blind())
-		to_chat(src, span_danger("Someone hits you[message_hit_area]!"))
-	to_chat(user, span_danger("[attack_message_attacker]"))
+		attack_message_victim = "You [message_verb_simple] yourself[message_hit_area] with [I]"
+	visible_message(SPAN_DANGER("[attack_message_spectator]"),\
+		SPAN_USERDANGER("[attack_message_victim]"), null, COMBAT_MESSAGE_RANGE, user)
+	to_chat(user, SPAN_DANGER("[attack_message_attacker]"))
 	return 1

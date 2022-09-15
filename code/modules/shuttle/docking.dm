@@ -1,7 +1,5 @@
 /// This is the main proc. It instantly moves our mobile port to stationary port `new_dock`.
 /obj/docking_port/mobile/proc/initiate_docking(obj/docking_port/stationary/new_dock, movement_direction, force=FALSE)
-	// Crashing this ship with NO SURVIVORS
-
 	if(new_dock.get_docked() == src)
 		remove_ripples()
 		return DOCKING_SUCCESS
@@ -103,7 +101,7 @@
 	return DOCKING_SUCCESS
 
 /obj/docking_port/mobile/proc/preflight_check(list/old_turfs, list/new_turfs, list/areas_to_move, rotation)
-	for(var/i in 1 to length(old_turfs))
+	for(var/i in 1 to old_turfs.len)
 		CHECK_TICK
 		var/turf/oldT = old_turfs[i]
 		var/turf/newT = new_turfs[i]
@@ -115,8 +113,10 @@
 		var/area/old_area = oldT.loc
 		var/move_mode = old_area.beforeShuttleMove(shuttle_areas) //areas
 
-		for(var/atom/movable/moving_atom as anything in oldT.contents)
+		var/list/old_contents = oldT.contents
+		for(var/k in 1 to old_contents.len)
 			CHECK_TICK
+			var/atom/movable/moving_atom = old_contents[k]
 			if(moving_atom.loc != oldT) //fix for multi-tile objects
 				continue
 			move_mode = moving_atom.beforeShuttleMove(newT, rotation, move_mode, src) //atoms
@@ -134,14 +134,6 @@
 		var/turf/oldT = old_turfs[i]
 		var/turf/newT = new_turfs[i]
 		var/move_mode = old_turfs[oldT]
-
-		if(move_mode & MOVE_TURF)
-			oldT.onShuttleMove(newT, movement_force, movement_direction) //turfs
-
-		if(move_mode & MOVE_AREA)
-			var/area/shuttle_area = oldT.loc
-			shuttle_area.onShuttleMove(oldT, newT, underlying_old_area) //areas
-
 		if(move_mode & MOVE_CONTENTS)
 			for(var/k in oldT)
 				var/atom/movable/moving_atom = k
@@ -150,39 +142,30 @@
 				moving_atom.onShuttleMove(newT, oldT, movement_force, movement_direction, old_dock, src) //atoms
 				moved_atoms[moving_atom] = oldT
 
+		if(move_mode & MOVE_TURF)
+			oldT.onShuttleMove(newT, movement_force, movement_direction) //turfs
+
+		if(move_mode & MOVE_AREA)
+			var/area/shuttle_area = oldT.loc
+			shuttle_area.onShuttleMove(oldT, newT, underlying_old_area) //areas
 
 /obj/docking_port/mobile/proc/cleanup_runway(obj/docking_port/stationary/new_dock, list/old_turfs, list/new_turfs, list/areas_to_move, list/moved_atoms, rotation, movement_direction, area/underlying_old_area)
-	underlying_old_area.afterShuttleMove(0)
+	underlying_old_area.afterShuttleMove()
 
 	// Parallax handling
 	// This needs to be done before the atom after move
-	var/new_parallax_dir = FALSE
-	if(istype(new_dock, /obj/docking_port/stationary/transit))
-		new_parallax_dir = preferred_direction
 	for(var/i in 1 to areas_to_move.len)
 		CHECK_TICK
 		var/area/internal_area = areas_to_move[i]
-		internal_area.afterShuttleMove(new_parallax_dir) //areas
+		internal_area.afterShuttleMove() //areas
 
 	for(var/i in 1 to old_turfs.len)
 		CHECK_TICK
 		if(!(old_turfs[old_turfs[i]] & MOVE_TURF))
 			continue
-		var/turf/old_turf = old_turfs[i]
-		var/turf/new_turf = new_turfs[i]
-		new_turf.afterShuttleMove(old_turf, rotation) //turfs
-		var/turf/new_ceiling = get_step_multiz(new_turf, UP) // check if a ceiling is needed
-		if(new_ceiling)
-			// generate ceiling
-			if(istype(new_ceiling, /turf/open/openspace)) // why is this needed? because we have 2 different typepaths for openspace
-				new_ceiling.ChangeTurf(/turf/open/floor/engine/hull/ceiling, list(/turf/open/openspace))
-			else if (istype(new_ceiling, /turf/open/space/openspace))
-				new_ceiling.ChangeTurf(/turf/open/floor/engine/hull/ceiling, list(/turf/open/space/openspace))
-		var/turf/old_ceiling = get_step_multiz(old_turf, UP)
-		if(old_ceiling && istype(old_ceiling, /turf/open/floor/engine/hull/ceiling)) // check if a ceiling was generated previously
-			// remove old ceiling
-			var/turf/open/floor/engine/hull/ceiling/old_shuttle_ceiling = old_ceiling
-			old_shuttle_ceiling.ChangeTurf(old_shuttle_ceiling.old_turf_type)
+		var/turf/oldT = old_turfs[i]
+		var/turf/newT = new_turfs[i]
+		newT.afterShuttleMove(oldT, rotation) //turfs
 
 	for(var/i in 1 to moved_atoms.len)
 		CHECK_TICK
@@ -216,3 +199,4 @@
 			continue
 		var/turf/oldT = moved_atoms[moved_object]
 		moved_object.lateShuttleMove(oldT, movement_force, movement_direction)
+

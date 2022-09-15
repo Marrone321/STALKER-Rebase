@@ -6,16 +6,7 @@
 	density = FALSE
 	anchored = TRUE
 	var/obj/item/spear/spear
-	var/obj/item/spear/speartype = /obj/item/spear
 	var/obj/item/bodypart/head/victim
-
-/obj/structure/headpike/bone //for bone spears
-	icon_state = "headpike-bone"
-	speartype = /obj/item/spear/bonespear
-
-/obj/structure/headpike/bamboo //for bamboo spears
-	icon_state = "headpike-bamboo"
-	speartype = /obj/item/spear/bamboospear
 
 /obj/structure/headpike/Initialize(mapload)
 	. = ..()
@@ -33,9 +24,7 @@
 	if(!victim) //likely a mapspawned one
 		victim = new(src)
 		victim.real_name = random_unique_name(prob(50))
-	spear = locate(speartype) in parts_list
-	if(!spear)
-		spear = new speartype(src)
+	spear = locate(/obj/item/spear) in parts_list
 	update_appearance()
 	return ..()
 
@@ -58,8 +47,7 @@
 		victim = null
 	if(A == spear)
 		spear = null
-	if(!QDELETED(src))
-		deconstruct(TRUE)
+	deconstruct(TRUE)
 	return ..()
 
 /obj/structure/headpike/deconstruct(disassembled)
@@ -77,5 +65,5 @@
 	. = ..()
 	if(.)
 		return
-	to_chat(user, span_notice("You take down [src]."))
+	to_chat(user, SPAN_NOTICE("You take down [src]."))
 	deconstruct(TRUE)

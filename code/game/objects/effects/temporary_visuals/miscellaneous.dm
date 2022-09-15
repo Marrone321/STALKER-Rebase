@@ -4,7 +4,6 @@
 	duration = 5
 	randomdir = FALSE
 	layer = BELOW_MOB_LAYER
-	plane = GAME_PLANE
 	var/splatter_type = "splatter"
 
 /obj/effect/temp_visual/dir_setting/bloodsplatter/Initialize(mapload, set_dir)
@@ -21,7 +20,6 @@
 		if(SOUTH)
 			target_pixel_y = -16
 			layer = ABOVE_MOB_LAYER
-			plane = GAME_PLANE_UPPER
 		if(EAST)
 			target_pixel_x = 16
 		if(WEST)
@@ -36,12 +34,10 @@
 			target_pixel_x = 16
 			target_pixel_y = -16
 			layer = ABOVE_MOB_LAYER
-			plane = GAME_PLANE_UPPER
 		if(SOUTHWEST)
 			target_pixel_x = -16
 			target_pixel_y = -16
 			layer = ABOVE_MOB_LAYER
-			plane = GAME_PLANE_UPPER
 	animate(src, pixel_x = target_pixel_x, pixel_y = target_pixel_y, alpha = 0, time = duration)
 
 /obj/effect/temp_visual/dir_setting/bloodsplatter/xenosplatter
@@ -51,7 +47,6 @@
 	name = "speedbike trails"
 	icon_state = "ion_fade"
 	layer = BELOW_MOB_LAYER
-	plane = GAME_PLANE
 	duration = 10
 	randomdir = 0
 
@@ -59,6 +54,14 @@
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "firing_effect"
 	duration = 2
+
+/obj/effect/temp_visual/dir_setting/firing_effect/Initialize(mapload, set_dir)
+	. = ..()
+	update_appearance()
+
+/obj/effect/temp_visual/dir_setting/firing_effect/update_overlays()
+	. = ..()
+	. += emissive_appearance(icon, icon_state)
 
 /obj/effect/temp_visual/dir_setting/firing_effect/setDir(newdir)
 	switch(newdir)
@@ -141,8 +144,7 @@
 
 /obj/effect/temp_visual/dir_setting/curse/grasp_portal
 	icon = 'icons/effects/64x64.dmi'
-	layer = ABOVE_ALL_MOB_LAYER
-	plane = ABOVE_GAME_PLANE
+	layer = LARGE_MOB_LAYER
 	pixel_y = -16
 	pixel_x = -16
 	duration = 32
@@ -162,7 +164,6 @@
 	icon = 'icons/effects/beam_splash.dmi'
 	icon_state = "beam_splash_l"
 	layer = ABOVE_ALL_MOB_LAYER
-	plane = ABOVE_GAME_PLANE
 	pixel_y = -16
 	duration = 50
 
@@ -319,10 +320,9 @@
 
 /obj/effect/temp_visual/kinetic_blast
 	name = "kinetic explosion"
-	icon = 'icons/obj/weapons/guns/projectiles.dmi'
+	icon = 'icons/obj/guns/projectiles.dmi'
 	icon_state = "kinetic_blast"
 	layer = ABOVE_ALL_MOB_LAYER
-	plane = ABOVE_GAME_PLANE
 	duration = 4
 
 /obj/effect/temp_visual/explosion
@@ -483,100 +483,3 @@
 /obj/effect/temp_visual/cart_space/bad
 	icon_state = "launchpad_pull"
 	duration = 2 SECONDS
-
-/obj/effect/constructing_effect
-	icon = 'icons/effects/effects_rcd.dmi'
-	icon_state = ""
-	layer = ABOVE_ALL_MOB_LAYER
-	plane = ABOVE_GAME_PLANE
-	anchored = TRUE
-	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	var/status = 0
-	var/delay = 0
-
-/obj/effect/constructing_effect/Initialize(mapload, rcd_delay, rcd_status)
-	. = ..()
-	status = rcd_status
-	delay = rcd_delay
-	if (status == RCD_DECONSTRUCT)
-		addtimer(CALLBACK(src, /atom/.proc/update_appearance), 1.1 SECONDS)
-		delay -= 11
-		icon_state = "rcd_end_reverse"
-	else
-		update_appearance()
-
-/obj/effect/constructing_effect/update_icon_state()
-	icon_state = "rcd"
-	if(delay < 10)
-		icon_state += "_shortest"
-		return ..()
-	if (delay < 20)
-		icon_state += "_shorter"
-		return ..()
-	if (delay < 37)
-		icon_state += "_short"
-		return ..()
-	if(status == RCD_DECONSTRUCT)
-		icon_state += "_reverse"
-	return ..()
-
-/obj/effect/constructing_effect/proc/end_animation()
-	if (status == RCD_DECONSTRUCT)
-		qdel(src)
-	else
-		icon_state = "rcd_end"
-		addtimer(CALLBACK(src, .proc/end), 15)
-
-/obj/effect/constructing_effect/proc/end()
-	qdel(src)
-
-/obj/effect/temp_visual/electricity
-	icon_state = "electricity3"
-	duration = 0.5 SECONDS
-
-/obj/effect/temp_visual/thunderbolt
-	icon_state = "thunderbolt"
-	icon = 'icons/effects/32x96.dmi'
-	duration = 0.6 SECONDS
-
-/obj/effect/temp_visual/light_ash
-	icon_state = "light_ash"
-	icon = 'icons/effects/weather_effects.dmi'
-	duration = 3.2 SECONDS
-
-/obj/effect/temp_visual/sonar_ping
-	duration = 3 SECONDS
-	resistance_flags = FIRE_PROOF | UNACIDABLE | ACID_PROOF
-	anchored = TRUE
-	randomdir = FALSE
-	/// The image shown to modsuit users
-	var/image/modsuit_image
-	/// The person in the modsuit at the moment, really just used to remove this from their screen
-	var/datum/weakref/mod_man
-	/// The icon state applied to the image created for this ping.
-	var/real_icon_state = "sonar_ping"
-
-/obj/effect/temp_visual/sonar_ping/Initialize(mapload, mob/living/looker, mob/living/creature)
-	. = ..()
-	if(!looker || !creature)
-		return INITIALIZE_HINT_QDEL
-	modsuit_image = image(icon = icon, loc = looker.loc, icon_state = real_icon_state, layer = ABOVE_ALL_MOB_LAYER, pixel_x = ((creature.x - looker.x) * 32), pixel_y = ((creature.y - looker.y) * 32))
-	modsuit_image.plane = ABOVE_LIGHTING_PLANE
-	mod_man = WEAKREF(looker)
-	add_mind(looker)
-
-/obj/effect/temp_visual/sonar_ping/Destroy()
-	var/mob/living/previous_user = mod_man?.resolve()
-	if(previous_user)
-		remove_mind(previous_user)
-	// Null so we don't shit the bed when we delete
-	modsuit_image = null
-	return ..()
-
-/// Add the image to the modsuit wearer's screen
-/obj/effect/temp_visual/sonar_ping/proc/add_mind(mob/living/looker)
-	looker?.client?.images |= modsuit_image
-
-/// Remove the image from the modsuit wearer's screen
-/obj/effect/temp_visual/sonar_ping/proc/remove_mind(mob/living/looker)
-	looker?.client?.images -= modsuit_image

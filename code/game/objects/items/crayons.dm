@@ -1,3 +1,5 @@
+#define DARK_COLOR_LIGHTNESS_THRESHOLD 0.25
+
 #define RANDOM_GRAFFITI "Random Graffiti"
 #define RANDOM_LETTER "Random Letter"
 #define RANDOM_PUNCTUATION "Random Punctuation"
@@ -12,8 +14,6 @@
 #define PAINT_LARGE_HORIZONTAL 2
 #define PAINT_LARGE_HORIZONTAL_ICON 'icons/effects/96x32.dmi'
 
-#define AVAILABLE_SPRAYCAN_SPACE 8 // enough to fill one radial menu page
-
 /*
  * Crayons
  */
@@ -21,9 +21,8 @@
 /obj/item/toy/crayon
 	name = "red crayon"
 	desc = "A colourful crayon. Looks tasty. Mmmm..."
-	icon = 'icons/obj/art/crayons.dmi'
+	icon = 'icons/obj/crayons.dmi'
 	icon_state = "crayonred"
-	worn_icon_state = "crayon"
 
 	var/icon_capped
 	var/icon_uncapped
@@ -46,7 +45,7 @@
 	var/static/list/runes = list("rune1","rune2","rune3","rune4","rune5","rune6")
 	var/static/list/randoms = list(RANDOM_ANY, RANDOM_RUNE, RANDOM_ORIENTED,
 		RANDOM_NUMBER, RANDOM_GRAFFITI, RANDOM_LETTER, RANDOM_SYMBOL, RANDOM_PUNCTUATION, RANDOM_DRAWING)
-	var/static/list/graffiti_large_h = list("yiffhell", "furrypride", "secborg", "paint")
+	var/static/list/graffiti_large_h = list("yiffhell", "secborg", "paint")
 
 	var/static/list/all_drawables = graffiti + symbols + drawings + oriented + runes + graffiti_large_h
 
@@ -74,30 +73,25 @@
 	var/post_noise = FALSE
 
 /obj/item/toy/crayon/proc/isValidSurface(surface)
-	return isfloorturf(surface)
+	return istype(surface, /turf/open/floor)
 
 /obj/item/toy/crayon/suicide_act(mob/user)
-	user.visible_message(span_suicide("[user] is jamming [src] up [user.p_their()] nose and into [user.p_their()] brain. It looks like [user.p_theyre()] trying to commit suicide!"))
-	user.add_atom_colour(paint_color)
+	user.visible_message(SPAN_SUICIDE("[user] is jamming [src] up [user.p_their()] nose and into [user.p_their()] brain. It looks like [user.p_theyre()] trying to commit suicide!"))
 	return (BRUTELOSS|OXYLOSS)
 
-/obj/item/toy/crayon/Initialize(mapload)
+/obj/item/toy/crayon/Initialize()
 	. = ..()
 
 	dye_color = crayon_color
 
 	drawtype = pick(all_drawables)
 
-	AddElement(/datum/element/venue_price, FOOD_PRICE_EXOTIC)
-	if(can_change_colour)
-		AddComponent(/datum/component/palette, AVAILABLE_SPRAYCAN_SPACE, paint_color)
-
 	refill()
 
-/obj/item/toy/crayon/set_painting_tool_color(chosen_color)
+/obj/item/toy/crayon/examine(mob/user)
 	. = ..()
-	paint_color = chosen_color
-	update_appearance()
+	if(can_change_colour)
+		. += SPAN_NOTICE("Ctrl-click [src] while it's on your person to quickly recolour it.")
 
 /obj/item/toy/crayon/proc/refill()
 	if(charges == -1)
@@ -142,12 +136,12 @@
 	if(charges == -1)
 		. = FALSE
 	else if(!charges_left)
-		to_chat(user, span_warning("There is no more of [src] left!"))
+		to_chat(user, SPAN_WARNING("There is no more of [src] left!"))
 		if(self_contained)
 			qdel(src)
 		. = TRUE
 	else if(charges_left < amount && requires_full)
-		to_chat(user, span_warning("There is not enough of [src] left!"))
+		to_chat(user, SPAN_WARNING("There is not enough of [src] left!"))
 		. = TRUE
 
 /obj/item/toy/crayon/ui_state(mob/user)
@@ -164,8 +158,14 @@
 /obj/item/toy/crayon/spraycan/AltClick(mob/user)
 	if(has_cap && user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY, FALSE, TRUE))
 		is_capped = !is_capped
-		to_chat(user, span_notice("The cap on [src] is now [is_capped ? "on" : "off"]."))
+		to_chat(user, SPAN_NOTICE("The cap on [src] is now [is_capped ? "on" : "off"]."))
 		update_appearance()
+
+/obj/item/toy/crayon/CtrlClick(mob/user)
+	if(can_change_colour && !isturf(loc) && user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY, FALSE, TRUE))
+		select_colour(user)
+	else
+		return ..()
 
 /obj/item/toy/crayon/proc/staticDrawables()
 
@@ -246,25 +246,26 @@
 			else
 				paint_mode = PAINT_NORMAL
 		if("select_colour")
-			. = can_change_colour && pick_painting_tool_color(usr, paint_color)
+			. = can_change_colour && select_colour(usr)
 		if("enter_text")
-			var/txt = tgui_input_text(usr, "Choose what to write", "Scribbles", text_buffer)
-			if(isnull(txt))
-				return
-			txt = crayon_text_strip(txt)
-			if(text_buffer == txt)
-				return // No valid changes.
-			text_buffer = txt
-
+			var/txt = stripped_input(usr,"Choose what to write.",
+				"Scribbles",default = text_buffer)
+			text_buffer = crayon_text_strip(txt)
 			. = TRUE
 			paint_mode = PAINT_NORMAL
 			drawtype = "a"
 	update_appearance()
 
+/obj/item/toy/crayon/proc/select_colour(mob/user)
+	var/chosen_colour = input(user, "", "Choose Color", paint_color) as color|null
+	if (!isnull(chosen_colour) && user.canUseTopic(src, BE_CLOSE, NO_DEXTERITY, FALSE, TRUE))
+		paint_color = chosen_colour
+		return TRUE
+	return FALSE
+
 /obj/item/toy/crayon/proc/crayon_text_strip(text)
-	text = copytext(text, 1, MAX_MESSAGE_LEN)
-	var/static/regex/crayon_regex = new /regex(@"[^\w!?,.=&%#+/\-]", "ig")
-	return lowertext(crayon_regex.Replace(text, ""))
+	var/static/regex/crayon_r = new /regex(@"[^\w!?,.=%#&+\/\-]")
+	return replacetext(lowertext(text), crayon_r, "")
 
 /obj/item/toy/crayon/afterattack(atom/target, mob/user, proximity, params)
 	. = ..()
@@ -277,8 +278,6 @@
 	var/cost = 1
 	if(paint_mode == PAINT_LARGE_HORIZONTAL)
 		cost = 5
-	if(istype(target, /obj/item/canvas))
-		cost = 0
 	if(ishuman(user))
 		if (istagger)
 			cost *= 0.5
@@ -349,10 +348,10 @@
 		clicky = clamp(text2num(LAZYACCESS(modifiers, ICON_Y)) - 16, -(world.icon_size/2), world.icon_size/2)
 
 	if(!instant)
-		to_chat(user, span_notice("You start drawing a [temp] on the [target.name]..."))
+		to_chat(user, SPAN_NOTICE("You start drawing a [temp] on the [target.name]..."))
 
 	if(pre_noise)
-		audible_message(span_notice("You hear spraying."))
+		audible_message(SPAN_NOTICE("You hear spraying."))
 		playsound(user.loc, 'sound/effects/spray.ogg', 5, TRUE, 5)
 
 	var/wait_time = 50
@@ -391,7 +390,7 @@
 					affected_turfs += right
 					affected_turfs += target
 				else
-					to_chat(user, span_warning("There isn't enough space to paint!"))
+					to_chat(user, SPAN_WARNING("There isn't enough space to paint!"))
 					return
 		C.add_hiddenprint(user)
 		if(istagger)
@@ -400,16 +399,16 @@
 			C.AddElement(/datum/element/art, BAD_ART)
 
 	if(!instant)
-		to_chat(user, span_notice("You finish drawing \the [temp]."))
+		to_chat(user, SPAN_NOTICE("You finish drawing \the [temp]."))
 	else
-		to_chat(user, span_notice("You spray a [temp] on \the [target.name]"))
+		to_chat(user, SPAN_NOTICE("You spray a [temp] on \the [target.name]"))
 
 	if(length(text_buffer) > 1)
 		text_buffer = copytext(text_buffer, length(text_buffer[1]) + 1)
 		SStgui.update_uis(src)
 
 	if(post_noise)
-		audible_message(span_hear("You hear spraying."))
+		audible_message(SPAN_HEAR("You hear spraying."))
 		playsound(user.loc, 'sound/effects/spray.ogg', 5, TRUE, 5)
 
 	var/fraction = min(1, . / reagents.maximum_volume)
@@ -429,9 +428,9 @@
 			else if(C.is_mouth_covered(mask_only = 1))
 				covered = "mask"
 			if(covered)
-				to_chat(C, span_warning("You have to remove your [covered] first!"))
+				to_chat(C, SPAN_WARNING("You have to remove your [covered] first!"))
 				return
-		to_chat(user, span_notice("You take a bite of the [src.name]. Delicious!"))
+		to_chat(user, SPAN_NOTICE("You take a bite of the [src.name]. Delicious!"))
 		var/eaten = use_charges(user, 5, FALSE)
 		if(check_empty(user)) //Prevents divsion by zero
 			return
@@ -439,14 +438,6 @@
 		// check_empty() is called during afterattack
 	else
 		..()
-
-/obj/item/toy/crayon/get_writing_implement_details()
-	return list(
-		interaction_mode = MODE_WRITING,
-		font = CRAYON_FONT,
-		color = paint_color,
-		use_bold = TRUE,
-	)
 
 /obj/item/toy/crayon/red
 	name = "red crayon"
@@ -533,74 +524,14 @@
 	dye_color = DYE_RAINBOW
 
 /obj/item/toy/crayon/rainbow/afterattack(atom/target, mob/user, proximity, params)
-	set_painting_tool_color(rgb(rand(0,255), rand(0,255), rand(0,255)))
+	paint_color = rgb(rand(0,255), rand(0,255), rand(0,255))
 	. = ..()
-
-/*
- * Crayon Box
- */
-
-/obj/item/storage/crayons
-	name = "box of crayons"
-	desc = "A box of crayons for all your rune drawing needs."
-	icon = 'icons/obj/art/crayons.dmi'
-	icon_state = "crayonbox"
-	w_class = WEIGHT_CLASS_SMALL
-	custom_materials = list(/datum/material/cardboard = 2000)
-
-/obj/item/storage/crayons/Initialize(mapload)
-	. = ..()
-	create_storage(canhold = list(/obj/item/toy/crayon))
-
-/obj/item/storage/crayons/PopulateContents()
-	new /obj/item/toy/crayon/red(src)
-	new /obj/item/toy/crayon/orange(src)
-	new /obj/item/toy/crayon/yellow(src)
-	new /obj/item/toy/crayon/green(src)
-	new /obj/item/toy/crayon/blue(src)
-	new /obj/item/toy/crayon/purple(src)
-	new /obj/item/toy/crayon/black(src)
-	update_appearance()
-
-/obj/item/storage/crayons/update_overlays()
-	. = ..()
-	for(var/obj/item/toy/crayon/crayon in contents)
-		. += mutable_appearance('icons/obj/art/crayons.dmi', crayon.crayon_color)
-
-/obj/item/storage/crayons/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/toy/crayon))
-		var/obj/item/toy/crayon/C = W
-		switch(C.crayon_color)
-			if("mime")
-				to_chat(usr, span_warning("This crayon is too sad to be contained in this box!"))
-				return
-			if("rainbow")
-				to_chat(usr, span_warning("This crayon is too powerful to be contained in this box!"))
-				return
-		if(istype(W, /obj/item/toy/crayon/spraycan))
-			to_chat(user, span_warning("Spraycans are not crayons!"))
-			return
-	return ..()
-
-/obj/item/storage/crayons/attack_self(mob/user)
-	. = ..()
-	if(contents.len > 0)
-		to_chat(user, span_warning("You can't fold down [src] with crayons inside!"))
-		return
-	if(flags_1 & HOLOGRAM_1)
-		return
-
-	var/obj/item/stack/sheet/cardboard/cardboard = new /obj/item/stack/sheet/cardboard(user.drop_location())
-	to_chat(user, span_notice("You fold the [src] into cardboard."))
-	user.put_in_active_hand(cardboard)
-	qdel(src)
 
 //Spraycan stuff
 
 /obj/item/toy/crayon/spraycan
 	name = "spray can"
 	icon_state = "spraycan"
-	worn_icon_state = "spraycan"
 
 	icon_capped = "spraycan_cap"
 	icon_uncapped = "spraycan"
@@ -611,7 +542,6 @@
 	lefthand_file = 'icons/mob/inhands/equipment/hydroponics_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/equipment/hydroponics_righthand.dmi'
 	desc = "A metallic container containing tasty paint."
-	w_class = WEIGHT_CLASS_SMALL
 
 	instant = TRUE
 	edible = FALSE
@@ -626,22 +556,22 @@
 	post_noise = FALSE
 
 /obj/item/toy/crayon/spraycan/isValidSurface(surface)
-	return (isfloorturf(surface) || iswallturf(surface))
+	return (istype(surface, /turf/open/floor) || istype(surface, /turf/closed/wall))
 
 
 /obj/item/toy/crayon/spraycan/suicide_act(mob/user)
 	var/mob/living/carbon/human/H = user
 	if(is_capped || !actually_paints)
-		user.visible_message(span_suicide("[user] shakes up [src] with a rattle and lifts it to [user.p_their()] mouth, but nothing happens!"))
+		user.visible_message(SPAN_SUICIDE("[user] shakes up [src] with a rattle and lifts it to [user.p_their()] mouth, but nothing happens!"))
 		user.say("MEDIOCRE!!", forced="spraycan suicide")
 		return SHAME
 	else
-		user.visible_message(span_suicide("[user] shakes up [src] with a rattle and lifts it to [user.p_their()] mouth, spraying paint across [user.p_their()] teeth!"))
+		user.visible_message(SPAN_SUICIDE("[user] shakes up [src] with a rattle and lifts it to [user.p_their()] mouth, spraying paint across [user.p_their()] teeth!"))
 		user.say("WITNESS ME!!", forced="spraycan suicide")
 		if(pre_noise || post_noise)
 			playsound(src, 'sound/effects/spray.ogg', 5, TRUE, 5)
 		if(can_change_colour)
-			set_painting_tool_color("#C0C0C0")
+			paint_color = "#C0C0C0"
 		update_appearance()
 		if(actually_paints)
 			H.update_lips("spray_face", paint_color)
@@ -650,12 +580,15 @@
 
 		return (OXYLOSS)
 
-/obj/item/toy/crayon/spraycan/Initialize(mapload)
+/obj/item/toy/crayon/spraycan/Initialize()
 	. = ..()
 	// If default crayon red colour, pick a more fun spraycan colour
 	if(!paint_color)
-		set_painting_tool_color(pick("#DA0000", "#FF9300", "#FFF200", "#A8E61D", "#00B7EF", "#DA00FF"))
+		paint_color = pick("#DA0000","#FF9300","#FFF200","#A8E61D","#00B7EF",
+		"#DA00FF")
 	refill()
+	update_appearance()
+
 
 /obj/item/toy/crayon/spraycan/examine(mob/user)
 	. = ..()
@@ -663,14 +596,14 @@
 		. += "It has [charges_left] use\s left."
 	else
 		. += "It is empty."
-	. += span_notice("Alt-click [src] to [ is_capped ? "take the cap off" : "put the cap on"]. Right-click a colored object to match its existing color.")
+	. += SPAN_NOTICE("Alt-click [src] to [ is_capped ? "take the cap off" : "put the cap on"].")
 
 /obj/item/toy/crayon/spraycan/afterattack(atom/target, mob/user, proximity, params)
 	if(!proximity)
 		return
 
 	if(is_capped)
-		balloon_alert(user, "take the cap off first!")
+		to_chat(user, SPAN_WARNING("Take the cap off first!"))
 		return
 
 	if(check_empty(user))
@@ -681,8 +614,8 @@
 			playsound(user.loc, 'sound/effects/spray.ogg', 25, TRUE, 5)
 
 		var/mob/living/carbon/C = target
-		user.visible_message(span_danger("[user] sprays [src] into the face of [target]!"))
-		to_chat(target, span_userdanger("[user] sprays [src] into your face!"))
+		user.visible_message(SPAN_DANGER("[user] sprays [src] into the face of [target]!"))
+		to_chat(target, SPAN_USERDANGER("[user] sprays [src] into your face!"))
 
 		if(C.client)
 			C.blur_eyes(3)
@@ -699,80 +632,27 @@
 
 		return
 
-	if(ismob(target) && (HAS_TRAIT(target, TRAIT_SPRAY_PAINTABLE)))
-		if(actually_paints)
-			target.add_atom_colour(paint_color, WASHABLE_COLOUR_PRIORITY)
-			SEND_SIGNAL(target, COMSIG_LIVING_MOB_PAINTED)
-		. = use_charges(user, 2, requires_full = FALSE)
-		reagents.trans_to(target, ., volume_multiplier, transfered_by = user, methods = VAPOR)
-
-		if(pre_noise || post_noise)
-			playsound(user.loc, 'sound/effects/spray.ogg', 5, TRUE, 5)
-		user.visible_message(span_notice("[user] coats [target] with spray paint!"), span_notice("You coat [target] with spray paint."))
-		return .
-
-
 	if(isobj(target) && !(target.flags_1 & UNPAINTABLE_1))
 		if(actually_paints)
-			var/color_is_dark = is_color_dark(paint_color)
+			var/list/rgb = hex2rgb(paint_color)
+			var/list/hsl = rgb2hsl(rgb[1], rgb[2], rgb[3])
+			var/color_is_dark = hsl[3] < DARK_COLOR_LIGHTNESS_THRESHOLD
 
 			if (color_is_dark && !(target.flags_1 & ALLOW_DARK_PAINTS_1))
-				to_chat(user, span_warning("A color that dark on an object like this? Surely not..."))
+				to_chat(user, SPAN_WARNING("A color that dark on an object like this? Surely not..."))
 				return FALSE
 
 			target.add_atom_colour(paint_color, WASHABLE_COLOUR_PRIORITY)
-			if(isitem(target) && isliving(target.loc))
-				var/obj/item/target_item = target
-				var/mob/living/holder = target.loc
-				if(holder.is_holding(target_item))
-					holder.update_held_items()
-				else
-					holder.update_clothing(target_item.slot_flags)
 			SEND_SIGNAL(target, COMSIG_OBJ_PAINTED, color_is_dark)
-		. = use_charges(user, 2, requires_full = FALSE)
+		. = use_charges(user, 2)
 		reagents.trans_to(target, ., volume_multiplier, transfered_by = user, methods = VAPOR)
 
 		if(pre_noise || post_noise)
 			playsound(user.loc, 'sound/effects/spray.ogg', 5, TRUE, 5)
-		user.visible_message(span_notice("[user] coats [target] with spray paint!"), span_notice("You coat [target] with spray paint."))
+		user.visible_message(SPAN_NOTICE("[user] coats [target] with spray paint!"), SPAN_NOTICE("You coat [target] with spray paint."))
 		return
 
 	. = ..()
-
-/obj/item/toy/crayon/spraycan/afterattack_secondary(atom/target, mob/user, proximity, params)
-	if(!proximity)
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-	if(is_capped)
-		balloon_alert(user, "take the cap off first!")
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-	if(check_empty(user))
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-
-	if(isbodypart(target) && actually_paints)
-		var/obj/item/bodypart/limb = target
-		if(!IS_ORGANIC_LIMB(limb))
-			var/list/skins = list()
-			var/static/list/style_list_icons = list("standard" = 'icons/mob/augmentation/augments.dmi', "engineer" = 'icons/mob/augmentation/augments_engineer.dmi', "security" = 'icons/mob/augmentation/augments_security.dmi', "mining" = 'icons/mob/augmentation/augments_mining.dmi')
-			for(var/skin_option in style_list_icons)
-				var/image/part_image = image(icon = style_list_icons[skin_option], icon_state = limb.icon_state)
-				skins += list("[skin_option]" = part_image)
-			var/choice = show_radial_menu(user, src, skins, require_near = TRUE)
-			if(choice && (use_charges(user, 5, requires_full = FALSE) == 5))
-				playsound(user.loc, 'sound/effects/spray.ogg', 5, TRUE, 5)
-				limb.icon = style_list_icons[choice]
-			return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-	if(target.color)
-		paint_color = target.color
-		to_chat(user, span_notice("You adjust the color of [src] to match [target]."))
-		update_appearance()
-		return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-	else
-		to_chat(user, span_warning("[target] is not colorful enough, you can't match that color!"))
-
-	return SECONDARY_ATTACK_CONTINUE_CHAIN
-
-/obj/item/toy/crayon/spraycan/attackby_storage_insert(datum/storage, atom/storage_holder, mob/user)
-	return is_capped
 
 /obj/item/toy/crayon/spraycan/update_icon_state()
 	icon_state = is_capped ? icon_capped : icon_uncapped
@@ -781,33 +661,9 @@
 /obj/item/toy/crayon/spraycan/update_overlays()
 	. = ..()
 	if(use_overlays)
-		var/mutable_appearance/spray_overlay = mutable_appearance('icons/obj/art/crayons.dmi', "[is_capped ? "spraycan_cap_colors" : "spraycan_colors"]")
+		var/mutable_appearance/spray_overlay = mutable_appearance('icons/obj/crayons.dmi', "[is_capped ? "spraycan_cap_colors" : "spraycan_colors"]")
 		spray_overlay.color = paint_color
 		. += spray_overlay
-
-/obj/item/toy/crayon/spraycan/borg
-	name = "cyborg spraycan"
-	desc = "A metallic container containing shiny synthesised paint."
-	charges = -1
-
-/obj/item/toy/crayon/spraycan/borg/afterattack(atom/target,mob/user,proximity, params)
-	var/diff = ..()
-	if(!iscyborg(user))
-		to_chat(user, span_notice("How did you get this?"))
-		qdel(src)
-		return FALSE
-
-	var/mob/living/silicon/robot/borgy = user
-
-	if(!diff)
-		return
-	// 25 is our cost per unit of paint, making it cost 25 energy per
-	// normal tag, 50 per window, and 250 per attack
-	var/cost = diff * 25
-	// Cyborgs shouldn't be able to use modules without a cell. But if they do
-	// it's free.
-	if(borgy.cell)
-		borgy.cell.use(cost)
 
 /obj/item/toy/crayon/spraycan/hellcan
 	name = "hellcan"
@@ -835,28 +691,14 @@
 	volume_multiplier = 5
 
 /obj/item/toy/crayon/spraycan/lubecan/isValidSurface(surface)
-	return isfloorturf(surface)
-
-/obj/item/toy/crayon/spraycan/mimecan
-	name = "silent spraycan"
-	desc = "Art is best seen, not heard."
-	icon_state = "mimecan_cap"
-	icon_capped = "mimecan_cap"
-	icon_uncapped = "mimecan"
-	use_overlays = FALSE
-
-	can_change_colour = FALSE
-	paint_color = "#FFFFFF" //RGB
-
-	pre_noise = FALSE
-	post_noise = FALSE
-	reagent_contents = list(/datum/reagent/consumable/nothing = 1, /datum/reagent/toxin/mutetoxin = 1)
+	return istype(surface, /turf/open/floor)
 
 /obj/item/toy/crayon/spraycan/infinite
 	name = "infinite spraycan"
 	charges = -1
 	desc = "Now with 30% more bluespace technology."
 
+#undef DARK_COLOR_LIGHTNESS_THRESHOLD
 #undef RANDOM_GRAFFITI
 #undef RANDOM_LETTER
 #undef RANDOM_PUNCTUATION
@@ -866,5 +708,3 @@
 #undef RANDOM_ORIENTED
 #undef RANDOM_RUNE
 #undef RANDOM_ANY
-
-#undef AVAILABLE_SPRAYCAN_SPACE

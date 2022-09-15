@@ -5,7 +5,6 @@ $include dbconfig.txt
 $include comms.txt
 $include resources.txt
 $include interviews.txt
-$include lua.txt
 
 # You can use the @ character at the beginning of a config option to lock it from being edited in-game
 # Example usage:
@@ -16,13 +15,13 @@ $include lua.txt
 # There are various options which are hard-locked for security reasons.
 
 ## Server name: This appears at the top of the screen in-game and in the BYOND hub. Uncomment and replace 'tgstation' with the name of your choice.
-# SERVERNAME tgstation
+# SERVERNAME S.T.A.L.K.E.R. 13
 
 ## Server SQL name: This is the name used to identify the server to the SQL DB, distinct from SERVERNAME as it must be at most 32 characters.
 # SERVERSQLNAME tgstation
 
 ## Station name: The name of the station as it is referred to in-game. If commented out, the game will generate a random name instead.
-STATIONNAME Space Station 13
+STATIONNAME S.T.A.L.K.E.R. 13
 
 ## Put on byond hub: Uncomment this to put your server on the byond hub.
 #HUB
@@ -91,14 +90,8 @@ LOG_ADMIN
 ## log admin chat
 LOG_ADMINCHAT
 
-## log asset debug logs
-#LOG_ASSET
-
 ## log client access (logon/logoff)
 LOG_ACCESS
-
-## Enables log entries for logins that failed due to suspicious circumstances (banned player, CID randomiser, spoofed BYOND version, etc.) to a dedicated file.
-LOG_SUSPICIOUS_LOGIN
 
 ## log game actions (start of round, results, etc.)
 LOG_GAME
@@ -127,16 +120,13 @@ LOG_TELECOMMS
 ## log prayers
 LOG_PRAYER
 
-## log silicons
-LOG_SILICON
+## log lawchanges
+#LOG_LAW
 
 ## log economy actions
-LOG_ECON
+#LOG_ECON
 
-## log traitor objectives
-LOG_TRAITOR
-
-## log crew manifest to separate file
+## log crew manifest to seperate file
 LOG_MANIFEST
 
 ## log job divide debugging information
@@ -150,7 +140,7 @@ LOG_MANIFEST
 # LOG_TWITTER
 
 ## Enable logging pictures
-LOG_PICTURES
+# LOG_PICTURES
 
 ## log mecha actions
 # LOG_MECHA
@@ -158,17 +148,14 @@ LOG_PICTURES
 ## log virus and actions
 LOG_VIRUS
 
+## log cloning actions
+LOG_CLONING
+
 ## log shuttle actions
 LOG_SHUTTLE
 
-## log tool interactions [/atom/proc/tool_act]
-LOG_TOOLS
-
 ## Log all timers on timer auto reset
 # LOG_TIMERS_ON_BUCKET_RESET
-
-## log speech indicators
-LOG_SPEECH_INDICATORS
 
 ##Log camera pictures - Must have picture logging enabled
 PICTURE_LOGGING_CAMERA
@@ -290,21 +277,23 @@ CHECK_RANDOMIZER
 # INVOKE_YOUTUBEDL youtube-dl
 
 ## In-game features
-##Toggle for having jobs load up from the .txt
-# LOAD_JOBS_FROM_TXT
 
 ## Uncomment this to forbid admins from possessing the singularity.
 #FORBID_SINGULO_POSSESSION
 
-## Uncomment to give admins the ability to send a maptext popup to players.
-## Only fires when an admin requests it, not every ahelp.
-POPUP_ADMIN_PM
+## Uncomment to show a popup 'reply to' window to every non-admin that receives an adminPM.
+## The intention is to make adminPMs more visible. (although I fnd popups annoying so this defaults to off)
+#POPUP_ADMIN_PM
 
 ## Uncomment to allow special 'Easter-egg' events on special holidays such as seasonal holidays and stuff like 'Talk Like a Pirate Day' :3 YAARRR
 ALLOW_HOLIDAYS
 
 ## Uncomment to show the names of the admin sending a pm from IRC instead of showing as a stealthmin.
 #SHOW_IRC_NAME
+
+## Defines the ticklimit for subsystem initialization (In percents of a byond tick). Lower makes world start smoother. Higher makes it faster.
+##This is currently a testing optimized setting. A good value for production would be 98.
+TICK_LIMIT_MC_INIT 500
 
 ##Defines the ticklag for the world. Ticklag is the amount of time between game ticks (aka byond ticks) (in 1/10ths of a second).
 ##	This also controls the client network update rate, as well as the default client fps
@@ -324,9 +313,6 @@ TICKLAG 0.5
 NOTE_FRESH_DAYS 91.31055
 ## Notes older then this will be completely faded out.
 NOTE_STALE_DAYS 365.2422
-
-## Uncomment to allow drastic performence enhancemet measures to turn on automatically once there are equal or more clients than the configured amount (will also prompt admin for veto)
-#AUTO_LAG_SWITCH_POP 75
 
 ##Note: all population caps can be used with each other if desired.
 
@@ -356,16 +342,23 @@ BYOND_MEMBER_BYPASS_POPCAP
 NOTIFY_NEW_PLAYER_AGE 0
 
 ## Notify admins when a player connects if their byond account was created in the last X days
-## Requires database
+##  Requires database
 NOTIFY_NEW_PLAYER_ACCOUNT_AGE 1
 
 ## Notify the irc channel when a new player makes their first connection
-##	Requres database
+##	Requires database
 #IRC_FIRST_CONNECTION_ALERT
 
 ## Deny all new connections by ckeys we haven't seen before (exempts admins and only denies the connection if the database is enabled and connected)
 ##	Requires database
 #PANIC_BUNKER
+
+## Allow accounts that are registered via other means to pass the bunker
+##  Requires database and PANIC_BUNKER
+#PANIC_BUNKER_DISCORD_REQUIRE
+
+## Custom message to show the client if they are not allowed access due to MFA
+#PANIC_BUNKER_DISCORD_REGISTER_MESSAGE Sorry but this server requires players to link their Discord account before playing! Please enter the following command, including the token, into this Server's Discord Guild.
 
 ## Uncomment to enable the interview system for players who are below the living hour requirement instead of explicitly blocking them from the server
 ## Note this requires the PANIC_BUNKER to be enabled to do anything.
@@ -399,12 +392,12 @@ ANNOUNCE_ADMIN_LOGOUT
 
 ## Map rotation
 ## You should edit maps.txt to match your configuration when you enable this.
-MAPROTATION
+#MAPROTATION
 
 ## Map voting
 ## Allows players to vote with their preffered map setting
 ## When it's set to zero, the map will be randomly picked each round
-PREFERENCE_MAP_VOTING 1
+#PREFERENCE_MAP_VOTING 1
 
 ## AUTOADMIN
 ## The default admin rank
@@ -431,13 +424,13 @@ AUTOADMIN_RANK Game Master
 ## These trigger for any version below (non-inclusive) the given version, so 510 triggers on 509 or lower.
 ## These messages will be followed by one stating the clients current version and the required version for clarity.
 ## If CLIENT_WARN_POPUP is uncommented a popup window with the message will be displayed instead
-#CLIENT_WARN_VERSION 511
+#CLIENT_WARN_VERSION 514
 #CLIENT_WARN_POPUP
-#CLIENT_WARN_MESSAGE Byond released 511 as the stable release. You can set the framerate your client runs at, which makes the game feel very different and cool. Shortly after its release we will end up using 511 client features and you will be forced to update.
-CLIENT_ERROR_VERSION 511
+#CLIENT_WARN_MESSAGE Please upgrade to BYOND 514 or higher as soon as possible. Your current version is not supported and you may run into issues.
+CLIENT_ERROR_VERSION 513
 CLIENT_ERROR_MESSAGE Your version of byond is not supported. Please upgrade.
 ## The minimum build needed for joining the server, if using 512, a good minimum build would be 1421 as that disables the Middle Mouse Button exploit.
-CLIENT_ERROR_BUILD 1421
+CLIENT_ERROR_BUILD 1538
 
 ## TOPIC RATE LIMITING
 ## This allows you to limit how many topic calls (clicking on an interface window) the client can do in any given game second and/or game minute.
@@ -555,67 +548,3 @@ DEFAULT_VIEW_SQUARE 15x15
 
 ## Add the ID of the role you want assigning here
 #DISCORD_ROLEID 000000000000000000
-
-## How long in seconds after which a hard delete is treated as causing lag. This can be a float and supports a precision as low as nanoseconds.
-#HARD_DELETES_OVERRUN_THRESHOLD 0.5
-
-## Once a typepath causes overrun from hard deletes this many times, stop hard deleting it on garbage collection failures. (set to 0 to disable)
-#HARD_DELETES_OVERRUN_LIMIT 0
-
-## The URL to the webhook for adminhelps to relay the urgent ahelp message to
-## If not set, will disable urgent ahelps.
-#URGENT_ADMINHELP_WEBHOOK_URL
-
-## See above, but for non-urgent ahelps
-#REGULAR_ADMINHELP_WEBHOOK_URL
-
-## The urgent ahelp cooldown for a given player if they're alone on a server and need to send an urgent ahelp.
-URGENT_AHELP_COOLDOWN 300
-
-## The message that is sent to the discord if an urgent ahelp is sent. Useful for sending a role ping.
-#URGENT_AHELP_MESSAGE
-
-## See above, but for non-urgent ahelps.
-#AHELP_MESSAGE
-
-## The message that the player receives whenever prompted whether they want to send an urgent ahelp or not.
-#URGENT_AHELP_USER_PROMPT This'll ping the admins!
-
-## The link that the title of a ticket can link to.
-## If not set, it will link nowhere
-## use $RID for the round ID and $TID for the ticket ID
-#ADMINHELP_AHELP_LINK
-
-## The URL for the pfp of the webhook
-#ADMINHELP_WEBHOOK_PFP
-
-## The name of the webhook
-#ADMINHELP_WEBHOOK_NAME
-
-## Sets an MOTD of the server.
-## You can use this multiple times, and the MOTDs will be appended in order.
-## Based on config directory, so "motd.txt" points to "config/motd.txt"
-MOTD motd.txt
-#MOTD motd_extra.txt
-
-## Assets can opt-in to caching their results into `tmp`.
-## This is important, as preferences assets take upwards of 30 seconds (without sleeps) to collect.
-## The cache is assumed to be cleared by TGS recompiling, which deletes `tmp`.
-## This should be disabled (through `CACHE_ASSETS 0`) on development,
-## but enabled on production (the default).
-CACHE_ASSETS 0
-
-## Uncomment to allow the station name to be in the hub entry.
-## You should only enable this if you can guarantee a station name doesn't break BYOND's TOS.
-## BYOND staff have gotten upset at us in the past for inappropriate station names.
-#STATION_NAME_IN_HUB_ENTRY
-
-## The number of PR announcements allowed for the same pull request per round
-## This makes sure that somebody can only spam a few reopens and closes before being ignored
-PR_ANNOUNCEMENTS_PER_ROUND 5
-
-## Uncomment to block all attempts to profile, for performance reasons
-#FORBID_ALL_PROFILING
-
-## Uncomment to block granting profiling privileges to users with R_DEBUG, for performance purposes
-#FORBID_ADMIN_PROFILING

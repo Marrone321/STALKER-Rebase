@@ -105,7 +105,7 @@
 		var/datum/material/M = I
 		var/amt = materials[I]
 		if(amt)
-			examine_texts += span_notice("It has [amt] units of [lowertext(M.name)] stored.")
+			examine_texts += SPAN_NOTICE("It has [amt] units of [lowertext(M.name)] stored.")
 
 /// Proc that allows players to fill the parent with mats
 /datum/component/material_container/proc/on_attackby(datum/source, obj/item/I, mob/living/user)
@@ -118,7 +118,7 @@
 		return
 	if((I.flags_1 & HOLOGRAM_1) || (I.item_flags & NO_MAT_REDEMPTION) || (tc && !is_type_in_typecache(I, tc)))
 		if(!(mat_container_flags & MATCONTAINER_SILENT))
-			to_chat(user, span_warning("[parent] won't accept [I]!"))
+			to_chat(user, SPAN_WARNING("[parent] won't accept [I]!"))
 		return
 	. = COMPONENT_NO_AFTERATTACK
 	var/datum/callback/pc = precondition
@@ -126,50 +126,37 @@
 		return
 	var/material_amount = get_item_material_amount(I, mat_container_flags)
 	if(!material_amount)
-		to_chat(user, span_warning("[I] does not contain sufficient materials to be accepted by [parent]."))
+		to_chat(user, SPAN_WARNING("[I] does not contain sufficient materials to be accepted by [parent]."))
 		return
 	if(!has_space(material_amount))
-		if(isstack(I))
-			//figure out how much space is left
-			var/space_left = max_amount - total_amount
-			//figure out the amount of sheets that can fit that space
-			var/obj/item/stack/stack_to_split = I
-			var/material_per_sheet = material_amount / stack_to_split.amount
-			var/sheets_to_insert = round(space_left / material_per_sheet)
-			if(!sheets_to_insert)
-				to_chat(user, span_warning("[parent] can't hold any more of [I] sheets."))
-				return
-			//split the amount we don't need off
-			INVOKE_ASYNC(stack_to_split, /obj/item/stack.proc/split_stack, user, stack_to_split.amount - sheets_to_insert)
-		else
-			to_chat(user, span_warning("[I] contains more materials than [parent] has space to hold."))
-			return
+		to_chat(user, SPAN_WARNING("[parent] is full. Please remove materials from [parent] in order to insert more."))
+		return
 	user_insert(I, user, mat_container_flags)
 
 /// Proc used for when player inserts materials
-/datum/component/material_container/proc/user_insert(obj/item/held_item, mob/living/user, breakdown_flags = mat_container_flags)
+/datum/component/material_container/proc/user_insert(obj/item/I, mob/living/user, breakdown_flags = mat_container_flags)
 	set waitfor = FALSE
 	var/requested_amount
 	var/active_held = user.get_active_held_item()  // differs from I when using TK
-	if(isstack(held_item) && precise_insertion)
+	if(istype(I, /obj/item/stack) && precise_insertion)
 		var/atom/current_parent = parent
-		var/obj/item/stack/item_stack = held_item
-		requested_amount = tgui_input_number(user, "How much do you want to insert?", "Inserting [item_stack.singular_name]s", item_stack.amount, item_stack.amount)
-		if(!requested_amount || QDELETED(held_item) || QDELETED(user) || QDELETED(src))
+		var/obj/item/stack/S = I
+		requested_amount = input(user, "How much do you want to insert?", "Inserting [S.singular_name]s") as num|null
+		if(isnull(requested_amount) || (requested_amount <= 0))
 			return
-		if(parent != current_parent || user.get_active_held_item() != active_held)
+		if(QDELETED(I) || QDELETED(user) || QDELETED(src) || parent != current_parent || user.physical_can_use_topic(current_parent) < UI_INTERACTIVE || user.get_active_held_item() != active_held)
 			return
-	if(!user.temporarilyRemoveItemFromInventory(held_item))
-		to_chat(user, span_warning("[held_item] is stuck to you and cannot be placed into [parent]."))
+	if(!user.temporarilyRemoveItemFromInventory(I))
+		to_chat(user, SPAN_WARNING("[I] is stuck to you and cannot be placed into [parent]."))
 		return
-	var/inserted = insert_item(held_item, stack_amt = requested_amount, breakdown_flags= mat_container_flags)
+	var/inserted = insert_item(I, stack_amt = requested_amount, breakdown_flags= mat_container_flags)
 	if(inserted)
-		to_chat(user, span_notice("You insert a material total of [inserted] into [parent]."))
-		qdel(held_item)
+		to_chat(user, SPAN_NOTICE("You insert a material total of [inserted] into [parent]."))
+		qdel(I)
 		if(after_insert)
-			after_insert.Invoke(held_item, last_inserted_id, inserted)
-	else if(held_item == active_held)
-		user.put_in_active_hand(held_item)
+			after_insert.Invoke(I, last_inserted_id, inserted)
+	else if(I == active_held)
+		user.put_in_active_hand(I)
 
 /// Proc specifically for inserting items, returns the amount of materials entered.
 /datum/component/material_container/proc/insert_item(obj/item/I, multiplier = 1, stack_amt, breakdown_flags = mat_container_flags)
@@ -217,7 +204,7 @@
 /datum/component/material_container/proc/can_hold_material(datum/material/mat)
 	if(mat in allowed_materials)
 		return TRUE
-	if(istype(mat) && ((mat.id in allowed_materials) || (mat.type in allowed_materials)))
+	if(istype(mat) && ((mat.type in allowed_materials) || (mat.type in allowed_materials)))
 		allowed_materials += mat // This could get messy with passing lists by ref... but if you're doing that the list expansion is probably being taken care of elsewhere anyway...
 		return TRUE
 	if(insertion_check?.Invoke(mat))
@@ -301,8 +288,6 @@
 		if(!materials[req_mat]) //Do we have the resource?
 			return FALSE //Can't afford it
 		var/amount_required = mats[x] * multiplier
-		if(amount_required < 0)
-			return FALSE //No negative mats
 		if(!(materials[req_mat] >= amount_required)) // do we have enough of the resource?
 			return FALSE //Can't afford it
 		mats_to_remove[req_mat] += amount_required //Add it to the assoc list of things to remove
@@ -363,12 +348,6 @@
 			if(ispath(req_mat)) //Is this an actual material, or is it a category?
 				req_mat = GET_MATERIAL_REF(req_mat) //Get the ref
 
-			else // Its a category. (For example MAT_CATEGORY_RIGID)
-				if(!has_enough_of_category(req_mat, mats[x], multiplier)) //Do we have enough of this category?
-					return FALSE
-				else
-					continue
-
 		if(!has_enough_of_material(req_mat, mats[x], multiplier))//Not a category, so just check the normal way
 			return FALSE
 
@@ -391,14 +370,6 @@
 	if(materials[req_mat] >= amount_required) // do we have enough of the resource?
 		return TRUE
 	return FALSE //Can't afford it
-
-/// Returns TRUE if you have enough of a specified material category (Which could be multiple materials)
-/datum/component/material_container/proc/has_enough_of_category(category, amount, multiplier=1)
-	for(var/i in SSmaterials.materials_by_category[category])
-		var/datum/material/mat = i
-		if(materials[mat] >= amount) //we have enough
-			return TRUE
-	return FALSE
 
 /// Turns a material amount into the amount of sheets it should output
 /datum/component/material_container/proc/amount2sheet(amt)

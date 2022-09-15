@@ -19,7 +19,6 @@ import { audioMiddleware, audioReducer } from './audio';
 import { chatMiddleware, chatReducer } from './chat';
 import { gameMiddleware, gameReducer } from './game';
 import { setupPanelFocusHacks } from './panelFocus';
-import { pingMiddleware, pingReducer } from './ping';
 import { settingsMiddleware, settingsReducer } from './settings';
 import { telemetryMiddleware } from './telemetry';
 
@@ -31,13 +30,11 @@ const store = configureStore({
     audio: audioReducer,
     chat: chatReducer,
     game: gameReducer,
-    ping: pingReducer,
     settings: settingsReducer,
   }),
   middleware: {
     pre: [
       chatMiddleware,
-      pingMiddleware,
       telemetryMiddleware,
       settingsMiddleware,
       audioMiddleware,
@@ -68,11 +65,20 @@ const setupApp = () => {
   setupPanelFocusHacks();
   captureExternalLinks();
 
-  // Re-render UI on store updates
+  // Subscribe for Redux state updates
   store.subscribe(renderApp);
 
-  // Dispatch incoming messages as store actions
-  Byond.subscribe((type, payload) => store.dispatch({ type, payload }));
+  // Subscribe for bankend updates
+  window.update = msg => store.dispatch(Byond.parseJson(msg));
+
+  // Process the early update queue
+  while (true) {
+    const msg = window.__updateQueue__.shift();
+    if (!msg) {
+      break;
+    }
+    window.update(msg);
+  }
 
   // Unhide the panel
   Byond.winset('output', {
@@ -86,7 +92,7 @@ const setupApp = () => {
   });
 
   // Resize the panel to match the non-browser output
-  Byond.winget('output').then((output) => {
+  Byond.winget('output').then(output => {
     Byond.winset('browseroutput', {
       'size': output.size,
     });
@@ -95,14 +101,12 @@ const setupApp = () => {
   // Enable hot module reloading
   if (module.hot) {
     setupHotReloading();
-    // prettier-ignore
     module.hot.accept([
       './audio',
       './chat',
       './game',
       './Notifications',
       './Panel',
-      './ping',
       './settings',
       './telemetry',
     ], () => {

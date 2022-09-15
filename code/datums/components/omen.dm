@@ -24,25 +24,24 @@
 		var/warning = "You get a bad feeling..."
 		if(permanent)
 			warning += " A very bad feeling... As if you are surrounded by a twisted aura of pure malevolence..."
-		to_chat(parent, span_warning("[warning]"))
+		to_chat(parent, SPAN_WARNING("[warning]"))
 
 
 /datum/component/omen/Destroy(force, silent)
 	if(!silent)
 		var/mob/living/person = parent
-		to_chat(person, span_nicegreen("You feel a horrible omen lifted off your shoulders!"))
+		to_chat(person, SPAN_NICEGREEN("You feel a horrible omen lifted off your shoulders!"))
 	if(vessel)
-		vessel.visible_message(span_warning("[vessel] burns up in a sinister flash, taking an evil energy with it..."))
+		vessel.visible_message(SPAN_WARNING("[vessel] burns up in a sinister flash, taking an evil energy with it..."))
 		vessel = null
 	return ..()
 
 /datum/component/omen/RegisterWithParent()
 	RegisterSignal(parent, COMSIG_MOVABLE_MOVED, .proc/check_accident)
 	RegisterSignal(parent, COMSIG_LIVING_STATUS_KNOCKDOWN, .proc/check_slip)
-	RegisterSignal(parent, COMSIG_CARBON_MOOD_UPDATE, .proc/check_bless)
 
 /datum/component/omen/UnregisterFromParent()
-	UnregisterSignal(parent, list(COMSIG_LIVING_STATUS_KNOCKDOWN, COMSIG_MOVABLE_MOVED, COMSIG_CARBON_MOOD_UPDATE))
+	UnregisterSignal(parent, list(COMSIG_LIVING_STATUS_KNOCKDOWN, COMSIG_MOVABLE_MOVED))
 
 /**
  * check_accident() is called each step we take
@@ -60,32 +59,17 @@
 
 	if(!prob(15))
 		return
-	var/our_guy_pos = get_turf(living_guy)
-	for(var/turf_content in our_guy_pos)
-		if(istype(turf_content, /obj/machinery/door/airlock))
-			to_chat(living_guy, span_warning("A malevolent force launches your body to the floor..."))
-			var/obj/machinery/door/airlock/darth_airlock = turf_content
-			living_guy.apply_status_effect(/datum/status_effect/incapacitating/paralyzed, 10)
-			INVOKE_ASYNC(darth_airlock, /obj/machinery/door/airlock.proc/close, TRUE)
-			if(!permanent)
-				qdel(src)
-			return
 
-	for(var/turf/the_turf as anything in get_adjacent_open_turfs(living_guy))
-		if(the_turf.zPassOut(living_guy, DOWN) && living_guy.can_z_move(DOWN, the_turf, z_move_flags = ZMOVE_FALL_FLAGS))
-			to_chat(living_guy, span_warning("A malevolent force guides you towards the edge..."))
+	for(var/t in get_adjacent_open_turfs(living_guy))
+		var/turf/the_turf = t
+
+		if(the_turf.zPassOut(living_guy, DOWN) && living_guy.can_zFall(the_turf))
+			to_chat(living_guy, SPAN_WARNING("A malevolent force guides you towards the edge..."))
 			living_guy.throw_at(the_turf, 1, 10, force = MOVE_FORCE_EXTREMELY_STRONG)
 			if(!permanent)
 				qdel(src)
 			return
 
-		for(var/obj/machinery/vending/darth_vendor in the_turf)
-			if(darth_vendor.tiltable)
-				to_chat(living_guy, span_warning("A malevolent force tugs at the [darth_vendor]..."))
-				INVOKE_ASYNC(darth_vendor, /obj/machinery/vending.proc/tilt, living_guy)
-				if(!permanent)
-					qdel(src)
-				return
 
 /// If we get knocked down, see if we have a really bad slip and bash our head hard
 /datum/component/omen/proc/check_slip(mob/living/our_guy, amount)
@@ -99,20 +83,8 @@
 		return
 
 	playsound(get_turf(our_guy), 'sound/effects/tableheadsmash.ogg', 90, TRUE)
-	our_guy.visible_message(span_danger("[our_guy] hits [our_guy.p_their()] head really badly falling down!"), span_userdanger("You hit your head really badly falling down!"))
+	our_guy.visible_message(SPAN_DANGER("[our_guy] hits [our_guy.p_their()] head really badly falling down!"), SPAN_USERDANGER("You hit your head really badly falling down!"))
 	the_head.receive_damage(75)
 	our_guy.adjustOrganLoss(ORGAN_SLOT_BRAIN, 100)
 	if(!permanent)
 		qdel(src)
-
-/// Hijack the mood system to see if we get the blessing mood event to cancel the omen
-/datum/component/omen/proc/check_bless(mob/living/our_guy, category)
-	SIGNAL_HANDLER
-
-	if(permanent)
-		return
-
-	if (!("blessing" in our_guy.mob_mood.mood_events))
-		return
-
-	qdel(src)

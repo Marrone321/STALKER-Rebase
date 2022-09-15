@@ -14,21 +14,13 @@
 		for (var/bullethole in bullethole_overlays)
 			cut_overlay(bullethole)
 		bullethole_overlays = null
-		to_chat(user, span_notice("You slice off [src]'s uneven chunks of aluminium and scorch marks."))
+		to_chat(user, SPAN_NOTICE("You slice off [src]'s uneven chunks of aluminium and scorch marks."))
 	return TRUE
 
 /obj/item/target/syndicate
 	icon_state = "target_s"
 	desc = "A shooting target that looks like syndicate scum."
 	hp = 2600
-
-/obj/item/target/alien
-	icon_state = "target_q"
-	desc = "A shooting target that looks like a xenomorphic alien."
-	hp = 2350
-
-/obj/item/target/alien/anchored
-	anchored = TRUE
 
 /obj/item/target/clown
 	icon_state = "target_c"
@@ -43,8 +35,6 @@
 	playsound(src.loc, 'sound/items/bikehorn.ogg', 50, TRUE)
 
 /obj/item/target/bullet_act(obj/projectile/P)
-	if(istype(P, /obj/projectile/bullet/reusable)) // If it's a foam dart, don't bother with any of this other shit
-		return P.on_hit(src, 0)
 	var/p_x = P.p_x + pick(0,0,0,0,0,-1,1) // really ugly way of coding "sometimes offset P.p_x!"
 	var/p_y = P.p_y + pick(0,0,0,0,0,-1,1)
 	var/decaltype = DECALTYPE_SCORCH
@@ -54,14 +44,14 @@
 	if(C.GetPixel(p_x, p_y) && P.original == src && overlays.len <= 35) // if the located pixel isn't blank (null)
 		hp -= P.damage
 		if(hp <= 0)
-			visible_message(span_danger("[src] breaks into tiny pieces and collapses!"))
+			visible_message(SPAN_DANGER("[src] breaks into tiny pieces and collapses!"))
 			qdel(src)
 		var/image/bullet_hole = image('icons/effects/effects.dmi', "scorch", OBJ_LAYER + 0.5)
 		bullet_hole.pixel_x = p_x - 1 //offset correction
 		bullet_hole.pixel_y = p_y - 1
 		if(decaltype == DECALTYPE_SCORCH)
 			bullet_hole.setDir(pick(NORTH,SOUTH,EAST,WEST))// random scorch design
-			if(P.damage >= 20 || istype(P, /obj/projectile/beam/practice))
+			if(P.damage >= 20)
 				bullet_hole.setDir(pick(NORTH,SOUTH,EAST,WEST))
 			else
 				bullet_hole.icon_state = "light_scorch"

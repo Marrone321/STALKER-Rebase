@@ -10,73 +10,65 @@
 	if(NOBLOOD in dna.species.species_traits || HAS_TRAIT(src, TRAIT_NOBLEED) || (HAS_TRAIT(src, TRAIT_FAKEDEATH)))
 		return
 
-	if(bodytemperature < BLOOD_STOP_TEMP || (HAS_TRAIT(src, TRAIT_HUSK))) //cold or husked people do not pump the blood.
-		return
+	if(bodytemperature >= TCRYO && !(HAS_TRAIT(src, TRAIT_HUSK))) //cryosleep or husked people do not pump the blood.
 
-	//Blood regeneration if there is some space
-	if(blood_volume < BLOOD_VOLUME_NORMAL && !HAS_TRAIT(src, TRAIT_NOHUNGER))
-		var/nutrition_ratio = 0
-		switch(nutrition)
-			if(0 to NUTRITION_LEVEL_STARVING)
-				nutrition_ratio = 0.2
-			if(NUTRITION_LEVEL_STARVING to NUTRITION_LEVEL_HUNGRY)
-				nutrition_ratio = 0.4
-			if(NUTRITION_LEVEL_HUNGRY to NUTRITION_LEVEL_FED)
-				nutrition_ratio = 0.6
-			if(NUTRITION_LEVEL_FED to NUTRITION_LEVEL_WELL_FED)
-				nutrition_ratio = 0.8
-			else
-				nutrition_ratio = 1
-		if(satiety > 80)
-			nutrition_ratio *= 1.25
-		adjust_nutrition(-nutrition_ratio * HUNGER_FACTOR * delta_time)
-		blood_volume = min(blood_volume + (BLOOD_REGEN_FACTOR * nutrition_ratio * delta_time), BLOOD_VOLUME_NORMAL)
+		//Blood regeneration if there is some space
+		if(blood_volume < BLOOD_VOLUME_NORMAL && !HAS_TRAIT(src, TRAIT_NOHUNGER))
+			var/nutrition_ratio = 0
+			switch(nutrition)
+				if(0 to NUTRITION_LEVEL_STARVING)
+					nutrition_ratio = 0.2
+				if(NUTRITION_LEVEL_STARVING to NUTRITION_LEVEL_HUNGRY)
+					nutrition_ratio = 0.4
+				if(NUTRITION_LEVEL_HUNGRY to NUTRITION_LEVEL_FED)
+					nutrition_ratio = 0.6
+				if(NUTRITION_LEVEL_FED to NUTRITION_LEVEL_WELL_FED)
+					nutrition_ratio = 0.8
+				else
+					nutrition_ratio = 1
+			if(satiety > 80)
+				nutrition_ratio *= 1.25
+			adjust_nutrition(-nutrition_ratio * HUNGER_FACTOR * delta_time)
+			blood_volume = min(blood_volume + (BLOOD_REGEN_FACTOR * nutrition_ratio * delta_time), BLOOD_VOLUME_NORMAL)
 
-	//Effects of bloodloss
-	var/word = pick("dizzy","woozy","faint")
-	switch(blood_volume)
-		if(BLOOD_VOLUME_EXCESS to BLOOD_VOLUME_MAX_LETHAL)
-			if(DT_PROB(7.5, delta_time))
-				to_chat(src, span_userdanger("Blood starts to tear your skin apart. You're going to burst!"))
-				inflate_gib()
-		if(BLOOD_VOLUME_MAXIMUM to BLOOD_VOLUME_EXCESS)
-			if(DT_PROB(5, delta_time))
-				to_chat(src, span_warning("You feel terribly bloated."))
-		if(BLOOD_VOLUME_OKAY to BLOOD_VOLUME_SAFE)
-			if(DT_PROB(2.5, delta_time))
-				to_chat(src, span_warning("You feel [word]."))
-			adjustOxyLoss(round(0.005 * (BLOOD_VOLUME_NORMAL - blood_volume) * delta_time, 1))
-		if(BLOOD_VOLUME_BAD to BLOOD_VOLUME_OKAY)
-			adjustOxyLoss(round(0.01 * (BLOOD_VOLUME_NORMAL - blood_volume) * delta_time, 1))
-			if(DT_PROB(2.5, delta_time))
-				blur_eyes(6)
-				to_chat(src, span_warning("You feel very [word]."))
-		if(BLOOD_VOLUME_SURVIVE to BLOOD_VOLUME_BAD)
-			adjustOxyLoss(2.5 * delta_time)
-			if(DT_PROB(7.5, delta_time))
-				Unconscious(rand(20,60))
-				to_chat(src, span_warning("You feel extremely [word]."))
-		if(-INFINITY to BLOOD_VOLUME_SURVIVE)
-			if(!HAS_TRAIT(src, TRAIT_NODEATH))
-				death()
+		//Effects of bloodloss
+		var/word = pick("dizzy","woozy","faint")
+		switch(blood_volume)
+			if(BLOOD_VOLUME_EXCESS to BLOOD_VOLUME_MAX_LETHAL)
+				if(DT_PROB(7.5, delta_time))
+					to_chat(src, SPAN_USERDANGER("Blood starts to tear your skin apart. You're going to burst!"))
+					inflate_gib()
+			if(BLOOD_VOLUME_MAXIMUM to BLOOD_VOLUME_EXCESS)
+				if(DT_PROB(5, delta_time))
+					to_chat(src, SPAN_WARNING("You feel terribly bloated."))
+			if(BLOOD_VOLUME_OKAY to BLOOD_VOLUME_SAFE)
+				if(DT_PROB(2.5, delta_time))
+					to_chat(src, SPAN_WARNING("You feel [word]."))
+				adjustOxyLoss(round(0.005 * (BLOOD_VOLUME_NORMAL - blood_volume) * delta_time, 1))
+			if(BLOOD_VOLUME_BAD to BLOOD_VOLUME_OKAY)
+				adjustOxyLoss(round(0.01 * (BLOOD_VOLUME_NORMAL - blood_volume) * delta_time, 1))
+				if(DT_PROB(2.5, delta_time))
+					blur_eyes(6)
+					to_chat(src, SPAN_WARNING("You feel very [word]."))
+			if(BLOOD_VOLUME_SURVIVE to BLOOD_VOLUME_BAD)
+				adjustOxyLoss(2.5 * delta_time)
+				if(DT_PROB(7.5, delta_time))
+					Unconscious(rand(20,60))
+					to_chat(src, SPAN_WARNING("You feel extremely [word]."))
+			if(-INFINITY to BLOOD_VOLUME_SURVIVE)
+				if(!HAS_TRAIT(src, TRAIT_NODEATH))
+					death()
 
-	var/temp_bleed = 0
-	//Bleeding out
-	for(var/obj/item/bodypart/iter_part as anything in bodyparts)
-		var/iter_bleed_rate = iter_part.get_modified_bleed_rate()
-		temp_bleed += iter_bleed_rate * delta_time
+		var/temp_bleed = 0
+		//Bleeding out
+		for(var/X in bodyparts)
+			var/obj/item/bodypart/BP = X
+			temp_bleed += BP.get_bleed_rate() * delta_time
+			BP.generic_bleedstacks = max(0, BP.generic_bleedstacks - 1)
 
-		if(iter_part.generic_bleedstacks) // If you don't have any bleedstacks, don't try and heal them
-			iter_part.adjustBleedStacks(-1, 0)
-
-	if(temp_bleed)
-		bleed(temp_bleed)
-		bleed_warn(temp_bleed)
-
-/// Has each bodypart update its bleed/wound overlay icon states
-/mob/living/carbon/proc/update_bodypart_bleed_overlays()
-	for(var/obj/item/bodypart/iter_part as anything in bodyparts)
-		iter_part.update_part_wound_overlay()
+		if(temp_bleed)
+			bleed(temp_bleed)
+			bleed_warn(temp_bleed)
 
 //Makes a blood drop, leaking amt units of blood from the mob
 /mob/living/carbon/proc/bleed(amt)
@@ -100,7 +92,7 @@
 	var/bleed_amt = 0
 	for(var/X in bodyparts)
 		var/obj/item/bodypart/iter_bodypart = X
-		bleed_amt += iter_bodypart.get_modified_bleed_rate()
+		bleed_amt += iter_bodypart.get_bleed_rate()
 	return bleed_amt
 
 /mob/living/carbon/human/get_bleed_rate()
@@ -165,7 +157,7 @@
 				if(BLOOD_FLOW_DECREASING) // this only matters if none of the wounds fit the above two cases, included here for completeness
 					continue
 
-	to_chat(src, span_warning("[bleeding_severity][rate_of_change]"))
+	to_chat(src, SPAN_WARNING("[bleeding_severity][rate_of_change]"))
 	COOLDOWN_START(src, bleeding_message_cd, next_cooldown)
 
 /mob/living/carbon/human/bleed_warn(bleed_amt = 0, forced = FALSE)
@@ -179,7 +171,7 @@
 	blood_volume = BLOOD_VOLUME_NORMAL
 	for(var/i in bodyparts)
 		var/obj/item/bodypart/BP = i
-		BP.setBleedStacks(0)
+		BP.generic_bleedstacks = 0
 
 /****************************************************
 				BLOOD TRANSFERS
@@ -207,12 +199,6 @@
 		var/mob/living/carbon/C = AM
 		if(blood_id == C.get_blood_id())//both mobs have the same blood substance
 			if(blood_id == /datum/reagent/blood) //normal blood
-				if(blood_data["viruses"])
-					for(var/thing in blood_data["viruses"])
-						var/datum/disease/D = thing
-						if((D.spread_flags & DISEASE_SPREAD_SPECIAL) || (D.spread_flags & DISEASE_SPREAD_NON_CONTAGIOUS))
-							continue
-						C.ForceContractDisease(D)
 				if(!(blood_data["blood_type"] in get_safe_blood(C.dna.blood_type)))
 					C.reagents.add_reagent(/datum/reagent/toxin, amount * 0.5)
 					return TRUE
@@ -233,13 +219,7 @@
 		//set the blood data
 		blood_data["viruses"] = list()
 
-		for(var/thing in diseases)
-			var/datum/disease/D = thing
-			blood_data["viruses"] += D.Copy()
-
 		blood_data["blood_DNA"] = dna.unique_enzymes
-		if(LAZYLEN(disease_resistances))
-			blood_data["resistances"] = disease_resistances.Copy()
 		var/list/temp_chem = list()
 		for(var/datum/reagent/R in reagents.reagent_list)
 			temp_chem[R.type] = R.volume
@@ -277,8 +257,6 @@
 /mob/living/carbon/human/get_blood_id()
 	if(HAS_TRAIT(src, TRAIT_HUSK))
 		return
-	if(SSevents.holidays && SSevents.holidays[APRIL_FOOLS] && is_clown_job(mind?.assigned_role))
-		return /datum/reagent/colorful_reagent
 	if(dna.species.exotic_blood)
 		return dna.species.exotic_blood
 	else if((NOBLOOD in dna.species.species_traits))
@@ -321,22 +299,26 @@
 		var/obj/effect/decal/cleanable/blood/drip/drop = locate() in T
 		if(drop)
 			if(drop.drips < 5)
+				T.pollute_turf(/datum/pollutant/metallic_scent, 5)
 				drop.drips++
 				drop.add_overlay(pick(drop.random_icon_states))
 				drop.transfer_mob_blood_dna(src)
 				return
 			else
-				temp_blood_DNA = GET_ATOM_BLOOD_DNA(drop) //we transfer the dna from the drip to the splatter
+				temp_blood_DNA = drop.return_blood_DNA() //we transfer the dna from the drip to the splatter
 				qdel(drop)//the drip is replaced by a bigger splatter
 		else
-			drop = new(T, get_static_viruses())
+			T.pollute_turf(/datum/pollutant/metallic_scent, 5)
+			drop = new(T)
 			drop.transfer_mob_blood_dna(src)
 			return
 
+	// Create a bit of metallic pollution, as that's how blood smells
+	T.pollute_turf(/datum/pollutant/metallic_scent, 30)
 	// Find a blood decal or create a new one.
 	var/obj/effect/decal/cleanable/blood/B = locate() in T
 	if(!B)
-		B = new /obj/effect/decal/cleanable/blood/splatter(T, get_static_viruses())
+		B = new /obj/effect/decal/cleanable/blood/splatter(T)
 	if(QDELETED(B)) //Give it up
 		return
 	B.bloodiness = min((B.bloodiness + BLOOD_AMOUNT_PER_DECAL), BLOOD_POOL_MAX)
@@ -347,18 +329,3 @@
 /mob/living/carbon/human/add_splatter_floor(turf/T, small_drip)
 	if(!(NOBLOOD in dna.species.species_traits))
 		..()
-
-/mob/living/carbon/alien/add_splatter_floor(turf/T, small_drip)
-	if(!T)
-		T = get_turf(src)
-	var/obj/effect/decal/cleanable/xenoblood/B = locate() in T.contents
-	if(!B)
-		B = new(T)
-	B.add_blood_DNA(list("UNKNOWN DNA" = "X*"))
-
-/mob/living/silicon/robot/add_splatter_floor(turf/T, small_drip)
-	if(!T)
-		T = get_turf(src)
-	var/obj/effect/decal/cleanable/oil/B = locate() in T.contents
-	if(!B)
-		B = new(T)

@@ -1,9 +1,4 @@
-///number of deciseconds in a day
-#define MIDNIGHT_ROLLOVER 864000
-
-///displays the current time into the round, with a lot of extra code just there for ensuring it looks okay after an entire day passes
-#define ROUND_TIME ( "[world.time - SSticker.round_start_time > MIDNIGHT_ROLLOVER ? "[round((world.time - SSticker.round_start_time)/MIDNIGHT_ROLLOVER)]:[worldtime2text()]" : worldtime2text()]" )
-
+#define MIDNIGHT_ROLLOVER 864000 //number of deciseconds in a day
 
 #define JANUARY 1
 #define FEBRUARY 2
@@ -29,7 +24,6 @@
 #define GARBAGEDAY "Garbage Day"
 #define MONKEYDAY "Monkey Day"
 #define PRIDE_WEEK "Pride Week"
-#define MOTH_WEEK "Moth Week"
 /*
 
 Days of the week to make it easier to reference them.
@@ -46,10 +40,6 @@ When using time2text(), please use "DDD" to find the weekday. Refrain from using
 #define SATURDAY "Sat"
 #define SUNDAY "Sun"
 
-#define MILLISECONDS *0.01
-
-#define DECISECONDS *1 //the base unit all of these defines are scaled by, because byond uses that as a unit of measurement for some fucking reason
-
 #define SECONDS *10
 
 #define MINUTES SECONDS*60
@@ -61,10 +51,6 @@ When using time2text(), please use "DDD" to find the weekday. Refrain from using
 #define DS2TICKS(DS) ((DS)/world.tick_lag)
 
 #define TICKS2DS(T) ((T) TICKS)
-
-#define MS2DS(T) ((T) MILLISECONDS)
-
-#define DS2MS(T) ((T) * 100)
 
 /*Timezones*/
 
@@ -119,14 +105,8 @@ When using time2text(), please use "DDD" to find the weekday. Refrain from using
 /// Eastern Daylight Time
 #define TIMEZONE_EDT -4
 
-/// Eastern Standard Time
-#define TIMEZONE_EST -5
-
 /// Central Daylight Time
 #define TIMEZONE_CDT -5
-
-/// Central Standard Time
-#define TIMEZONE_CST -6
 
 /// Mountain Daylight Time
 #define TIMEZONE_MDT -6
@@ -137,14 +117,8 @@ When using time2text(), please use "DDD" to find the weekday. Refrain from using
 /// Pacific Daylight Time
 #define TIMEZONE_PDT -7
 
-/// Pacific Standard Time
-#define TIMEZONE_PST -8
-
 /// Alaska Daylight Time
 #define TIMEZONE_AKDT -8
-
-/// Alaska Standard Time
-#define TIMEZONE_AKST -9
 
 /// Hawaii-Aleutian Daylight Time
 #define TIMEZONE_HDT -9

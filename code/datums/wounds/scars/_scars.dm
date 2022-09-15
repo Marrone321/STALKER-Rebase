@@ -87,7 +87,7 @@
 
 /// Used to "load" a persistent scar
 /datum/scar/proc/load(obj/item/bodypart/BP, version, description, specific_location, severity=WOUND_SEVERITY_SEVERE, biology=BIO_FLESH_BONE, char_slot)
-	if(!IS_ORGANIC_LIMB(BP))
+	if(!BP.is_organic_limb())
 		qdel(src)
 		return
 
@@ -130,14 +130,14 @@
 	var/msg = "[victim.p_they(TRUE)] [victim.p_have()] [description] on [victim.p_their()] [precise_location]."
 	switch(severity)
 		if(WOUND_SEVERITY_MODERATE)
-			msg = span_tinynoticeital("[msg]")
+			msg = SPAN_TINYNOTICEITAL("[msg]")
 		if(WOUND_SEVERITY_SEVERE)
-			msg = span_smallnoticeital("[msg]")
+			msg = SPAN_SMALLNOTICEITAL("[msg]")
 		if(WOUND_SEVERITY_CRITICAL)
-			msg = span_smallnoticeital("<b>[msg]</b>")
+			msg = SPAN_SMALLNOTICEITAL("<b>[msg]</b>")
 		if(WOUND_SEVERITY_LOSS)
-			msg = "[victim.p_their(TRUE)] [limb.plaintext_zone] [description]." // different format
-			msg = span_notice("<i><b>[msg]</b></i>")
+			msg = "[victim.p_their(TRUE)] [limb.name] [description]." // different format
+			msg = SPAN_NOTICE("<i><b>[msg]</b></i>")
 	return "\t[msg]"
 
 /// Whether a scar can currently be seen by the viewer

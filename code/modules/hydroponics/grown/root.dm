@@ -27,8 +27,8 @@
 
 /obj/item/food/grown/carrot/attackby(obj/item/I, mob/user, params)
 	if(I.get_sharpness())
-		to_chat(user, span_notice("You sharpen the carrot into a shiv with [I]."))
-		var/obj/item/knife/shiv/carrot/Shiv = new /obj/item/knife/shiv/carrot
+		to_chat(user, SPAN_NOTICE("You sharpen the carrot into a shiv with [I]."))
+		var/obj/item/kitchen/knife/shiv/carrot/Shiv = new /obj/item/kitchen/knife/shiv/carrot
 		remove_item_from_storage(user)
 		qdel(src)
 		user.put_in_hands(Shiv)
@@ -44,7 +44,7 @@
 	plantname = "Parsnip"
 	product = /obj/item/food/grown/parsnip
 	icon_dead = "carrot-dead"
-	mutatelist = null
+	mutatelist = list()
 	reagents_add = list(/datum/reagent/consumable/nutriment/vitamin = 0.05, /datum/reagent/consumable/nutriment = 0.05, /datum/reagent/aluminium = 0.05)
 
 /obj/item/food/grown/parsnip
@@ -109,3 +109,143 @@
 	bite_consumption_mod = 2
 	foodtypes = VEGETABLES
 	wine_power = 60
+
+/obj/item/seeds/root/taro
+	name = "taro"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-taro"
+	product = /obj/item/food/grown/root/taro
+
+/obj/item/food/grown/root/taro
+	seed = /obj/item/seeds/garlic
+	name = "taro"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "taro"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/tumeric
+	name = "tumeric"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-tumeric"
+	product = /obj/item/food/grown/root/tumeric
+
+/obj/item/food/grown/root/tumeric
+	seed = /obj/item/seeds/root/tumeric
+	name = "tumeric"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "tumeric"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/cattail
+	name = "cattail"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-cattail"
+	product = /obj/item/food/grown/root/cattail
+
+/obj/item/food/grown/root/cattail
+	seed = /obj/item/seeds/root/cattail
+	name = "cattail"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "cattail"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/fennel
+	name = "fennel"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-fennel"
+	product = /obj/item/food/grown/root/fennel
+
+/obj/item/food/grown/root/fennel
+	seed = /obj/item/seeds/root/fennel
+	name = "fennel"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "fennel"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/ginseng
+	name = "ginseng"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-ginseng"
+	product = /obj/item/food/grown/root/ginseng
+
+/obj/item/food/grown/root/ginseng
+	seed = /obj/item/seeds/root/ginseng
+	name = "ginseng"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "ginseng"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/ginger
+	name = "ginger"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-ginger"
+	product = /obj/item/food/grown/root/ginger
+
+/obj/item/food/grown/root/ginger
+	seed = /obj/item/seeds/root/ginger
+	name = "ginger"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "ginger"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/yam
+	name = "yam"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-yam"
+	product = /obj/item/food/grown/root/yam
+
+/obj/item/food/grown/root/yam
+	seed = /obj/item/seeds/root/yam
+	name = "yam"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "yam"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/cassava
+	name = "cassava"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-cassava"
+	product = /obj/item/food/grown/root/cassava
+
+/obj/item/food/grown/root/cassava
+	seed = /obj/item/seeds/root/cassava
+	name = "cassava"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "cassava"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/turnip
+	name = "turnip"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-turnip"
+	product = /obj/item/food/grown/root/turnip
+
+/obj/item/food/grown/root/turnip
+	seed = /obj/item/seeds/root/turnip
+	name = "turnip"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "turnip"
+	tastes = list("garlic" = 1)
+	wine_power = 10
+
+/obj/item/seeds/root/mandrake
+	name = "mandrake"
+	desc = "These seeds grow into red beet producing plants."
+	icon_state = "seed-mandrake"
+	product = /obj/item/food/grown/root/mandrake
+
+/obj/item/food/grown/root/mandrake
+	seed = /obj/item/seeds/root/mandrake
+	name = "mandrake"
+	desc = "Delicious, but with a potentially overwhelming odor."
+	icon_state = "mandrake"
+	tastes = list("garlic" = 1)
+	wine_power = 10

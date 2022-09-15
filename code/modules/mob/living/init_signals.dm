@@ -1,4 +1,4 @@
-/// Called on [/mob/living/Initialize(mapload)], for the mob to register to relevant signals.
+/// Called on [/mob/living/Initialize()], for the mob to register to relevant signals.
 /mob/living/proc/register_init_signals()
 	RegisterSignal(src, SIGNAL_ADDTRAIT(TRAIT_KNOCKEDOUT), .proc/on_knockedout_trait_gain)
 	RegisterSignal(src, SIGNAL_REMOVETRAIT(TRAIT_KNOCKEDOUT), .proc/on_knockedout_trait_loss)
@@ -73,7 +73,7 @@
 	SIGNAL_HANDLER
 	mobility_flags &= ~MOBILITY_MOVE
 	if(living_flags & MOVES_ON_ITS_OWN)
-		SSmove_manager.stop_looping(src) //stop mid walk //This is also really dumb
+		walk(src, 0) //stop mid walk
 
 /// Called when [TRAIT_IMMOBILIZED] is removed from the mob.
 /mob/living/proc/on_immobilized_trait_loss(datum/source)
@@ -100,19 +100,12 @@
 
 /// Called when [TRAIT_FORCED_STANDING] is added to the mob.
 /mob/living/proc/on_forced_standing_trait_gain(datum/source)
-	SIGNAL_HANDLER
-
 	set_body_position(STANDING_UP)
 	set_lying_angle(0)
 
 /// Called when [TRAIT_FORCED_STANDING] is removed from the mob.
 /mob/living/proc/on_forced_standing_trait_loss(datum/source)
-	SIGNAL_HANDLER
-
-	if(HAS_TRAIT(src, TRAIT_FLOORED))
-		on_fall()
-		set_lying_down()
-	else if(resting)
+	if(resting || HAS_TRAIT(src, TRAIT_FLOORED))
 		set_lying_down()
 
 /// Called when [TRAIT_HANDS_BLOCKED] is added to the mob.
@@ -189,17 +182,17 @@
 /mob/living/proc/update_succumb_action()
 	SIGNAL_HANDLER
 	if (CAN_SUCCUMB(src))
-		throw_alert(ALERT_SUCCUMB, /atom/movable/screen/alert/succumb)
+		throw_alert("succumb", /atom/movable/screen/alert/succumb)
 	else
-		clear_alert(ALERT_SUCCUMB)
+		clear_alert("succumb")
 
 ///From [element/movetype_handler/on_movement_type_trait_gain()]
-/mob/living/proc/on_movement_type_flag_enabled(datum/source, flag, old_movement_type)
+/mob/living/proc/on_movement_type_flag_enabled(datum/source, trait)
 	SIGNAL_HANDLER
 	update_movespeed(FALSE)
 
 ///From [element/movetype_handler/on_movement_type_trait_loss()]
-/mob/living/proc/on_movement_type_flag_disabled(datum/source, flag, old_movement_type)
+/mob/living/proc/on_movement_type_flag_disabled(datum/source, trait)
 	SIGNAL_HANDLER
 	update_movespeed(FALSE)
 

@@ -12,11 +12,10 @@
 	icon_state = "ash"
 	mergeable_decal = FALSE
 	beauty = -50
-	decal_reagent = /datum/reagent/ash
-	reagent_amount = 30
 
-/obj/effect/decal/cleanable/ash/Initialize(mapload)
+/obj/effect/decal/cleanable/ash/Initialize()
 	. = ..()
+	reagents.add_reagent(/datum/reagent/ash, 30)
 	pixel_x = base_pixel_x + rand(-5, 5)
 	pixel_y = base_pixel_y + rand(-5, 5)
 
@@ -28,8 +27,10 @@
 	name = "large pile of ashes"
 	icon_state = "big_ash"
 	beauty = -100
-	decal_reagent = /datum/reagent/ash
-	reagent_amount = 60
+
+/obj/effect/decal/cleanable/ash/large/Initialize()
+	. = ..()
+	reagents.add_reagent(/datum/reagent/ash, 30) //double the amount of ash.
 
 /obj/effect/decal/cleanable/glass
 	name = "tiny shards"
@@ -38,7 +39,7 @@
 	icon_state = "tiny"
 	beauty = -100
 
-/obj/effect/decal/cleanable/glass/Initialize(mapload)
+/obj/effect/decal/cleanable/glass/Initialize()
 	. = ..()
 	setDir(pick(GLOB.cardinals))
 
@@ -47,12 +48,6 @@
 
 /obj/effect/decal/cleanable/glass/plasma
 	icon_state = "plasmatiny"
-
-/obj/effect/decal/cleanable/glass/titanium
-	icon_state = "titaniumtiny"
-
-/obj/effect/decal/cleanable/glass/plastitanium
-	icon_state = "plastitaniumtiny"
 
 /obj/effect/decal/cleanable/dirt
 	name = "dirt"
@@ -66,7 +61,7 @@
 	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	beauty = -75
 
-/obj/effect/decal/cleanable/dirt/Initialize(mapload)
+/obj/effect/decal/cleanable/dirt/Initialize()
 	. = ..()
 	var/turf/T = get_turf(src)
 	if(T.tiled_dirt)
@@ -96,13 +91,13 @@
 /obj/effect/decal/cleanable/greenglow/ex_act()
 	return FALSE
 
-/obj/effect/decal/cleanable/greenglow/filled
-	decal_reagent = /datum/reagent/uranium
-	reagent_amount = 5
-
-/obj/effect/decal/cleanable/greenglow/filled/Initialize(mapload)
-	decal_reagent = pick(/datum/reagent/uranium, /datum/reagent/uranium/radium)
+/obj/effect/decal/cleanable/greenglow/Initialize()
 	. = ..()
+	AddElement(/datum/element/pollution_emitter, /datum/pollutant/chemical_vapors, 10)
+
+/obj/effect/decal/cleanable/greenglow/filled/Initialize()
+	. = ..()
+	reagents.add_reagent(pick(/datum/reagent/uranium, /datum/reagent/uranium/radium), 5)
 
 /obj/effect/decal/cleanable/greenglow/ecto
 	name = "ectoplasmic puddle"
@@ -114,7 +109,6 @@
 	desc = "Somebody should remove that."
 	gender = NEUTER
 	layer = WALL_OBJ_LAYER
-	plane = GAME_PLANE_UPPER
 	icon_state = "cobweb1"
 	resistance_flags = FLAMMABLE
 	beauty = -100
@@ -147,33 +141,17 @@
 	random_icon_states = list("vomit_1", "vomit_2", "vomit_3", "vomit_4")
 	beauty = -150
 
-/obj/effect/decal/cleanable/vomit/attack_hand(mob/user, list/modifiers)
+/obj/effect/decal/cleanable/vomit/Initialize()
 	. = ..()
-	if(.)
-		return
-	if(ishuman(user))
-		var/mob/living/carbon/human/H = user
-		if(isflyperson(H))
-			playsound(get_turf(src), 'sound/items/drink.ogg', 50, TRUE) //slurp
-			H.visible_message(span_alert("[H] extends a small proboscis into the vomit pool, sucking it with a slurping sound."))
-			if(reagents)
-				for(var/datum/reagent/R in reagents.reagent_list)
-					if (istype(R, /datum/reagent/consumable))
-						var/datum/reagent/consumable/nutri_check = R
-						if(nutri_check.nutriment_factor >0)
-							H.adjust_nutrition(nutri_check.nutriment_factor * nutri_check.volume)
-							reagents.remove_reagent(nutri_check.type,nutri_check.volume)
-			reagents.trans_to(H, reagents.total_volume, transfered_by = user)
-			qdel(src)
+	AddElement(/datum/element/pollution_emitter, /datum/pollutant/decaying_waste, 10)
 
 /obj/effect/decal/cleanable/vomit/old
 	name = "crusty dried vomit"
 	desc = "You try not to look at the chunks, and fail."
 
-/obj/effect/decal/cleanable/vomit/old/Initialize(mapload, list/datum/disease/diseases)
+/obj/effect/decal/cleanable/vomit/old/Initialize(mapload)
 	. = ..()
 	icon_state += "-old"
-	AddElement(/datum/element/swabable, CELL_LINE_TABLE_SLUDGE, CELL_VIRUS_TABLE_GENERIC, rand(2,4), 10)
 
 
 /obj/effect/decal/cleanable/chem_pile
@@ -235,6 +213,10 @@
 	icon_state = "xfloor1"
 	random_icon_states = list("xfloor1", "xfloor2", "xfloor3", "xfloor4", "xfloor5", "xfloor6", "xfloor7")
 
+/obj/effect/decal/cleanable/insectguts/Initialize()
+	. = ..()
+	AddElement(/datum/element/pollution_emitter, /datum/pollutant/decaying_waste, 10)
+
 /obj/effect/decal/cleanable/confetti
 	name = "confetti"
 	desc = "Tiny bits of colored paper thrown about for the janitor to enjoy!"
@@ -260,171 +242,10 @@
 	desc = "A split open garbage bag, its stinking content seems to be partially liquified. Yuck!"
 	icon = 'icons/obj/objects.dmi'
 	icon_state = "garbage"
-	plane = GAME_PLANE
-	layer = FLOOR_CLEAN_LAYER //To display the decal over wires.
+	layer = OBJ_LAYER //To display the decal over wires.
 	beauty = -150
 	clean_type = CLEAN_TYPE_HARD_DECAL
 
-/obj/effect/decal/cleanable/garbage/Initialize(mapload)
+/obj/effect/decal/cleanable/garbage/Initialize()
 	. = ..()
-	AddElement(/datum/element/swabable, CELL_LINE_TABLE_SLUDGE, CELL_VIRUS_TABLE_GENERIC, rand(2,4), 15)
-
-/obj/effect/decal/cleanable/ants
-	name = "space ants"
-	desc = "A small colony of space ants. They're normally used to the vacuum of space, so they can't climb too well."
-	icon = 'icons/obj/objects.dmi'
-	icon_state = "ants"
-	beauty = -150
-	plane = GAME_PLANE
-	layer = LOW_OBJ_LAYER
-	decal_reagent = /datum/reagent/ants
-	reagent_amount = 5
-	/// Sound the ants make when biting
-	var/bite_sound = 'sound/weapons/bite.ogg'
-
-/obj/effect/decal/cleanable/ants/Initialize(mapload)
-	if(mapload && reagent_amount > 2)
-		reagent_amount = rand((reagent_amount - 2), reagent_amount)
-	. = ..()
-	update_ant_damage()
-
-/obj/effect/decal/cleanable/ants/vv_edit_var(vname, vval)
-	. = ..()
-	if(vname == NAMEOF(src, bite_sound))
-		update_ant_damage()
-
-/obj/effect/decal/cleanable/ants/handle_merge_decal(obj/effect/decal/cleanable/merger)
-	. = ..()
-	var/obj/effect/decal/cleanable/ants/ants = merger
-	ants.update_ant_damage()
-
-/obj/effect/decal/cleanable/ants/proc/update_ant_damage(ant_min_damage, ant_max_damage)
-	if(!ant_max_damage)
-		ant_max_damage = min(10, round((reagents.get_reagent_amount(/datum/reagent/ants) * 0.1),0.1)) // 100u ants = 10 max_damage
-	if(!ant_min_damage)
-		ant_min_damage = 0.1
-	var/ant_flags = (CALTROP_NOCRAWL | CALTROP_NOSTUN) /// Small amounts of ants won't be able to bite through shoes.
-	if(ant_max_damage > 1)
-		ant_flags = (CALTROP_NOCRAWL | CALTROP_NOSTUN | CALTROP_BYPASS_SHOES)
-
-	var/datum/component/caltrop/caltrop_comp = GetComponent(/datum/component/caltrop)
-	if(caltrop_comp)
-		caltrop_comp.min_damage = ant_min_damage
-		caltrop_comp.max_damage = ant_max_damage
-		caltrop_comp.flags = ant_flags
-		caltrop_comp.soundfile = bite_sound
-	else
-		AddComponent(/datum/component/caltrop, min_damage = ant_min_damage, max_damage = ant_max_damage, flags = ant_flags, soundfile = bite_sound)
-
-	update_appearance(UPDATE_ICON)
-
-/obj/effect/decal/cleanable/ants/update_icon_state()
-	if(istype(src, /obj/effect/decal/cleanable/ants/fire)) //i fucking hate this but you're forced to call parent in update_icon_state()
-		return ..()
-
-	var/datum/component/caltrop/caltrop_comp = GetComponent(/datum/component/caltrop)
-	switch(caltrop_comp.max_damage)
-		if(0 to 1)
-			icon_state = initial(icon_state)
-		if(1.1 to 4)
-			icon_state = "[initial(icon_state)]_2"
-		if(4.1 to 7)
-			icon_state = "[initial(icon_state)]_3"
-		if(7.1 to INFINITY)
-			icon_state = "[initial(icon_state)]_4"
-	return ..()
-
-/obj/effect/decal/cleanable/ants/update_overlays()
-	. = ..()
-	. += emissive_appearance(icon, "[icon_state]_light", alpha = src.alpha)
-
-/obj/effect/decal/cleanable/ants/fire_act(exposed_temperature, exposed_volume)
-	var/obj/effect/decal/cleanable/ants/fire/fire_ants = new(loc)
-	fire_ants.reagents.clear_reagents()
-	reagents.trans_to(fire_ants, fire_ants.reagents.maximum_volume)
-	qdel(src)
-
-/obj/effect/decal/cleanable/ants/fire
-	name = "space fire ants"
-	desc = "A small colony no longer. We are the fire nation."
-	icon_state = "fire_ants"
-	mergeable_decal = FALSE
-
-/obj/effect/decal/cleanable/ants/fire/update_ant_damage(ant_min_damage, ant_max_damage)
-	return ..(15, 25)
-
-/obj/effect/decal/cleanable/ants/fire/fire_act(exposed_temperature, exposed_volume)
-	return
-
-/obj/effect/decal/cleanable/fuel_pool
-	name = "pool of fuel"
-	desc = "A pool of flammable fuel. Its probably wise to clean this off before something ignites it..."
-	icon_state = "fuel_pool"
-	layer = LOW_OBJ_LAYER
-	beauty = -50
-	clean_type = CLEAN_TYPE_BLOOD
-	mouse_opacity = MOUSE_OPACITY_OPAQUE
-	/// Maximum amount of hotspots this pool can create before deleting itself
-	var/burn_amount = 3
-	/// Is this fuel pool currently burning?
-	var/burning = FALSE
-	/// Type of hotspot fuel pool spawns upon being ignited
-	var/hotspot_type = /obj/effect/hotspot
-
-/obj/effect/decal/cleanable/fuel_pool/Initialize(mapload, burn_stacks)
-	. = ..()
-	for(var/obj/effect/decal/cleanable/fuel_pool/pool in get_turf(src)) //Can't use locate because we also belong to that turf
-		if(pool == src)
-			continue
-		pool.burn_amount =  max(min(pool.burn_amount + burn_stacks, 10), 1)
-		return INITIALIZE_HINT_QDEL
-
-	if(burn_stacks)
-		burn_amount = max(min(burn_stacks, 10), 1)
-
-/obj/effect/decal/cleanable/fuel_pool/fire_act(exposed_temperature, exposed_volume)
-	. = ..()
-	ignite()
-
-/**
- * Ignites the fuel pool. This should be the only way to ignite fuel pools.
- */
-/obj/effect/decal/cleanable/fuel_pool/proc/ignite()
-	if(burning)
-		return
-	burning = TRUE
-	burn_process()
-
-/**
- * Spends 1 burn_amount and spawns a hotspot. If burn_amount is equal to 0, deletes the fuel pool.
- * Else, queues another call of this proc upon hotspot getting deleted and ignites other fuel pools around itself after 0.5 seconds.
- * THIS SHOULD NOT BE CALLED DIRECTLY.
- */
-/obj/effect/decal/cleanable/fuel_pool/proc/burn_process()
-	SIGNAL_HANDLER
-
-	burn_amount -= 1
-	var/obj/effect/hotspot/hotspot = new hotspot_type(get_turf(src))
-	addtimer(CALLBACK(src, .proc/ignite_others), 0.5 SECONDS)
-
-	if(!burn_amount)
-		qdel(src)
-		return
-
-	RegisterSignal(hotspot, COMSIG_PARENT_QDELETING, .proc/burn_process)
-
-/**
- * Ignites other oil pools around itself.
- */
-/obj/effect/decal/cleanable/fuel_pool/proc/ignite_others()
-	for(var/obj/effect/decal/cleanable/fuel_pool/oil in range(1, get_turf(src)))
-		oil.ignite()
-
-/obj/effect/decal/cleanable/fuel_pool/bullet_act(obj/projectile/hit_proj)
-	. = ..()
-	ignite()
-
-/obj/effect/decal/cleanable/fuel_pool/attackby(obj/item/item, mob/user, params)
-	if(item.ignition_effect(src, user))
-		ignite()
-	return ..()
+	AddElement(/datum/element/pollution_emitter, /datum/pollutant/decaying_waste, 30)

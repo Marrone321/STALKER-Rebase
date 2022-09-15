@@ -26,7 +26,7 @@
 	return
 
 /mob/living/proc/spawn_gibs()
-	new /obj/effect/gibspawner/generic(drop_location(), src, get_static_viruses())
+	new /obj/effect/gibspawner/generic(drop_location(), src)
 
 /mob/living/proc/spill_organs()
 	return
@@ -74,12 +74,11 @@
 	timeofdeath = world.time
 	tod = station_time_timestamp()
 	var/turf/T = get_turf(src)
-	if(mind && mind.name && mind.active && !istype(T.loc, /area/centcom/ctf))
-		if(!isanimal_or_basicmob(src) || HAS_TRAIT(src, TRAIT_ALERT_GHOSTS_ON_DEATH))
-			deadchat_broadcast(" has died at <b>[get_area_name(T)]</b>.", "<b>[mind.name]</b>", follow_target = src, turf_target = T, message_type=DEADCHAT_DEATHRATTLE)
-		if(SSlag_switch.measures[DISABLE_DEAD_KEYLOOP] && !client?.holder)
-			to_chat(src, span_deadsay(span_big("Observer freelook is disabled.\nPlease use Orbit, Teleport, and Jump to look around.")))
-			ghostize(TRUE)
+	if(mind && real_name && mind.active)
+		deadchat_broadcast(" has died at <b>[get_area_name(T)]</b>.", "<b>[real_name]</b>", follow_target = src, turf_target = T, message_type=DEADCHAT_DEATHRATTLE)
+	if(mind)
+		mind.store_memory("Time of death: [tod]", 0)
+	set_drugginess(0)
 	set_disgust(0)
 	SetSleeping(0, 0)
 	reset_perspective(null)
@@ -91,14 +90,14 @@
 	med_hud_set_status()
 	stop_pulling()
 
+	if(typing_indicator) //For async typing indicator
+		set_typing_indicator(FALSE)
+	set_ssd_indicator(FALSE)
 
 	SEND_SIGNAL(src, COMSIG_LIVING_DEATH, gibbed)
 	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_MOB_DEATH, src, gibbed)
 
 	if (client)
 		client.move_delay = initial(client.move_delay)
-
-	if(!gibbed && (death_sound || death_message))
-		INVOKE_ASYNC(src, /mob.proc/emote, "deathgasp")
 
 	return TRUE

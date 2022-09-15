@@ -3,7 +3,7 @@
 	name = "Near Sightness"
 	desc = "The holder of this mutation has poor eyesight."
 	quality = MINOR_NEGATIVE
-	text_gain_indication = "<span class='danger'>You can't see very well.</span>"
+	text_gain_indication = SPAN_DANGER("You can't see very well.")
 
 /datum/mutation/human/nearsight/on_acquiring(mob/living/carbon/human/owner)
 	if(..())
@@ -15,12 +15,13 @@
 		return
 	owner.cure_nearsighted(GENETIC_MUTATION)
 
+
 ///Blind makes you blind. Who knew?
 /datum/mutation/human/blind
 	name = "Blindness"
 	desc = "Renders the subject completely blind."
 	quality = NEGATIVE
-	text_gain_indication = "<span class='danger'>You can't seem to see anything.</span>"
+	text_gain_indication = SPAN_DANGER("You can't seem to see anything.")
 
 /datum/mutation/human/blind/on_acquiring(mob/living/carbon/human/owner)
 	if(..())
@@ -38,78 +39,67 @@
 	desc = "The user of this genome can visually perceive the unique human thermal signature."
 	quality = POSITIVE
 	difficulty = 18
-	text_gain_indication = "<span class='notice'>You can see the heat rising off of your skin...</span>"
-	text_lose_indication = "<span class='notice'>You can no longer see the heat rising off of your skin...</span>"
+	text_gain_indication = SPAN_NOTICE("You can see the heat rising off of your skin...")
+	time_coeff = 2
 	instability = 25
 	synchronizer_coeff = 1
 	power_coeff = 1
 	energy_coeff = 1
-	power_path = /datum/action/cooldown/spell/thermal_vision
+	power = /obj/effect/proc_holder/spell/self/thermal_vision_activate
 
-/datum/mutation/human/thermal/on_losing(mob/living/carbon/human/owner)
-	if(..())
-		return
-
-	// Something went wront and we still have the thermal vision from our power, no cheating.
-	if(HAS_TRAIT_FROM(owner, TRAIT_THERMAL_VISION, GENETIC_MUTATION))
-		REMOVE_TRAIT(owner, TRAIT_THERMAL_VISION, GENETIC_MUTATION)
-		owner.update_sight()
 
 /datum/mutation/human/thermal/modify()
-	. = ..()
-	var/datum/action/cooldown/spell/thermal_vision/to_modify = .
-	if(!istype(to_modify)) // null or invalid
-		return
+	if(!power)
+		return FALSE
+	var/obj/effect/proc_holder/spell/self/thermal_vision_activate/modified_power = power
+	modified_power.eye_damage = 10 * GET_MUTATION_SYNCHRONIZER(src)
+	modified_power.thermal_duration = 10 * GET_MUTATION_POWER(src)
+	modified_power.charge_max = (25 * GET_MUTATION_ENERGY(src)) SECONDS
 
-	to_modify.eye_damage = 10 * GET_MUTATION_SYNCHRONIZER(src)
-	to_modify.thermal_duration = 10 SECONDS * GET_MUTATION_POWER(src)
 
-/datum/action/cooldown/spell/thermal_vision
+/obj/effect/proc_holder/spell/self/thermal_vision_activate
 	name = "Activate Thermal Vision"
 	desc = "You can see thermal signatures, at the cost of your eyesight."
-	icon_icon = 'icons/mob/actions/actions_changeling.dmi'
-	button_icon_state = "augmented_eyesight"
-
-	cooldown_time = 25 SECONDS
-	spell_requirements = NONE
-
-	/// How much eye damage is given on cast
+	charge_max = 25 SECONDS
 	var/eye_damage = 10
-	/// The duration of the thermal vision
-	var/thermal_duration = 10 SECONDS
+	var/thermal_duration = 10
+	clothes_req = FALSE
+	action_icon = 'icons/mob/actions/actions_changeling.dmi'
+	action_icon_state = "augmented_eyesight"
 
-/datum/action/cooldown/spell/thermal_vision/Remove(mob/living/remove_from)
-	REMOVE_TRAIT(remove_from, TRAIT_THERMAL_VISION, GENETIC_MUTATION)
-	remove_from.update_sight()
-	return ..()
-
-/datum/action/cooldown/spell/thermal_vision/is_valid_target(atom/cast_on)
-	return isliving(cast_on) && !HAS_TRAIT(cast_on, TRAIT_THERMAL_VISION)
-
-/datum/action/cooldown/spell/thermal_vision/cast(mob/living/cast_on)
+/obj/effect/proc_holder/spell/self/thermal_vision_activate/cast(list/targets, mob/user = usr)
 	. = ..()
-	ADD_TRAIT(cast_on, TRAIT_THERMAL_VISION, GENETIC_MUTATION)
-	cast_on.update_sight()
-	to_chat(cast_on, span_info("You focus your eyes intensely, as your vision becomes filled with heat signatures."))
-	addtimer(CALLBACK(src, .proc/deactivate, cast_on), thermal_duration)
 
-/datum/action/cooldown/spell/thermal_vision/proc/deactivate(mob/living/cast_on)
-	if(QDELETED(cast_on) || !HAS_TRAIT_FROM(cast_on, TRAIT_THERMAL_VISION, GENETIC_MUTATION))
+	if(HAS_TRAIT(user,TRAIT_THERMAL_VISION))
 		return
 
-	REMOVE_TRAIT(cast_on, TRAIT_THERMAL_VISION, GENETIC_MUTATION)
-	cast_on.update_sight()
-	to_chat(cast_on, span_info("You blink a few times, your vision returning to normal as a dull pain settles in your eyes."))
+	ADD_TRAIT(user, TRAIT_THERMAL_VISION, GENETIC_MUTATION)
+	user.update_sight()
+	to_chat(user, text("You focus your eyes intensely, as your vision becomes filled with heat signatures."))
 
-	if(iscarbon(cast_on))
-		var/mob/living/carbon/carbon_cast_on = cast_on
-		carbon_cast_on.adjustOrganLoss(ORGAN_SLOT_EYES, eye_damage)
+	addtimer(CALLBACK(src, .proc/thermal_vision_deactivate), thermal_duration SECONDS)
+
+/obj/effect/proc_holder/spell/self/thermal_vision_activate/proc/thermal_vision_deactivate(mob/user = usr)
+
+
+	if(!HAS_TRAIT_FROM(user,TRAIT_THERMAL_VISION, GENETIC_MUTATION))
+		return
+
+	REMOVE_TRAIT(user, TRAIT_THERMAL_VISION, GENETIC_MUTATION)
+	user.update_sight()
+	to_chat(user, text("You blink a few times, your vision returning to normal as a dull pain settles in your eyes."))
+
+	var/mob/living/carbon/user_mob = user
+	if(!istype(user_mob))
+		return
+
+	user_mob.adjustOrganLoss(ORGAN_SLOT_EYES, eye_damage)
 
 ///X-ray Vision lets you see through walls.
 /datum/mutation/human/xray
 	name = "X Ray Vision"
 	desc = "A strange genome that allows the user to see between the spaces of walls." //actual x-ray would mean you'd constantly be blasting rads, wich might be fun for later //hmb
-	text_gain_indication = "<span class='notice'>The walls suddenly disappear!</span>"
+	text_gain_indication = SPAN_NOTICE("The walls suddenly disappear!")
 	instability = 35
 	locked = TRUE
 
@@ -133,7 +123,7 @@
 	quality = POSITIVE
 	locked = TRUE
 	difficulty = 16
-	text_gain_indication = "<span class='notice'>You feel pressure building up behind your eyes.</span>"
+	text_gain_indication = SPAN_NOTICE("You feel pressure building up behind your eyes.")
 	layer_used = FRONT_MUTATIONS_LAYER
 	limb_req = BODY_ZONE_HEAD
 
@@ -163,7 +153,7 @@
 
 	if(!source.combat_mode)
 		return
-	to_chat(source, span_warning("You shoot with your laser eyes!"))
+	to_chat(source, SPAN_WARNING("You shoot with your laser eyes!"))
 	source.changeNext_move(CLICK_CD_RANGE)
 	source.newtonian_move(get_dir(target, source))
 	var/obj/projectile/beam/laser_eyes/LE = new(source.loc)
@@ -178,20 +168,3 @@
 	name = "beam"
 	icon = 'icons/effects/genetics.dmi'
 	icon_state = "eyelasers"
-
-/datum/mutation/human/illiterate
-	name = "Illiterate"
-	desc = "Causes a severe case of Aphasia that prevents reading or writing."
-	quality = NEGATIVE
-	text_gain_indication = "<span class='danger'>You feel unable to read or write.</span>"
-	text_lose_indication = "<span class='danger'>You feel able to read and write again.</span>"
-
-/datum/mutation/human/illiterate/on_acquiring(mob/living/carbon/human/owner)
-	if(..())
-		return
-	ADD_TRAIT(owner, TRAIT_ILLITERATE, GENETIC_MUTATION)
-
-/datum/mutation/human/illiterate/on_losing(mob/living/carbon/human/owner)
-	if(..())
-		return
-	REMOVE_TRAIT(owner, TRAIT_ILLITERATE, GENETIC_MUTATION)

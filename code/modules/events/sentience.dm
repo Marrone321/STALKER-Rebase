@@ -6,22 +6,20 @@ GLOBAL_LIST_INIT(high_priority_sentience, typecacheof(list(
 	/mob/living/simple_animal/mouse/brown/tom,
 	/mob/living/simple_animal/hostile/retaliate/goat,
 	/mob/living/simple_animal/chicken,
-	/mob/living/basic/cow,
+	/mob/living/simple_animal/cow,
 	/mob/living/simple_animal/hostile/retaliate/bat,
 	/mob/living/simple_animal/hostile/carp/cayenne,
 	/mob/living/simple_animal/butterfly,
 	/mob/living/simple_animal/hostile/retaliate/snake,
-	/mob/living/simple_animal/hostile/retaliate/goose/vomit,
-	/mob/living/simple_animal/bot/mulebot,
-	/mob/living/simple_animal/bot/secbot/beepsky,
 )))
 
 /datum/round_event_control/sentience
 	name = "Random Human-level Intelligence"
 	typepath = /datum/round_event/ghost_role/sentience
 	weight = 10
-	category = EVENT_CATEGORY_FRIENDLY
-	description = "An animal or robot becomes sentient!"
+
+	track = EVENT_TRACK_MUNDANE
+	tags = list(TAG_POSITIVE)
 
 
 /datum/round_event/ghost_role/sentience
@@ -58,7 +56,7 @@ GLOBAL_LIST_INIT(high_priority_sentience, typecacheof(list(
 
 	for(var/mob/living/simple_animal/L in GLOB.alive_mob_list)
 		var/turf/T = get_turf(L)
-		if(!T || !is_station_level(T.z))
+		if(!T || !is_station_level(T))
 			continue
 		if((L in GLOB.player_list) || L.mind || (L.flags_1 & HOLOGRAM_1))
 			continue
@@ -96,7 +94,7 @@ GLOBAL_LIST_INIT(high_priority_sentience, typecacheof(list(
 
 		spawned_mobs += SA
 
-		to_chat(SA, span_userdanger("Hello world!"))
+		to_chat(SA, SPAN_USERDANGER("Hello world!"))
 		to_chat(SA, "<span class='warning'>Due to freak radiation and/or chemicals \
 			and/or lucky chance, you have gained human level intelligence \
 			and the ability to speak and understand human language!</span>")
@@ -107,8 +105,6 @@ GLOBAL_LIST_INIT(high_priority_sentience, typecacheof(list(
 	name = "Station-wide Human-level Intelligence"
 	typepath = /datum/round_event/ghost_role/sentience/all
 	weight = 0
-	category = EVENT_CATEGORY_FRIENDLY
-	description = "ALL animals and robots become sentient, provided there is enough ghosts."
 
 /datum/round_event/ghost_role/sentience/all
 	one = "all"

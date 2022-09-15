@@ -28,13 +28,12 @@
 		atom/replacement,
 		fill_type,
 		ingredient_type = CUSTOM_INGREDIENT_TYPE_EDIBLE,
-		max_ingredients = MAX_ATOM_OVERLAYS - 3, // The cap is >= MAX_ATOM_OVERLAYS so we reserve 2 for top /bottom of item + 1 to stay under cap
+		max_ingredients = MAX_ATOM_OVERLAYS - 2,
 		list/obj/item/initial_ingredients = null)
 	if(!isatom(parent))
 		return COMPONENT_INCOMPATIBLE
 	var/atom/atom_parent = parent
-	// assume replacement is OK
-	if (!atom_parent.reagents && !replacement)
+	if (!atom_parent.reagents)
 		return COMPONENT_INCOMPATIBLE
 
 	src.replacement = replacement
@@ -59,7 +58,7 @@
 	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY, .proc/customizable_attack)
 	RegisterSignal(parent, COMSIG_PARENT_EXAMINE, .proc/on_examine)
 	RegisterSignal(parent, COMSIG_ATOM_PROCESSED, .proc/on_processed)
-	ADD_TRAIT(parent, TRAIT_CUSTOMIZABLE_REAGENT_HOLDER, REF(src))
+	ADD_TRAIT(parent, TRAIT_CUSTOMIZABLE_REAGENT_HOLDER, src)
 
 
 /datum/component/customizable_reagent_holder/UnregisterFromParent()
@@ -69,7 +68,8 @@
 		COMSIG_PARENT_EXAMINE,
 		COMSIG_ATOM_PROCESSED,
 	))
-	REMOVE_TRAIT(parent, TRAIT_CUSTOMIZABLE_REAGENT_HOLDER, REF(src))
+	REMOVE_TRAIT(parent, TRAIT_CUSTOMIZABLE_REAGENT_HOLDER, src)
+
 
 /datum/component/customizable_reagent_holder/PostTransfer()
 	if(!isatom(parent))
@@ -108,16 +108,14 @@
 	switch (ingredient_type)
 		if (CUSTOM_INGREDIENT_TYPE_EDIBLE)
 			valid_ingredient = IS_EDIBLE(ingredient)
-		if (CUSTOM_INGREDIENT_TYPE_DRYABLE)
-			valid_ingredient = HAS_TRAIT(ingredient, TRAIT_DRYABLE)
 
 	// only accept valid ingredients
 	if (!valid_ingredient || HAS_TRAIT(ingredient, TRAIT_CUSTOMIZABLE_REAGENT_HOLDER))
-		to_chat(attacker, span_warning("[ingredient] doesn't belong on [parent]!"))
+		to_chat(attacker, SPAN_WARNING("[ingredient] doesn't belong on [parent]!"))
 		return
 
 	if (LAZYLEN(ingredients) >= max_ingredients)
-		to_chat(attacker, span_warning("[parent] is too full for any more ingredients!"))
+		to_chat(attacker, SPAN_WARNING("[parent] is too full for any more ingredients!"))
 		return COMPONENT_NO_AFTERATTACK
 
 	var/atom/atom_parent = parent
@@ -127,8 +125,8 @@
 		var/atom/replacement_parent = new replacement(atom_parent.drop_location())
 		ingredient.forceMove(replacement_parent)
 		replacement = null
+		RemoveComponent()
 		replacement_parent.TakeComponent(src)
-		handle_reagents(atom_parent)
 		qdel(atom_parent)
 	handle_reagents(ingredient)
 	add_ingredient(ingredient)
@@ -179,7 +177,6 @@
 /datum/component/customizable_reagent_holder/proc/handle_reagents(obj/item/ingredient)
 	var/atom/atom_parent = parent
 	if (atom_parent.reagents && ingredient.reagents)
-		atom_parent.reagents.maximum_volume += ingredient.reagents.maximum_volume // If we don't do this custom food starts voiding reagents past a certain point.
 		ingredient.reagents.trans_to(atom_parent, ingredient.reagents.total_volume)
 	return
 
@@ -231,7 +228,7 @@
 	else
 		var/list/rgbcolor = list(0,0,0,0)
 		var/customcolor = GetColors(color)
-		var/ingcolor = GetColors(top_overlay.color)
+		var/ingcolor =  GetColors(top_overlay.color)
 		rgbcolor[1] = (customcolor[1]+ingcolor[1])/2
 		rgbcolor[2] = (customcolor[2]+ingcolor[2])/2
 		rgbcolor[3] = (customcolor[3]+ingcolor[3])/2

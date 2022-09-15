@@ -1,17 +1,21 @@
 /mob/living/Initialize(mapload)
 	. = ..()
-	AddElement(/datum/element/movetype_handler)
+	attributes = new(src)
+	if(initial_attribute_sheet)
+		attributes.add_attribute_sheet(initial_attribute_sheet)
 	register_init_signals()
 	if(unique_name)
 		set_name()
 	var/datum/atom_hud/data/human/medical/advanced/medhud = GLOB.huds[DATA_HUD_MEDICAL_ADVANCED]
-	medhud.add_atom_to_hud(src)
+	medhud.add_to_hud(src)
 	for(var/datum/atom_hud/data/diagnostic/diag_hud in GLOB.huds)
-		diag_hud.add_atom_to_hud(src)
+		diag_hud.add_to_hud(src)
 	faction += "[REF(src)]"
 	GLOB.mob_living_list += src
-	SSpoints_of_interest.make_point_of_interest(src)
-	update_fov()
+
+/mob/living/ComponentInitialize()
+	. = ..()
+	AddElement(/datum/element/movetype_handler)
 
 /mob/living/prepare_huds()
 	..()
@@ -22,34 +26,30 @@
 	med_hud_set_status()
 
 /mob/living/Destroy()
-	for(var/datum/status_effect/effect as anything in status_effects)
-		// The status effect calls on_remove when its mob is deleted
-		if(effect.on_remove_on_mob_delete)
-			qdel(effect)
-
-		else
-			effect.be_replaced()
-
+	if(LAZYLEN(status_effects))
+		for(var/s in status_effects)
+			var/datum/status_effect/S = s
+			if(S.on_remove_on_mob_delete) //the status effect calls on_remove when its mob is deleted
+				qdel(S)
+			else
+				S.be_replaced()
+	if(ranged_ability)
+		ranged_ability.remove_ranged_ability(src)
 	if(buckled)
 		buckled.unbuckle_mob(src,force=1)
 
 	remove_from_all_data_huds()
 	GLOB.mob_living_list -= src
-	QDEL_LAZYLIST(diseases)
-	QDEL_LIST(surgeries)
+	QDEL_NULL(attributes)
 	return ..()
 
-/mob/living/onZImpact(turf/T, levels, message = TRUE)
-	if(!isgroundlessturf(T))
-		ZImpactDamage(T, levels)
-		message = FALSE
+/mob/living/onZImpact(turf/T, levels)
+	ZImpactDamage(T, levels)
 	return ..()
 
 /mob/living/proc/ZImpactDamage(turf/T, levels)
-	if(SEND_SIGNAL(src, COMSIG_LIVING_Z_IMPACT, levels, T) & NO_Z_IMPACT_DAMAGE)
-		return
-	visible_message(span_danger("[src] crashes into [T] with a sickening noise!"), \
-					span_userdanger("You crash into [T] with a sickening noise!"))
+	visible_message(SPAN_DANGER("[src] crashes into [T] with a sickening noise!"), \
+					SPAN_USERDANGER("You crash into [T] with a sickening noise!"))
 	adjustBruteLoss((levels * 5) ** 1.5)
 	Knockdown(levels * 50)
 
@@ -78,11 +78,6 @@
 
 //Called when we bump onto a mob
 /mob/living/proc/MobBump(mob/M)
-	//No bumping/swapping/pushing others if you are on walk intent
-	if(m_intent == MOVE_INTENT_WALK)
-		return TRUE
-
-	SEND_SIGNAL(src, COMSIG_LIVING_MOB_BUMP, M)
 	//Even if we don't push/swap places, we "touched" them, so spread fire
 	spreadFire(M)
 
@@ -96,21 +91,11 @@
 		var/mob/living/L = M
 		their_combat_mode = L.combat_mode
 		they_can_move = L.mobility_flags & MOBILITY_MOVE
-		//Also spread diseases
-		for(var/thing in diseases)
-			var/datum/disease/D = thing
-			if(D.spread_flags & DISEASE_SPREAD_CONTACT_SKIN)
-				L.ContactContractDisease(D)
-
-		for(var/thing in L.diseases)
-			var/datum/disease/D = thing
-			if(D.spread_flags & DISEASE_SPREAD_CONTACT_SKIN)
-				ContactContractDisease(D)
 
 		//Should stop you pushing a restrained person out of the way
 		if(L.pulledby && L.pulledby != src && HAS_TRAIT(L, TRAIT_RESTRAINED))
 			if(!(world.time % 5))
-				to_chat(src, span_warning("[L] is restrained, you cannot push past."))
+				to_chat(src, SPAN_WARNING("[L] is restrained, you cannot push past."))
 			return TRUE
 
 		if(L.pulling)
@@ -118,7 +103,7 @@
 				var/mob/P = L.pulling
 				if(HAS_TRAIT(P, TRAIT_RESTRAINED))
 					if(!(world.time % 5))
-						to_chat(src, span_warning("[L] is restraining [P], you cannot push past."))
+						to_chat(src, SPAN_WARNING("[L] is restraining [P], you cannot push past."))
 					return TRUE
 
 	if(moving_diagonally)//no mob swap during diagonal moves.
@@ -182,18 +167,13 @@
 		var/mob/living/carbon/human/human = M
 		if(human.combat_mode)
 			return TRUE
-	//if they are a cyborg, and they're alive and in combat mode, block pushing
-	if(iscyborg(M))
-		var/mob/living/silicon/robot/borg = M
-		if(borg.combat_mode && borg.stat != DEAD)
-			return TRUE
 	//anti-riot equipment is also anti-push
 	for(var/obj/item/I in M.held_items)
-		if(!isclothing(M))
+		if(!istype(M, /obj/item/clothing))
 			if(prob(I.block_chance*2))
 				return
 
-/mob/living/get_photo_description(obj/item/camera/camera)
+/mob/living/get_photo_description()
 	var/list/mob_details = list()
 	var/list/holding = list()
 	var/len = length(held_items)
@@ -222,7 +202,6 @@
 	if(!client && (mob_size < MOB_SIZE_SMALL))
 		return
 	now_pushing = TRUE
-	SEND_SIGNAL(src, COMSIG_LIVING_PUSHING_MOVABLE, AM)
 	var/dir_to_target = get_dir(src, AM)
 
 	// If there's no dir_to_target then the player is on the same turf as the atom they're trying to push.
@@ -264,7 +243,6 @@
 	if(isliving(AM))
 		current_dir = AM.dir
 	if(AM.Move(get_step(AM.loc, dir_to_target), dir_to_target, glide_size))
-		AM.add_fingerprint(src)
 		Move(get_step(loc, dir_to_target), dir_to_target)
 	if(current_dir)
 		AM.setDir(current_dir)
@@ -293,9 +271,9 @@
 
 	if(AM.pulledby)
 		if(!supress_message)
-			AM.visible_message(span_danger("[src] pulls [AM] from [AM.pulledby]'s grip."), \
-							span_danger("[src] pulls you from [AM.pulledby]'s grip."), null, null, src)
-			to_chat(src, span_notice("You pull [AM] from [AM.pulledby]'s grip!"))
+			AM.visible_message(SPAN_DANGER("[src] pulls [AM] from [AM.pulledby]'s grip."), \
+							SPAN_DANGER("[src] pulls you from [AM.pulledby]'s grip."), null, null, src)
+			to_chat(src, SPAN_NOTICE("You pull [AM] from [AM.pulledby]'s grip!"))
 		log_combat(AM, AM.pulledby, "pulled from", src)
 		AM.pulledby.stop_pulling() //an object can't be pulled by two mobs at once.
 
@@ -320,17 +298,20 @@
 
 		log_combat(src, M, "grabbed", addition="passive grab")
 		if(!supress_message && !(iscarbon(AM) && HAS_TRAIT(src, TRAIT_STRONG_GRABBER)))
-			if(ishuman(M))
-				var/mob/living/carbon/human/grabbed_human = M
-				var/grabbed_by_hands = (zone_selected == "l_arm" || zone_selected == "r_arm") && grabbed_human.usable_hands > 0
-				M.visible_message(span_warning("[src] grabs [M] [grabbed_by_hands ? "by their hands":"passively"]!"), \
-								span_warning("[src] grabs you [grabbed_by_hands ? "by your hands":"passively"]!"), null, null, src)
-				to_chat(src, span_notice("You grab [M] [grabbed_by_hands ? "by their hands":"passively"]!"))
+			// Pull them by their tail if we try to select a groin and they have one >:)
+			if(zone_selected == BODY_ZONE_PRECISE_GROIN && M.getorganslot(ORGAN_SLOT_TAIL))
+				var/mob/living/carbon/carbon_mob = M
+				visible_message(SPAN_WARNING("[src] pulls on [M]'s tail!"), \
+							null, SPAN_HEAR("You hear a soft patter."), DEFAULT_MESSAGE_RANGE, list(M, src))
+				to_chat(src, SPAN_WARNING("You pull on [M]'s tail!"))
+				to_chat(M, SPAN_WARNING("[src] pulls on your tail!"))
+				carbon_mob.dna?.species?.stop_wagging_tail(carbon_mob)
+				if(HAS_TRAIT(M, TRAIT_BADTOUCH)) //How dare they!
+					to_chat(src, SPAN_WARNING("[M] makes a grumbling noise as you pull on [M.p_their()] tail."))
 			else
-				M.visible_message(span_warning("[src] grabs [M] passively!"), \
-								span_warning("[src] grabs you passively!"), null, null, src)
-				to_chat(src, span_notice("You grab [M] passively!"))
-
+				M.visible_message(SPAN_WARNING("[src] grabs [M] [(zone_selected == "l_arm" || zone_selected == "r_arm" && ishuman(M))? "by their hands":"passively"]!"), \
+								SPAN_WARNING("[src] grabs you [(zone_selected == "l_arm" || zone_selected == "r_arm" && ishuman(M))? "by your hands":"passively"]!"), null, null, src)
+				to_chat(src, SPAN_NOTICE("You grab [M] [(zone_selected == "l_arm" || zone_selected == "r_arm" && ishuman(M))? "by their hands":"passively"]!"))
 		if(!iscarbon(src))
 			M.LAssailant = null
 		else
@@ -339,16 +320,6 @@
 			var/mob/living/L = M
 
 			SEND_SIGNAL(M, COMSIG_LIVING_GET_PULLED, src)
-			//Share diseases that are spread by touch
-			for(var/thing in diseases)
-				var/datum/disease/D = thing
-				if(D.spread_flags & DISEASE_SPREAD_CONTACT_SKIN)
-					L.ContactContractDisease(D)
-
-			for(var/thing in L.diseases)
-				var/datum/disease/D = thing
-				if(D.spread_flags & DISEASE_SPREAD_CONTACT_SKIN)
-					ContactContractDisease(D)
 
 			if(iscarbon(L))
 				var/mob/living/carbon/C = L
@@ -419,14 +390,11 @@
 /mob/living/pointed(atom/A as mob|obj|turf in view(client.view, src))
 	if(incapacitated())
 		return FALSE
-
-	return ..()
-
-/mob/living/_pointed(atom/pointing_at)
 	if(!..())
 		return FALSE
-	log_message("points at [pointing_at]", LOG_EMOTE)
-	visible_message("<span class='infoplain'>[span_name("[src]")] points at [pointing_at].</span>", span_notice("You point at [pointing_at]."))
+	visible_message("<span class='infoplain'>[SPAN_NAME("[src]")] points at [A].</span>", SPAN_NOTICE("You point at [A]."))
+	return TRUE
+
 
 /mob/living/verb/succumb(whispered as null)
 	set hidden = TRUE
@@ -437,34 +405,12 @@
 	adjustOxyLoss(health - HEALTH_THRESHOLD_DEAD)
 	updatehealth()
 	if(!whispered)
-		to_chat(src, span_notice("You have given up life and succumbed to death."))
+		to_chat(src, SPAN_NOTICE("You have given up life and succumbed to death."))
 	death()
 
-/**
- * Checks if a mob is incapacitated
- *
- * Normally being restrained, agressively grabbed, or in stasis counts as incapacitated
- * unless there is a flag being used to check if it's ignored
- *
- * args:
- * * flags (optional) bitflags that determine if special situations are exempt from being considered incapacitated
- *
- * bitflags: (see code/__DEFINES/status_effects.dm)
- * * IGNORE_RESTRAINTS - mob in a restraint (handcuffs) is not considered incapacitated
- * * IGNORE_STASIS - mob in stasis (stasis bed, etc.) is not considered incapacitated
- * * IGNORE_GRAB - mob that is agressively grabbed is not considered incapacitated
-**/
-/mob/living/incapacitated(flags)
-	if(HAS_TRAIT(src, TRAIT_INCAPACITATED))
+/mob/living/incapacitated(ignore_restraints = FALSE, ignore_grab = FALSE, ignore_stasis = FALSE)
+	if(HAS_TRAIT(src, TRAIT_INCAPACITATED) || (!ignore_restraints && (HAS_TRAIT(src, TRAIT_RESTRAINED) || (!ignore_grab && pulledby && pulledby.grab_state >= GRAB_AGGRESSIVE))) || (!ignore_stasis && IS_IN_STASIS(src)))
 		return TRUE
-
-	if(!(flags & IGNORE_RESTRAINTS) && HAS_TRAIT(src, TRAIT_RESTRAINED))
-		return TRUE
-	if(!(flags & IGNORE_GRAB) && pulledby && pulledby.grab_state >= GRAB_AGGRESSIVE)
-		return TRUE
-	if(!(flags & IGNORE_STASIS) && IS_IN_STASIS(src))
-		return TRUE
-	return FALSE
 
 /mob/living/canUseStorage()
 	if (usable_hands <= 0)
@@ -496,7 +442,7 @@
 	set category = "IC"
 
 	if(IsSleeping())
-		to_chat(src, span_warning("You are already sleeping!"))
+		to_chat(src, SPAN_WARNING("You are already sleeping!"))
 		return
 	else
 		if(tgui_alert(usr, "You sure you want to sleep for a while?", "Sleep", list("Yes", "No")) == "Yes")
@@ -506,11 +452,7 @@
 /mob/proc/get_contents()
 
 
-/**
- * Gets ID card from a mob.
- * Argument:
- * * hand_firsts - boolean that checks the hands of the mob first if TRUE.
- */
+//Gets ID card from a mob. If hand_firsts is TRUE hands are checked first, otherwise other slots are prioritized (for subtypes at least).
 /mob/living/proc/get_idcard(hand_first)
 	if(!length(held_items)) //Early return for mobs without hands.
 		return
@@ -528,16 +470,6 @@
 	if(!held_item)
 		return
 	return held_item.GetID()
-
-//Returns the bank account of an ID the user may be holding.
-/mob/living/proc/get_bank_account()
-	RETURN_TYPE(/datum/bank_account)
-	var/datum/bank_account/account
-	var/obj/item/card/id/I = get_idcard()
-
-	if(I?.registered_account)
-		account = I.registered_account
-		return account
 
 /mob/living/proc/toggle_resting()
 	set name = "Rest"
@@ -557,24 +489,24 @@
 	if(new_resting)
 		if(body_position == LYING_DOWN)
 			if(!silent)
-				to_chat(src, span_notice("You will now try to stay lying down on the floor."))
+				to_chat(src, SPAN_NOTICE("You will now try to stay lying down on the floor."))
 		else if(HAS_TRAIT(src, TRAIT_FORCED_STANDING) || (buckled && buckled.buckle_lying != NO_BUCKLE_LYING))
 			if(!silent)
-				to_chat(src, span_notice("You will now lay down as soon as you are able to."))
+				to_chat(src, SPAN_NOTICE("You will now lay down as soon as you are able to."))
 		else
 			if(!silent)
-				to_chat(src, span_notice("You lay down."))
+				to_chat(src, SPAN_NOTICE("You lay down."))
 			set_lying_down()
 	else
 		if(body_position == STANDING_UP)
 			if(!silent)
-				to_chat(src, span_notice("You will now try to remain standing up."))
+				to_chat(src, SPAN_NOTICE("You will now try to remain standing up."))
 		else if(HAS_TRAIT(src, TRAIT_FLOORED) || (buckled && buckled.buckle_lying != NO_BUCKLE_LYING))
 			if(!silent)
-				to_chat(src, span_notice("You will now stand up as soon as you are able to."))
+				to_chat(src, SPAN_NOTICE("You will now stand up as soon as you are able to."))
 		else
 			if(!silent)
-				to_chat(src, span_notice("You stand up."))
+				to_chat(src, SPAN_NOTICE("You stand up."))
 			get_up(instant)
 
 	update_resting()
@@ -605,6 +537,7 @@
 /mob/living/proc/set_lying_down(new_lying_angle)
 	set_body_position(LYING_DOWN)
 
+
 /// Proc to append behavior related to lying down.
 /mob/living/proc/on_lying_down(new_lying_angle)
 	if(layer == initial(layer)) //to avoid things like hiding larvas.
@@ -632,8 +565,9 @@
 /mob/living/get_contents()
 	var/list/ret = list()
 	ret |= contents //add our contents
-	for(var/atom/iter_atom as anything in ret.Copy()) //iterate storage objects
-		iter_atom.atom_storage?.return_inv(ret)
+	for(var/i in ret.Copy()) //iterate storage objects
+		var/atom/A = i
+		SEND_SIGNAL(A, COMSIG_TRY_STORAGE_RETURN_INVENTORY, ret)
 	for(var/obj/item/folder/F in ret.Copy()) //very snowflakey-ly iterate folders
 		ret |= F.contents
 	return ret
@@ -727,15 +661,17 @@
 			if(!(C.dna?.species && (NOBLOOD in C.dna.species.species_traits)))
 				C.blood_volume += (excess_healing*2)//1 excess = 10 blood
 
-			for(var/obj/item/organ/organ as anything in C.internal_organs)
-				if(organ.organ_flags & ORGAN_SYNTHETIC)
+			for(var/i in C.internal_organs)
+				var/obj/item/organ/O = i
+				if(O.organ_flags & ORGAN_SYNTHETIC)
 					continue
-				organ.applyOrganDamage(excess_healing * -1)//1 excess = 5 organ damage healed
+				O.applyOrganDamage(excess_healing*-1)//1 excess = 5 organ damage healed
 
 		adjustOxyLoss(-20, TRUE)
 		adjustToxLoss(-20, TRUE, TRUE) //slime friendly
 		updatehealth()
 		grab_ghost()
+	SEND_SIGNAL(src, COMSIG_LIVING_REVIVE, full_heal, admin_revive)
 	if(full_heal)
 		fully_heal(admin_revive = admin_revive)
 	if(stat == DEAD && can_be_revived()) //in some cases you can't revive (e.g. no brain)
@@ -745,62 +681,20 @@
 		if(admin_revive)
 			get_up(TRUE)
 		update_sight()
-		clear_alert(ALERT_NOT_ENOUGH_OXYGEN)
+		clear_alert("not_enough_oxy")
 		reload_fullscreen()
 		. = TRUE
+		if(mind)
+			for(var/S in mind.spell_list)
+				var/obj/effect/proc_holder/spell/spell = S
+				spell.updateButtonIcon()
 		if(excess_healing)
 			INVOKE_ASYNC(src, .proc/emote, "gasp")
 			log_combat(src, src, "revived")
 	else if(admin_revive)
 		updatehealth()
 		get_up(TRUE)
-	// The signal is called after everything else so components can properly check the updated values
-	SEND_SIGNAL(src, COMSIG_LIVING_REVIVE, full_heal, admin_revive)
 
-
-/*
- * Heals up the [target] to up to [heal_to] of the main damage types.
- * EX: If heal_to is 50, and they have 150 brute damage, they will heal 100 brute (up to 50 brute damage)
- *
- * If the target is dead, also revives them and heals their organs / restores blood.
- * If we have a [revive_message], play a visible message if the revive was successful.
- *
- * Arguments
- * * heal_to - the health threshold to heal the mob up to for each of the main damage types.
- * * revive_message - if provided, a visible message to show on a successful revive.
- *
- * Returns TRUE if the mob is alive afterwards, or FALSE if they're still dead (revive failed).
- */
-/mob/living/proc/heal_and_revive(heal_to = 50, revive_message)
-
-	// Heal their brute and burn up to the threshold we're looking for
-	var/brute_to_heal = heal_to - getBruteLoss()
-	var/burn_to_heal = heal_to - getFireLoss()
-	var/oxy_to_heal = heal_to - getOxyLoss()
-	var/tox_to_heal = heal_to - getToxLoss()
-	if(brute_to_heal < 0)
-		adjustBruteLoss(brute_to_heal, FALSE)
-	if(burn_to_heal < 0)
-		adjustFireLoss(burn_to_heal, FALSE)
-	if(oxy_to_heal < 0)
-		adjustOxyLoss(oxy_to_heal, FALSE)
-	if(tox_to_heal < 0)
-		adjustToxLoss(tox_to_heal, FALSE, TRUE)
-
-	// Run updatehealth once to set health for the revival check
-	updatehealth()
-
-	// We've given them a decent heal.
-	// If they happen to be dead too, try to revive them - if possible.
-	if(stat == DEAD && can_be_revived())
-		// If the revive is successful, show our revival message (if present).
-		if(revive(FALSE, FALSE, 10) && revive_message)
-			visible_message(revive_message)
-
-	// Finally update health again after we're all done
-	updatehealth()
-
-	return stat != DEAD
 
 /mob/living/proc/remove_CC()
 	SetStun(0)
@@ -825,17 +719,26 @@
 	remove_CC()
 	set_disgust(0)
 	losebreath = 0
+	radiation = 0
 	set_nutrition(NUTRITION_LEVEL_FED + 50)
 	bodytemperature = get_body_temp_normal(apply_change=FALSE)
 	set_blindness(0)
 	set_blurriness(0)
+	set_dizziness(0)
 	cure_nearsighted()
 	cure_blind()
 	cure_husk()
 	hallucination = 0
 	heal_overall_damage(INFINITY, INFINITY, INFINITY, null, TRUE) //heal brute and burn dmg on both organic and robotic limbs, and update health right away.
 	extinguish_mob()
-	set_drowsyness(0)
+	fire_stacks = 0
+	set_confusion(0)
+	dizziness = 0
+	drowsyness = 0
+	stuttering = 0
+	slurring = 0
+	jitteriness = 0
+	pain = 0
 	stop_sound_channel(CHANNEL_HEARTBEAT)
 	SEND_SIGNAL(src, COMSIG_LIVING_POST_FULLY_HEAL, admin_revive)
 
@@ -849,19 +752,14 @@
 /mob/living/proc/update_damage_overlays()
 	return
 
-/// Proc that only really gets called for humans, to handle bleeding overlays.
-/mob/living/proc/update_wound_overlays()
-	return
-
 /mob/living/Move(atom/newloc, direct, glide_size_override)
 	if(lying_angle != 0)
 		lying_angle_on_movement(direct)
 	if (buckled && buckled.loc != newloc) //not updating position
 		if (!buckled.anchored)
-			buckled.moving_from_pull = moving_from_pull
-			. = buckled.Move(newloc, direct, glide_size)
-			buckled.moving_from_pull = null
-		return
+			return buckled.Move(newloc, direct, glide_size)
+		else
+			return FALSE
 
 	var/old_direction = dir
 	var/turf/T = loc
@@ -871,12 +769,15 @@
 
 	. = ..()
 
-	if(moving_diagonally != FIRST_DIAG_STEP && isliving(pulledby))
-		var/mob/living/L = pulledby
-		L.set_pull_offsets(src, pulledby.grab_state)
+	if(pulledby && moving_diagonally != FIRST_DIAG_STEP && get_dist(src, pulledby) > 1 && (pulledby != moving_from_pull))//separated from our puller and not in the middle of a diagonal move.
+		pulledby.stop_pulling()
+	else
+		if(isliving(pulledby))
+			var/mob/living/L = pulledby
+			L.set_pull_offsets(src, pulledby.grab_state)
 
-	if(active_storage && !((active_storage.parent?.resolve() in important_recursive_contents?[RECURSIVE_CONTENTS_ACTIVE_STORAGE]) || CanReach(active_storage.parent?.resolve(),view_only = TRUE)))
-		active_storage.hide_contents(src)
+	if(active_storage && !(CanReach(active_storage.parent,view_only = TRUE)))
+		active_storage.close(src)
 
 	if(body_position == LYING_DOWN && !buckled && prob(getBruteLoss()*200/maxHealth))
 		makeTrail(newloc, T, old_direction)
@@ -888,9 +789,6 @@
 		set_lying_angle(90)
 	else if(direct & WEST)
 		set_lying_angle(270)
-
-/mob/living/carbon/alien/humanoid/lying_angle_on_movement(direct)
-	return
 
 /mob/living/proc/makeTrail(turf/target_turf, turf/start, direction)
 	if(!has_gravity() || !isturf(start) || !blood_volume)
@@ -918,7 +816,7 @@
 	if((newdir in GLOB.cardinals) && (prob(50)))
 		newdir = turn(get_dir(target_turf, start), 180)
 	if(!blood_exists)
-		new /obj/effect/decal/cleanable/trail_holder(start, get_static_viruses())
+		new /obj/effect/decal/cleanable/trail_holder(start)
 
 	for(var/obj/effect/decal/cleanable/trail_holder/TH in start)
 		if((!(newdir in TH.existing_dirs) || trail_type == "trails_1" || trail_type == "trails_2") && TH.existing_dirs.len <= 16) //maximum amount of overlays is 16 (all light & heavy directions filled)
@@ -949,51 +847,13 @@
 	else
 		return pick("trails_1", "trails_2")
 
-/mob/living/experience_pressure_difference(pressure_difference, direction, pressure_resistance_prob_delta = 0)
-	playsound(src, 'sound/effects/space_wind.ogg', 50, TRUE)
-	if(buckled || mob_negates_gravity())
-		return
-
-	if(client && client.move_delay >= world.time + world.tick_lag*2)
-		pressure_resistance_prob_delta -= 30
-
-	var/list/turfs_to_check = list()
-
-	if(!has_limbs)
-		var/turf/T = get_step(src, angle2dir(dir2angle(direction)+90))
-		if (T)
-			turfs_to_check += T
-
-		T = get_step(src, angle2dir(dir2angle(direction)-90))
-		if(T)
-			turfs_to_check += T
-
-		for(var/t in turfs_to_check)
-			T = t
-			if(T.density)
-				pressure_resistance_prob_delta -= 20
-				continue
-			for (var/atom/movable/AM in T)
-				if (AM.density && AM.anchored)
-					pressure_resistance_prob_delta -= 20
-					break
-	..(pressure_difference, direction, pressure_resistance_prob_delta)
-
 /mob/living/can_resist()
-	if(next_move > world.time)
-		return FALSE
-	if(HAS_TRAIT(src, TRAIT_INCAPACITATED))
-		return FALSE
-	return TRUE
+	return !((next_move > world.time) || incapacitated(ignore_restraints = TRUE, ignore_stasis = TRUE))
 
 /mob/living/verb/resist()
 	set name = "Resist"
 	set category = "IC"
 
-	DEFAULT_QUEUE_OR_CALL_VERB(VERB_CALLBACK(src, .proc/execute_resist))
-
-///proc extender of [/mob/living/verb/resist] meant to make the process queable if the server is overloaded when the verb is called
-/mob/living/proc/execute_resist()
 	if(!can_resist())
 		return
 	changeNext_move(CLICK_CD_RESIST)
@@ -1019,6 +879,7 @@
 		else if(last_special <= world.time)
 			resist_restraints() //trying to remove cuffs.
 
+
 /mob/proc/resist_grab(moving_resist)
 	return 1 //returning 0 means we successfully broke free
 
@@ -1029,21 +890,23 @@
 		if((body_position == LYING_DOWN || HAS_TRAIT(src, TRAIT_GRABWEAKNESS)) && pulledby.grab_state < GRAB_KILL) //If prone, resisting out of a grab is equivalent to 1 grab state higher. won't make the grab state exceed the normal max, however
 			altered_grab_state++
 		var/resist_chance = BASE_GRAB_RESIST_CHANCE /// see defines/combat.dm, this should be baseline 60%
+		playsound(src, 'sound/weapons/thudswoosh.ogg', 40, TRUE, -1)
 		resist_chance = (resist_chance/altered_grab_state) ///Resist chance divided by the value imparted by your grab state. It isn't until you reach neckgrab that you gain a penalty to escaping a grab.
 		if(prob(resist_chance))
-			visible_message(span_danger("[src] breaks free of [pulledby]'s grip!"), \
-							span_danger("You break free of [pulledby]'s grip!"), null, null, pulledby)
-			to_chat(pulledby, span_warning("[src] breaks free of your grip!"))
+			visible_message(SPAN_DANGER("[src] breaks free of [pulledby]'s grip!"), \
+							SPAN_DANGER("You break free of [pulledby]'s grip!"), null, null, pulledby)
+			to_chat(pulledby, SPAN_WARNING("[src] breaks free of your grip!"))
 			log_combat(pulledby, src, "broke grab")
 			pulledby.stop_pulling()
 			return FALSE
 		else
+			shake_animation(src)
 			adjustStaminaLoss(rand(15,20))//failure to escape still imparts a pretty serious penalty
-			visible_message(span_danger("[src] struggles as they fail to break free of [pulledby]'s grip!"), \
-							span_warning("You struggle as you fail to break free of [pulledby]'s grip!"), null, null, pulledby)
-			to_chat(pulledby, span_danger("[src] struggles as they fail to break free of your grip!"))
+			visible_message(SPAN_DANGER("[src] struggles as they fail to break free of [pulledby]'s grip!"), \
+							SPAN_WARNING("You struggle as you fail to break free of [pulledby]'s grip!"), null, null, pulledby)
+			to_chat(pulledby, SPAN_DANGER("[src] struggles as they fail to break free of your grip!"))
 		if(moving_resist && client) //we resisted by trying to move
-			client.move_delay = world.time + 4 SECONDS
+			client.move_delay = world.time + 40
 	else
 		pulledby.stop_pulling()
 		return FALSE
@@ -1060,68 +923,106 @@
 /mob/living/proc/get_visible_name()
 	return name
 
-/mob/living/update_gravity(gravity)
+/mob/living/update_gravity(has_gravity)
 	. = ..()
 	if(!SSticker.HasRoundStarted())
 		return
-	var/atom/movable/screen/alert/gravity_alert = alerts[ALERT_GRAVITY]
-	switch(gravity)
-		if(-INFINITY to NEGATIVE_GRAVITY)
-			if(!istype(gravity_alert, /atom/movable/screen/alert/negative))
-				throw_alert(ALERT_GRAVITY, /atom/movable/screen/alert/negative)
-				var/matrix/flipped_matrix = transform
-				flipped_matrix.b = -flipped_matrix.b
-				flipped_matrix.e = -flipped_matrix.e
-				animate(src, transform = flipped_matrix, pixel_y = pixel_y+4, time = 0.5 SECONDS, easing = EASE_OUT)
-				base_pixel_y += 4
-		if(NEGATIVE_GRAVITY + 0.01 to 0)
-			if(!istype(gravity_alert, /atom/movable/screen/alert/weightless))
-				throw_alert(ALERT_GRAVITY, /atom/movable/screen/alert/weightless)
-				ADD_TRAIT(src, TRAIT_MOVE_FLOATING, NO_GRAVITY_TRAIT)
-		if(0.01 to STANDARD_GRAVITY)
-			if(gravity_alert)
-				clear_alert(ALERT_GRAVITY)
-		if(STANDARD_GRAVITY + 0.01 to GRAVITY_DAMAGE_THRESHOLD - 0.01)
-			throw_alert(ALERT_GRAVITY, /atom/movable/screen/alert/highgravity)
-		if(GRAVITY_DAMAGE_THRESHOLD to INFINITY)
-			throw_alert(ALERT_GRAVITY, /atom/movable/screen/alert/veryhighgravity)
+	var/was_weightless = alerts["gravity"] && istype(alerts["gravity"], /atom/movable/screen/alert/weightless)
+	if(has_gravity)
+		if(has_gravity == 1)
+			clear_alert("gravity")
+		else
+			if(has_gravity >= GRAVITY_DAMAGE_THRESHOLD)
+				throw_alert("gravity", /atom/movable/screen/alert/veryhighgravity)
+			else
+				throw_alert("gravity", /atom/movable/screen/alert/highgravity)
+		if(was_weightless)
+			REMOVE_TRAIT(src, TRAIT_MOVE_FLOATING, NO_GRAVITY_TRAIT)
+	else
+		throw_alert("gravity", /atom/movable/screen/alert/weightless)
+		if(!was_weightless)
+			ADD_TRAIT(src, TRAIT_MOVE_FLOATING, NO_GRAVITY_TRAIT)
 
-	// If we had no gravity alert, or the same alert as before, go home
-	if(!gravity_alert || alerts[ALERT_GRAVITY] == gravity_alert)
+// The src mob is trying to strip an item from someone
+// Override if a certain type of mob should be behave differently when stripping items (can't, for example)
+/mob/living/stripPanelUnequip(obj/item/what, mob/who, where)
+	if(SEND_SIGNAL(src, COMSIG_TRY_STRIP, who, what) & COMPONENT_CANT_STRIP)
 		return
-	// By this point we know that we do not have the same alert as we used to
-	if(istype(gravity_alert, /atom/movable/screen/alert/weightless))
-		REMOVE_TRAIT(src, TRAIT_MOVE_FLOATING, NO_GRAVITY_TRAIT)
-	if(istype(gravity_alert, /atom/movable/screen/alert/negative))
-		var/matrix/flipped_matrix = transform
-		flipped_matrix.b = -flipped_matrix.b
-		flipped_matrix.e = -flipped_matrix.e
-		animate(src, transform = flipped_matrix, pixel_y = pixel_y-4, time = 0.5 SECONDS, easing = EASE_OUT)
-		base_pixel_y -= 4
-
-/mob/living/singularity_pull(S, current_size)
-	..()
-	if(move_resist == INFINITY)
+	if(!what.canStrip(who))
+		to_chat(src, SPAN_WARNING("You can't remove \the [what.name], it appears to be stuck!"))
 		return
-	if(current_size >= STAGE_SIX) //your puny magboots/wings/whatever will not save you against supermatter singularity
-		throw_at(S, 14, 3, src, TRUE)
-	else if(!src.mob_negates_gravity())
-		step_towards(src,S)
+	who.visible_message(SPAN_WARNING("[src] tries to remove [who]'s [what.name]."), \
+					SPAN_USERDANGER("[src] tries to remove your [what.name]."), null, null, src)
+	to_chat(src, SPAN_DANGER("You try to remove [who]'s [what.name]..."))
+	who.log_message("[key_name(who)] is being stripped of [what] by [key_name(src)]", LOG_ATTACK, color="red")
+	log_message("[key_name(who)] is being stripped of [what] by [key_name(src)]", LOG_ATTACK, color="red", log_globally=FALSE)
+	what.add_fingerprint(src)
+	if(do_mob(src, who, what.strip_delay, interaction_key = what))
+		if(what && Adjacent(who))
+			if(islist(where))
+				var/list/L = where
+				if(what == who.get_item_for_held_index(L[2]))
+					if(what.doStrip(src, who))
+						who.log_message("[key_name(who)] has been stripped of [what] by [key_name(src)]", LOG_ATTACK, color="red")
+						log_message("[key_name(who)] has been stripped of [what] by [key_name(src)]", LOG_ATTACK, color="red", log_globally=FALSE)
+			if(what == who.get_item_by_slot(where))
+				if(what.doStrip(src, who))
+					who.log_message("[key_name(who)] has been stripped of [what] by [key_name(src)]", LOG_ATTACK, color="red")
+					log_message("[key_name(who)] has been stripped of [what] by [key_name(src)]", LOG_ATTACK, color="red", log_globally=FALSE)
 
-/mob/living/proc/get_temperature(datum/gas_mixture/environment)
-	var/loc_temp = environment ? environment.temperature : T0C
-	if(isobj(loc))
-		var/obj/oloc = loc
-		var/obj_temp = oloc.return_temperature()
-		if(obj_temp != null)
-			loc_temp = obj_temp
-	else if(isspaceturf(get_turf(src)))
-		var/turf/heat_turf = get_turf(src)
-		loc_temp = heat_turf.temperature
-	if(ismovable(loc))
-		var/atom/movable/occupied_space = loc
-		loc_temp = ((1 - occupied_space.contents_thermal_insulation) * loc_temp) + (occupied_space.contents_thermal_insulation * bodytemperature)
-	return loc_temp
+// The src mob is trying to place an item on someone
+// Override if a certain mob should be behave differently when placing items (can't, for example)
+/mob/living/stripPanelEquip(obj/item/what, mob/who, where)
+	what = src.get_active_held_item()
+	if(!what || (SEND_SIGNAL(src, COMSIG_TRY_STRIP, who, what) & COMPONENT_CANT_STRIP))
+		return
+	if(HAS_TRAIT(what, TRAIT_NODROP))
+		to_chat(src, SPAN_WARNING("You can't put \the [what.name] on [who], it's stuck to your hand!"))
+		return
+	if(what)
+		var/list/where_list
+		var/final_where
+
+		if(islist(where))
+			where_list = where
+			final_where = where[1]
+		else
+			final_where = where
+
+		if(!what.mob_can_equip(who, src, final_where, TRUE, TRUE))
+			to_chat(src, SPAN_WARNING("\The [what.name] doesn't fit in that place!"))
+			return
+		if(istype(what,/obj/item/clothing))
+			var/obj/item/clothing/c = what
+			if(c.clothing_flags & DANGEROUS_OBJECT)
+				who.visible_message(SPAN_DANGER("[src] tries to put [what] on [who]."), \
+							SPAN_USERDANGER("[src] tries to put [what] on you."), null, null, src)
+			else
+				who.visible_message(SPAN_NOTICE("[src] tries to put [what] on [who]."), \
+							SPAN_NOTICE("[src] tries to put [what] on you."), null, null, src)
+		to_chat(src, SPAN_NOTICE("You try to put [what] on [who]..."))
+		who.log_message("[key_name(who)] is having [what] put on them by [key_name(src)]", LOG_ATTACK, color="red")
+		log_message("[key_name(who)] is having [what] put on them by [key_name(src)]", LOG_ATTACK, color="red", log_globally=FALSE)
+		if(do_mob(src, who, what.equip_delay_other))
+			if(what && Adjacent(who) && what.mob_can_equip(who, src, final_where, TRUE, TRUE))
+				if(temporarilyRemoveItemFromInventory(what))
+					if(where_list)
+						if(!who.put_in_hand(what, where_list[2]))
+							what.forceMove(get_turf(who))
+					else
+						who.equip_to_slot(what, where, TRUE)
+					who.log_message("[key_name(who)] had [what] put on them by [key_name(src)]", LOG_ATTACK, color="red")
+					log_message("[key_name(who)] had [what] put on them by [key_name(src)]", LOG_ATTACK, color="red", log_globally=FALSE)
+
+/mob/living/proc/do_jitter_animation(jitteriness)
+	var/amplitude = min(4, (jitteriness/100) + 1)
+	var/pixel_x_diff = rand(-amplitude, amplitude)
+	var/pixel_y_diff = rand(-amplitude/3, amplitude/3)
+	animate(src, pixel_x = pixel_x_diff, pixel_y = pixel_y_diff , time = 2, loop = 6, flags = ANIMATION_RELATIVE|ANIMATION_PARALLEL)
+	animate(pixel_x = -pixel_x_diff , pixel_y = -pixel_y_diff , time = 2, flags = ANIMATION_RELATIVE)
+
+/mob/living/proc/get_mob_temperature()
+	return T20C
 
 /mob/living/cancel_camera()
 	..()
@@ -1129,23 +1030,24 @@
 
 /mob/living/proc/can_track(mob/living/user)
 	//basic fast checks go first. When overriding this proc, I recommend calling ..() at the end.
-	if(SEND_SIGNAL(src, COMSIG_LIVING_CAN_TRACK, user) & COMPONENT_CANT_TRACK)
+	if(SEND_SIGNAL(src, COMSIG_LIVING_CAN_TRACK, args) & COMPONENT_CANT_TRACK)
 		return FALSE
 	var/turf/T = get_turf(src)
 	if(!T)
 		return FALSE
-	if(is_centcom_level(T.z)) //dont detect mobs on centcom
+	if(is_centcom_level(T)) //dont detect mobs on centcom
 		return FALSE
-	if(is_away_level(T.z))
+	if(is_away_level(T))
 		return FALSE
 	if(user != null && src == user)
 		return FALSE
 	if(invisibility || alpha == 0)//cloaked
 		return FALSE
-	// Now, are they viewable by a camera? (This is last because it's the most intensive check)
-	if(!near_camera(src))
-		return FALSE
 	return TRUE
+
+//used in datum/reagents/reaction() proc
+/mob/living/proc/get_permeability_protection(list/target_zones)
+	return 0
 
 /mob/living/proc/harvest(mob/living/user) //used for extra objects etc. in butchering
 	return
@@ -1155,245 +1057,83 @@
 
 /mob/living/canUseTopic(atom/movable/M, be_close=FALSE, no_dexterity=FALSE, no_tk=FALSE, need_hands = FALSE, floor_okay=FALSE)
 	if(!(mobility_flags & MOBILITY_UI) && !floor_okay)
-		to_chat(src, span_warning("You can't do that right now!"))
+		to_chat(src, SPAN_WARNING("You can't do that right now!"))
 		return FALSE
 	if(be_close && !Adjacent(M) && (M.loc != src))
 		if(no_tk)
-			to_chat(src, span_warning("You are too far away!"))
+			to_chat(src, SPAN_WARNING("You are too far away!"))
 			return FALSE
 		var/datum/dna/D = has_dna()
-		if(!D || !D.check_mutation(/datum/mutation/human/telekinesis) || !tkMaxRangeCheck(src, M))
-			to_chat(src, span_warning("You are too far away!"))
+		if(!D || !D.check_mutation(TK) || !tkMaxRangeCheck(src, M))
+			to_chat(src, SPAN_WARNING("You are too far away!"))
 			return FALSE
 	if(need_hands && !can_hold_items(isitem(M) ? M : null)) //almost redundant if it weren't for mobs,
-		to_chat(src, span_warning("You don't have the physical ability to do this!"))
+		to_chat(src, SPAN_WARNING("You don't have the physical ability to do this!"))
 		return FALSE
 	if(!no_dexterity && !ISADVANCEDTOOLUSER(src))
-		to_chat(src, span_warning("You don't have the dexterity to do this!"))
+		to_chat(src, SPAN_WARNING("You don't have the dexterity to do this!"))
 		return FALSE
 	return TRUE
 
 /mob/living/proc/can_use_guns(obj/item/G)//actually used for more than guns!
 	if(G.trigger_guard == TRIGGER_GUARD_NONE)
-		to_chat(src, span_warning("You are unable to fire this!"))
+		to_chat(src, SPAN_WARNING("You are unable to fire this!"))
 		return FALSE
 	if(G.trigger_guard != TRIGGER_GUARD_ALLOW_ALL && (!ISADVANCEDTOOLUSER(src) && !HAS_TRAIT(src, TRAIT_GUN_NATURAL)))
-		to_chat(src, span_warning("You try to fire [G], but can't use the trigger!"))
+		to_chat(src, SPAN_WARNING("You try to fire [G], but can't use the trigger!"))
 		return FALSE
 	return TRUE
 
 /mob/living/proc/update_stamina()
 	return
 
-/mob/living/carbon/alien/update_stamina()
-	return
-
 /mob/living/throw_at(atom/target, range, speed, mob/thrower, spin=1, diagonals_first = 0, datum/callback/callback, force, gentle = FALSE, quickstart = TRUE)
 	stop_pulling()
 	. = ..()
 
-// Used in polymorph code to shapeshift mobs into other creatures
-/mob/living/proc/wabbajack(randomize)
-	// If the mob has a shapeshifted form, we want to pull out the reference of the caster's original body from it.
-	// We then want to restore this original body through the shapeshift holder itself.
-	var/obj/shapeshift_holder/shapeshift = locate() in src
-	if(shapeshift)
-		shapeshift.restore()
-		if(shapeshift.stored != src) // To reduce the risk of an infinite loop.
-			return shapeshift.stored.wabbajack(randomize)
+/mob/living/rad_act(amount)
+	. = ..()
 
-	if(stat == DEAD || notransform || (GODMODE & status_flags))
+	if(!amount || (amount < RAD_MOB_SKIN_PROTECTION) || HAS_TRAIT(src, TRAIT_RADIMMUNE))
 		return
 
-	notransform = TRUE
-	ADD_TRAIT(src, TRAIT_IMMOBILIZED, MAGIC_TRAIT)
-	ADD_TRAIT(src, TRAIT_HANDS_BLOCKED, MAGIC_TRAIT)
-	icon = null
-	cut_overlays()
-	invisibility = INVISIBILITY_ABSTRACT
+	amount -= RAD_BACKGROUND_RADIATION // This will always be at least 1 because of how skin protection is calculated
 
-	var/list/item_contents = list()
+	var/blocked = getarmor(null, RAD)
 
-	if(iscyborg(src))
-		var/mob/living/silicon/robot/Robot = src
-		// Disconnect AI's in shells
-		if(Robot.connected_ai)
-			Robot.connected_ai.disconnect_shell()
-		if(Robot.mmi)
-			qdel(Robot.mmi)
-		Robot.notify_ai(AI_NOTIFICATION_NEW_BORG)
-	else
-		for(var/obj/item/item in src)
-			if(!dropItemToGround(item))
-				qdel(item)
-				continue
-			item_contents += item
+	if(amount > RAD_BURN_THRESHOLD)
+		apply_damage(RAD_BURN_CURVE(amount), BURN, null, blocked)
 
-	var/mob/living/new_mob
+	apply_effect((amount*RAD_MOB_COEFFICIENT)/max(1, (radiation**2)*RAD_OVERDOSE_REDUCTION), EFFECT_IRRADIATE, blocked)
 
-	if(!randomize)
-		randomize = pick("monkey","robot","slime","xeno","humanoid","animal")
-	switch(randomize)
-		if("monkey")
-			new_mob = new /mob/living/carbon/human/species/monkey(loc)
-
-		if("robot")
-			var/robot = pick(
-				200 ; /mob/living/silicon/robot,
-				/mob/living/silicon/robot/model/syndicate,
-				/mob/living/silicon/robot/model/syndicate/medical,
-				/mob/living/silicon/robot/model/syndicate/saboteur,
-				200 ; /mob/living/simple_animal/drone/polymorphed,
-			)
-			new_mob = new robot(loc)
-			if(issilicon(new_mob))
-				new_mob.gender = gender
-				new_mob.invisibility = 0
-				new_mob.job = JOB_CYBORG
-				var/mob/living/silicon/robot/Robot = new_mob
-				Robot.lawupdate = FALSE
-				Robot.connected_ai = null
-				Robot.mmi.transfer_identity(src) //Does not transfer key/client.
-				Robot.clear_inherent_laws(announce = FALSE)
-				Robot.clear_zeroth_law(announce = FALSE)
-
-		if("slime")
-			new_mob = new /mob/living/simple_animal/slime/random(loc)
-
-		if("xeno")
-			var/xeno_type
-			if(ckey)
-				xeno_type = pick(
-					/mob/living/carbon/alien/humanoid/hunter,
-					/mob/living/carbon/alien/humanoid/sentinel,
-				)
-			else
-				xeno_type = pick(
-					/mob/living/carbon/alien/humanoid/hunter,
-					/mob/living/simple_animal/hostile/alien/sentinel,
-				)
-			new_mob = new xeno_type(loc)
-
-		if("animal")
-			var/path = pick(
-				/mob/living/simple_animal/hostile/carp,
-				/mob/living/simple_animal/hostile/bear,
-				/mob/living/simple_animal/hostile/mushroom,
-				/mob/living/simple_animal/hostile/netherworld/statue,
-				/mob/living/simple_animal/hostile/retaliate/bat,
-				/mob/living/simple_animal/hostile/retaliate/goat,
-				/mob/living/simple_animal/hostile/killertomato,
-				/mob/living/simple_animal/hostile/giant_spider,
-				/mob/living/simple_animal/hostile/giant_spider/hunter,
-				/mob/living/simple_animal/hostile/blob/blobbernaut/independent,
-				/mob/living/simple_animal/hostile/carp/ranged,
-				/mob/living/simple_animal/hostile/carp/ranged/chaos,
-				/mob/living/simple_animal/hostile/asteroid/basilisk/watcher,
-				/mob/living/simple_animal/hostile/asteroid/goliath/beast,
-				/mob/living/simple_animal/hostile/headcrab,
-				/mob/living/simple_animal/hostile/morph,
-				/mob/living/basic/stickman,
-				/mob/living/basic/stickman/dog,
-				/mob/living/simple_animal/hostile/megafauna/dragon/lesser,
-				/mob/living/simple_animal/hostile/gorilla,
-				/mob/living/simple_animal/parrot,
-				/mob/living/simple_animal/pet/dog/corgi,
-				/mob/living/simple_animal/crab,
-				/mob/living/simple_animal/pet/dog/pug,
-				/mob/living/simple_animal/pet/cat,
-				/mob/living/simple_animal/mouse,
-				/mob/living/simple_animal/chicken,
-				/mob/living/basic/cow,
-				/mob/living/simple_animal/hostile/lizard,
-				/mob/living/simple_animal/pet/fox,
-				/mob/living/simple_animal/butterfly,
-				/mob/living/simple_animal/pet/cat/cak,
-				/mob/living/simple_animal/pet/dog/breaddog,
-				/mob/living/simple_animal/chick,
-			)
-			new_mob = new path(loc)
-
-		if("humanoid")
-			var/mob/living/carbon/human/new_human = new (loc)
-
-			if(prob(50))
-				var/list/chooseable_races = list()
-				for(var/speciestype in subtypesof(/datum/species))
-					var/datum/species/S = speciestype
-					if(initial(S.changesource_flags) & WABBAJACK)
-						chooseable_races += speciestype
-
-				if(length(chooseable_races))
-					new_human.set_species(pick(chooseable_races))
-
-			// Randomize everything but the species, which was already handled above.
-			new_human.randomize_human_appearance(~RANDOMIZE_SPECIES)
-			new_human.update_body(is_creating = TRUE)
-			new_human.dna.update_dna_identity()
-			new_mob = new_human
-
-	if(!new_mob)
+/mob/living/anti_magic_check(magic = TRUE, holy = FALSE, tinfoil = FALSE, chargecost = 1, self = FALSE)
+	. = ..()
+	if(.)
 		return
+	if((magic && HAS_TRAIT(src, TRAIT_ANTIMAGIC)) || (holy && HAS_TRAIT(src, TRAIT_HOLY)))
+		return src
 
-	// Some forms can still wear some items
-	for(var/obj/item/item as anything in item_contents)
-		new_mob.equip_to_appropriate_slot(item)
+/mob/living/proc/fakefireextinguish()
+	return
 
-	log_message("became [new_mob.name]([new_mob.type])", LOG_ATTACK, color="orange")
-	new_mob.set_combat_mode(TRUE)
-	wabbajack_act(new_mob)
-	to_chat(new_mob, span_warning("Your form morphs into that of a [randomize]."))
-
-	var/poly_msg = get_policy(POLICY_POLYMORPH)
-	if(poly_msg)
-		to_chat(new_mob, poly_msg)
-
-	transfer_observers_to(new_mob)
-
-	. = new_mob
-	qdel(src)
-
-// Called when we are hit by a bolt of polymorph and changed
-// Generally the mob we are currently in is about to be deleted
-/mob/living/proc/wabbajack_act(mob/living/new_mob)
-	SEND_SIGNAL(src, COMSIG_LIVING_WABBAJACKED, new_mob)
-	log_message("was wabbajack polymorphed into: [new_mob.name]([new_mob.type]).", LOG_GAME)
-	new_mob.name = real_name
-	new_mob.real_name = real_name
-
-	if(mind)
-		mind.transfer_to(new_mob)
-	else
-		new_mob.key = key
-
-	for(var/para in hasparasites())
-		var/mob/living/simple_animal/hostile/guardian/G = para
-		G.summoner = new_mob
-		G.Recall()
-		to_chat(G, span_holoparasite("Your summoner has changed form!"))
+/mob/living/proc/fakefire()
+	return
 
 /mob/living/proc/unfry_mob() //Callback proc to tone down spam from multiple sizzling frying oil dipping.
 	REMOVE_TRAIT(src, TRAIT_OIL_FRIED, "cooking_oil_react")
 
 //Mobs on Fire
-
-/// Global list that containes cached fire overlays for mobs
-GLOBAL_LIST_EMPTY(fire_appearances)
-
-/mob/living/proc/ignite_mob()
-	if(fire_stacks <= 0)
-		return FALSE
-
-	var/datum/status_effect/fire_handler/fire_stacks/fire_status = has_status_effect(/datum/status_effect/fire_handler/fire_stacks)
-	if(!fire_status || fire_status.on_fire)
-		return FALSE
-
-	return fire_status.ignite()
-
-/mob/living/proc/update_fire()
-	var/datum/status_effect/fire_handler/fire_handler = has_status_effect(/datum/status_effect/fire_handler)
-	if(fire_handler)
-		fire_handler.update_overlay()
+/mob/living/proc/IgniteMob()
+	if(fire_stacks > 0 && !on_fire)
+		on_fire = TRUE
+		src.visible_message(SPAN_WARNING("[src] catches fire!"), \
+						SPAN_USERDANGER("You're set on fire!"))
+		new/obj/effect/dummy/lighting_obj/moblight/fire(src)
+		throw_alert("fire", /atom/movable/screen/alert/fire)
+		update_fire()
+		SEND_SIGNAL(src, COMSIG_LIVING_IGNITED,src)
+		return TRUE
+	return FALSE
 
 /**
  * Extinguish all fire on the mob
@@ -1402,11 +1142,15 @@ GLOBAL_LIST_EMPTY(fire_appearances)
  * Signals the extinguishing.
  */
 /mob/living/proc/extinguish_mob()
-	var/datum/status_effect/fire_handler/fire_stacks/fire_status = has_status_effect(/datum/status_effect/fire_handler/fire_stacks)
-	if(!fire_status || !fire_status.on_fire)
+	if(!on_fire)
 		return
-
-	remove_status_effect(/datum/status_effect/fire_handler/fire_stacks)
+	on_fire = FALSE
+	fire_stacks = 0 //If it is not called from set_fire_stacks()
+	for(var/obj/effect/dummy/lighting_obj/moblight/fire/F in src)
+		qdel(F)
+	clear_alert("fire")
+	SEND_SIGNAL(src, COMSIG_LIVING_EXTINGUISHED, src)
+	update_fire()
 
 /**
  * Adjust the amount of fire stacks on a mob
@@ -1414,19 +1158,10 @@ GLOBAL_LIST_EMPTY(fire_appearances)
  * This modifies the fire stacks on a mob.
  *
  * Vars:
- * * stacks: int The amount to modify the fire stacks
- * * fire_type: type Type of fire status effect that we apply, should be subtype of /datum/status_effect/fire_handler/fire_stacks
+ * * add_fire_stacks: int The amount to modify the fire stacks
  */
-
-/mob/living/proc/adjust_fire_stacks(stacks, fire_type = /datum/status_effect/fire_handler/fire_stacks)
-	if(stacks < 0)
-		stacks = max(-fire_stacks, stacks)
-	apply_status_effect(fire_type, stacks)
-
-/mob/living/proc/adjust_wet_stacks(stacks, wet_type = /datum/status_effect/fire_handler/wet_stacks)
-	if(stacks < 0)
-		stacks = max(fire_stacks, stacks)
-	apply_status_effect(wet_type, stacks)
+/mob/living/proc/adjust_fire_stacks(add_fire_stacks)
+	set_fire_stacks(fire_stacks + add_fire_stacks)
 
 /**
  * Set the fire stacks on a mob
@@ -1436,95 +1171,33 @@ GLOBAL_LIST_EMPTY(fire_appearances)
  *
  * Vars:
  * * stacks: int The amount to set fire_stacks to
- * * fire_type: type Type of fire status effect that we apply, should be subtype of /datum/status_effect/fire_handler/fire_stacks
- * * remove_wet_stacks: bool If we remove all wet stacks upon doing this
  */
-
-/mob/living/proc/set_fire_stacks(stacks, fire_type = /datum/status_effect/fire_handler/fire_stacks, remove_wet_stacks = TRUE)
-	if(stacks < 0) //Shouldn't happen, ever
-		CRASH("set_fire_stacks recieved negative [stacks] fire stacks")
-
-	if(remove_wet_stacks)
-		remove_status_effect(/datum/status_effect/fire_handler/wet_stacks)
-
-	if(stacks == 0)
-		remove_status_effect(fire_type)
-		return
-
-	apply_status_effect(fire_type, stacks, TRUE)
-
-/mob/living/proc/set_wet_stacks(stacks, wet_type = /datum/status_effect/fire_handler/wet_stacks, remove_fire_stacks = TRUE)
-	if(stacks < 0)
-		CRASH("set_wet_stacks recieved negative [stacks] wet stacks")
-
-	if(remove_fire_stacks)
-		remove_status_effect(/datum/status_effect/fire_handler/fire_stacks)
-
-	if(stacks == 0)
-		remove_status_effect(wet_type)
-		return
-
-	apply_status_effect(wet_type, stacks, TRUE)
+/mob/living/proc/set_fire_stacks(stacks)
+	fire_stacks = clamp(stacks, -20, 20)
+	if(fire_stacks <= 0)
+		extinguish_mob()
 
 //Share fire evenly between the two mobs
 //Called in MobBump() and Crossed()
-/mob/living/proc/spreadFire(mob/living/spread_to)
-	if(!istype(spread_to))
+/mob/living/proc/spreadFire(mob/living/L)
+	if(!istype(L))
 		return
 
-	// can't spread fire to mobs that don't catch on fire
-	if(HAS_TRAIT(spread_to, TRAIT_NOFIRE_SPREAD) || HAS_TRAIT(src, TRAIT_NOFIRE_SPREAD))
-		return
+	if(on_fire)
+		if(L.on_fire) // If they were also on fire
+			var/firesplit = (fire_stacks + L.fire_stacks)/2
+			set_fire_stacks(firesplit)
+			L.set_fire_stacks(firesplit)
+		else // If they were not
+			set_fire_stacks(fire_stacks / 2)
+			L.adjust_fire_stacks(fire_stacks)
+			if(L.IgniteMob()) // Ignite them
+				log_game("[key_name(src)] bumped into [key_name(L)] and set them on fire")
 
-	var/datum/status_effect/fire_handler/fire_stacks/fire_status = has_status_effect(/datum/status_effect/fire_handler/fire_stacks)
-	var/datum/status_effect/fire_handler/fire_stacks/their_fire_status = spread_to.has_status_effect(/datum/status_effect/fire_handler/fire_stacks)
-	if(fire_status && fire_status.on_fire)
-		if(their_fire_status && their_fire_status.on_fire)
-			var/firesplit = (fire_stacks + spread_to.fire_stacks) / 2
-			var/fire_type = (spread_to.fire_stacks > fire_stacks) ? their_fire_status.type : fire_status.type
-			set_fire_stacks(firesplit, fire_type)
-			spread_to.set_fire_stacks(firesplit, fire_type)
-			return
-
-		adjust_fire_stacks(-fire_stacks / 2, fire_status.type)
-		spread_to.adjust_fire_stacks(fire_stacks, fire_status.type)
-		if(spread_to.ignite_mob())
-			log_message("bumped into [key_name(spread_to)] and set them on fire.", LOG_ATTACK)
-		return
-
-	if(!their_fire_status || !their_fire_status.on_fire)
-		return
-
-	spread_to.adjust_fire_stacks(-spread_to.fire_stacks / 2, their_fire_status.type)
-	adjust_fire_stacks(spread_to.fire_stacks, their_fire_status.type)
-	ignite_mob()
-
-/**
- * Sets fire overlay of the mob.
- *
- * Vars:
- * * stacks: Current amount of fire_stacks
- * * on_fire: If we're lit on fire
- * * last_icon_state: Holds last fire overlay icon state, used for optimization
- * * suffix: Suffix for the fire icon state for special fire types
- *
- * This should return last_icon_state for the fire status efect
- */
-
-/mob/living/proc/update_fire_overlay(stacks, on_fire, last_icon_state, suffix = "")
-	return last_icon_state
-
-/**
- * Handles effects happening when mob is on normal fire
- *
- * Vars:
- * * delta_time
- * * times_fired
- * * fire_handler: Current fire status effect that called the proc
- */
-
-/mob/living/proc/on_fire_stack(delta_time, times_fired, datum/status_effect/fire_handler/fire_stacks/fire_handler)
-	return
+	else if(L.on_fire) // If they were on fire and we were not
+		L.set_fire_stacks(L.fire_stacks / 2)
+		adjust_fire_stacks(L.fire_stacks)
+		IgniteMob() // Ignite us
 
 //Mobs on Fire end
 
@@ -1548,16 +1221,37 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 /mob/living/proc/on_fall()
 	return
 
-/mob/living/forceMove(atom/destination)
-	if(!currently_z_moving)
+/mob/living/proc/AddAbility(obj/effect/proc_holder/A)
+	abilities.Add(A)
+	A.on_gain(src)
+	if(A.has_action)
+		A.action.Grant(src)
+
+/mob/living/proc/RemoveAbility(obj/effect/proc_holder/A)
+	abilities.Remove(A)
+	A.on_lose(src)
+	if(A.action)
+		A.action.Remove(src)
+
+/mob/living/proc/add_abilities_to_panel()
+	var/list/L = list()
+	for(var/obj/effect/proc_holder/A in abilities)
+		L[++L.len] = list("[A.panel]",A.get_panel_text(),A.name,"[REF(A)]")
+	return L
+
+/mob/living/forceMove(atom/destination, graceful = FALSE)
+	if(!graceful)
 		stop_pulling()
-		if(buckled && !HAS_TRAIT(src, TRAIT_CANNOT_BE_UNBUCKLED))
+		if(buckled)
 			buckled.unbuckle_mob(src, force = TRUE)
 		if(has_buckled_mobs())
 			unbuckle_all_mobs(force = TRUE)
 	. = ..()
-	if(. && client)
-		reset_perspective()
+	if(graceful && pulling && !in_range(src, pulling))
+		pulling.forceMove(destination, TRUE)
+	if(.)
+		if(client)
+			reset_perspective()
 
 
 /mob/living/proc/update_z(new_z) // 1+ to register, null to unregister
@@ -1588,11 +1282,11 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 		else
 			registered_z = null
 
-/mob/living/on_changed_z_level(turf/old_turf, turf/new_turf)
+/mob/living/onTransitZ(old_z,new_z)
 	..()
-	update_z(new_turf?.z)
+	update_z(new_z)
 
-/mob/living/MouseDrop_T(atom/dropping, atom/user)
+/mob/living/mouse_dropped(atom/dropping, atom/user, params)
 	var/mob/living/U = user
 	if(isliving(dropping))
 		var/mob/living/M = dropping
@@ -1603,7 +1297,7 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 
 /mob/living/proc/mob_pickup(mob/living/L)
 	var/obj/item/clothing/head/mob_holder/holder = new(get_turf(src), src, held_state, head_icon, held_lh, held_rh, worn_slot_flags)
-	L.visible_message(span_warning("[L] scoops up [src]!"))
+	L.visible_message(SPAN_WARNING("[L] scoops up [src]!"))
 	L.put_in_hands(holder)
 
 /mob/living/proc/set_name()
@@ -1615,43 +1309,34 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 	if(!ishuman(user))
 		return
 	if(!user.get_empty_held_indexes())
-		to_chat(user, span_warning("Your hands are full!"))
+		to_chat(user, SPAN_WARNING("Your hands are full!"))
 		return FALSE
 	if(buckled)
-		to_chat(user, span_warning("[src] is buckled to something!"))
+		to_chat(user, SPAN_WARNING("[src] is buckled to something!"))
 		return FALSE
 	if(!instant)
-		user.visible_message(span_warning("[user] starts trying to scoop up [src]!"), \
-						span_danger("You start trying to scoop up [src]..."), null, null, src)
-		to_chat(src, span_userdanger("[user] starts trying to scoop you up!"))
+		user.visible_message(SPAN_WARNING("[user] starts trying to scoop up [src]!"), \
+						SPAN_DANGER("You start trying to scoop up [src]..."), null, null, src)
+		to_chat(src, SPAN_USERDANGER("[user] starts trying to scoop you up!"))
 		if(!do_after(user, 2 SECONDS, target = src))
 			return FALSE
 	mob_pickup(user)
 	return TRUE
 
-/mob/living/proc/get_static_viruses() //used when creating blood and other infective objects
-	if(!LAZYLEN(diseases))
-		return
-	var/list/datum/disease/result = list()
-	for(var/datum/disease/D in diseases)
-		var/static_virus = D.Copy()
-		result += static_virus
-	return result
-
 /mob/living/reset_perspective(atom/A)
-	if(!..())
-		return
-	update_sight()
-	update_fullscreen()
-	update_pipe_vision()
+	if(..())
+		update_sight()
+		if(client.eye && client.eye != src)
+			var/atom/AT = client.eye
+			AT.get_remote_view_fullscreens(src)
+		else
+			clear_fullscreen("remote_view", 0)
 
-/// Proc used to handle the fullscreen overlay updates, realistically meant for the reset_perspective() proc.
-/mob/living/proc/update_fullscreen()
-	if(client.eye && client.eye != src)
-		var/atom/client_eye = client.eye
-		client_eye.get_remote_view_fullscreens(src)
-	else
-		clear_fullscreen("remote_view", 0)
+/mob/living/update_mouse_pointer()
+	..()
+	if (client && ranged_ability?.ranged_mousepointer)
+		client.mouse_pointer_icon = ranged_ability.ranged_mousepointer
+
 
 /mob/living/vv_edit_var(var_name, var_value)
 	switch(var_name)
@@ -1660,8 +1345,14 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 				return FALSE
 		if(NAMEOF(src, health)) //this doesn't work. gotta use procs instead.
 			return FALSE
+		if(NAMEOF(src, druggy))
+			set_drugginess(var_value)
+			. = TRUE
 		if(NAMEOF(src, resting))
 			set_resting(var_value)
+			. = TRUE
+		if(NAMEOF(src, fire_stacks))
+			set_fire_stacks(var_value)
 			. = TRUE
 		if(NAMEOF(src, lying_angle))
 			set_lying_angle(var_value)
@@ -1713,27 +1404,9 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 			CLONE:<font size='1'><a href='?_src_=vars;[HrefToken()];mobToDamage=[refid];adjustDamage=clone' id='clone'>[getCloneLoss()]</a>
 			BRAIN:<font size='1'><a href='?_src_=vars;[HrefToken()];mobToDamage=[refid];adjustDamage=brain' id='brain'>[getOrganLoss(ORGAN_SLOT_BRAIN)]</a>
 			STAMINA:<font size='1'><a href='?_src_=vars;[HrefToken()];mobToDamage=[refid];adjustDamage=stamina' id='stamina'>[getStaminaLoss()]</a>
+			PAIN:<font size='1'><a href='?_src_=vars;[HrefToken()];mobToDamage=[refid];adjustDamage=pain' id='pain'>[pain]</a>
 		</font>
 	"}
-
-/mob/living/vv_get_dropdown()
-	. = ..()
-	VV_DROPDOWN_OPTION("", "---------")
-	VV_DROPDOWN_OPTION(VV_HK_GIVE_SPEECH_IMPEDIMENT, "Impede Speech (Slurring, stuttering, etc)")
-	VV_DROPDOWN_OPTION(VV_HK_ADD_MOOD, "Add Mood Event")
-	VV_DROPDOWN_OPTION(VV_HK_REMOVE_MOOD, "Remove Mood Event")
-
-/mob/living/vv_do_topic(list/href_list)
-	. = ..()
-
-	if(href_list[VV_HK_GIVE_SPEECH_IMPEDIMENT])
-		if(!check_rights(NONE))
-			return
-		admin_give_speech_impediment(usr)
-	if (href_list[VV_HK_ADD_MOOD])
-		admin_add_mood_event(usr)
-	if (href_list[VV_HK_REMOVE_MOOD])
-		admin_remove_mood_event(usr)
 
 /mob/living/proc/move_to_error_room()
 	var/obj/effect/landmark/error/error_landmark = locate(/obj/effect/landmark/error) in GLOB.landmarks_list
@@ -1824,7 +1497,7 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 
 ///Checks if the user is incapacitated or on cooldown.
 /mob/living/proc/can_look_up()
-	return !(incapacitated(IGNORE_RESTRAINTS))
+	return !(incapacitated(ignore_restraints = TRUE))
 
 /**
  * look_up Changes the perspective of the mob to any openspace turf above the mob
@@ -1846,23 +1519,20 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 	SIGNAL_HANDLER
 	var/turf/ceiling = get_step_multiz(src, UP)
 	if(!ceiling) //We are at the highest z-level.
-		if (prob(0.1))
-			to_chat(src, span_warning("You gaze out into the infinite vastness of deep space, for a moment, you have the impulse to continue travelling, out there, out into the deep beyond, before your conciousness reasserts itself and you decide to stay within travelling distance of the station."))
-			return
-		to_chat(src, span_warning("There's nothing interesting up there."))
+		to_chat(src, SPAN_WARNING("You can't see through the ceiling above you."))
 		return
-	else if(!istransparentturf(ceiling)) //There is no turf we can look through above us
+	else if(!ceiling.IsTransparent()) //There is no turf we can look through above us
 		var/turf/front_hole = get_step(ceiling, dir)
-		if(istransparentturf(front_hole))
+		if(front_hole.IsTransparent())
 			ceiling = front_hole
 		else
 			var/list/checkturfs = block(locate(x-1,y-1,ceiling.z),locate(x+1,y+1,ceiling.z))-ceiling-front_hole //Try find hole near of us
 			for(var/turf/checkhole in checkturfs)
-				if(istransparentturf(checkhole))
+				if(checkhole.IsTransparent())
 					ceiling = checkhole
 					break
-		if(!istransparentturf(ceiling))
-			to_chat(src, span_warning("You can't see through the floor above you."))
+		if(!ceiling.IsTransparent())
+			to_chat(src, SPAN_WARNING("You can't see through the floor above you."))
 			return
 
 	reset_perspective(ceiling)
@@ -1897,22 +1567,22 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 	var/turf/floor = get_turf(src)
 	var/turf/lower_level = get_step_multiz(floor, DOWN)
 	if(!lower_level) //We are at the lowest z-level.
-		to_chat(src, span_warning("You can't see through the floor below you."))
+		to_chat(src, SPAN_WARNING("You can't see through the floor below you."))
 		return
-	else if(!istransparentturf(floor)) //There is no turf we can look through below us
+	else if(!floor.IsTransparent()) //There is no turf we can look through below us
 		var/turf/front_hole = get_step(floor, dir)
-		if(istransparentturf(front_hole))
+		if(front_hole.IsTransparent())
 			floor = front_hole
 			lower_level = get_step_multiz(front_hole, DOWN)
 		else
 			var/list/checkturfs = block(locate(x-1,y-1,z),locate(x+1,y+1,z))-floor //Try find hole near of us
 			for(var/turf/checkhole in checkturfs)
-				if(istransparentturf(checkhole))
+				if(checkhole.IsTransparent())
 					floor = checkhole
 					lower_level = get_step_multiz(checkhole, DOWN)
 					break
-		if(!istransparentturf(floor))
-			to_chat(src, span_warning("You can't see through the floor below you."))
+		if(!floor.IsTransparent())
+			to_chat(src, SPAN_WARNING("You can't see through the floor below you."))
 			return
 
 	reset_perspective(lower_level)
@@ -1939,17 +1609,8 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 			ADD_TRAIT(src, TRAIT_HANDS_BLOCKED, STAT_TRAIT)
 			ADD_TRAIT(src, TRAIT_INCAPACITATED, STAT_TRAIT)
 			ADD_TRAIT(src, TRAIT_FLOORED, STAT_TRAIT)
-		if(SOFT_CRIT)
-			if(stat >= UNCONSCIOUS)
-				ADD_TRAIT(src, TRAIT_IMMOBILIZED, TRAIT_KNOCKEDOUT) //adding trait sources should come before removing to avoid unnecessary updates
-			if(pulledby)
-				REMOVE_TRAIT(src, TRAIT_IMMOBILIZED, PULLED_WHILE_SOFTCRIT_TRAIT)
 		if(UNCONSCIOUS)
-			if(stat != HARD_CRIT)
-				cure_blind(UNCONSCIOUS_TRAIT)
-		if(HARD_CRIT)
-			if(stat != UNCONSCIOUS)
-				cure_blind(UNCONSCIOUS_TRAIT)
+			cure_blind(UNCONSCIOUS_TRAIT)
 		if(DEAD)
 			remove_from_dead_mob_list()
 			add_to_alive_mob_list()
@@ -1961,23 +1622,12 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 			REMOVE_TRAIT(src, TRAIT_INCAPACITATED, STAT_TRAIT)
 			REMOVE_TRAIT(src, TRAIT_FLOORED, STAT_TRAIT)
 			REMOVE_TRAIT(src, TRAIT_CRITICAL_CONDITION, STAT_TRAIT)
-		if(SOFT_CRIT)
-			if(pulledby)
-				ADD_TRAIT(src, TRAIT_IMMOBILIZED, PULLED_WHILE_SOFTCRIT_TRAIT) //adding trait sources should come before removing to avoid unnecessary updates
-			if(. >= UNCONSCIOUS)
-				REMOVE_TRAIT(src, TRAIT_IMMOBILIZED, TRAIT_KNOCKEDOUT)
-			ADD_TRAIT(src, TRAIT_CRITICAL_CONDITION, STAT_TRAIT)
 		if(UNCONSCIOUS)
-			if(. != HARD_CRIT)
-				become_blind(UNCONSCIOUS_TRAIT)
 			if(health <= crit_threshold && !HAS_TRAIT(src, TRAIT_NOSOFTCRIT))
 				ADD_TRAIT(src, TRAIT_CRITICAL_CONDITION, STAT_TRAIT)
 			else
 				REMOVE_TRAIT(src, TRAIT_CRITICAL_CONDITION, STAT_TRAIT)
-		if(HARD_CRIT)
-			if(. != UNCONSCIOUS)
-				become_blind(UNCONSCIOUS_TRAIT)
-			ADD_TRAIT(src, TRAIT_CRITICAL_CONDITION, STAT_TRAIT)
+			become_blind(UNCONSCIOUS_TRAIT)
 		if(DEAD)
 			REMOVE_TRAIT(src, TRAIT_CRITICAL_CONDITION, STAT_TRAIT)
 			remove_from_alive_mob_list()
@@ -2017,10 +1667,11 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 	. = ..()
 	if(. == FALSE) //null is a valid value here, we only want to return if FALSE is explicitly passed.
 		return
+	var/pulling_deathly_weak = (pain_stat != PAIN_STAT_NONE || shock_stat != SHOCK_NONE)
 	if(pulledby)
-		if(!. && stat == SOFT_CRIT)
+		if(!. && pulling_deathly_weak)
 			ADD_TRAIT(src, TRAIT_IMMOBILIZED, PULLED_WHILE_SOFTCRIT_TRAIT)
-	else if(. && stat == SOFT_CRIT)
+	else if(. && pulling_deathly_weak)
 		REMOVE_TRAIT(src, TRAIT_IMMOBILIZED, PULLED_WHILE_SOFTCRIT_TRAIT)
 
 
@@ -2105,26 +1756,22 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 /mob/living/proc/will_escape_storage()
 	return FALSE
 
-//Used specifically for the clown box suicide act
-/mob/living/carbon/human/will_escape_storage()
-	return TRUE
-
 /// Sets the mob's hunger levels to a safe overall level. Useful for TRAIT_NOHUNGER species changes.
 /mob/living/proc/set_safe_hunger_level()
 	// Nutrition reset and alert clearing.
 	nutrition = NUTRITION_LEVEL_FED
-	clear_alert(ALERT_NUTRITION)
+	clear_alert("nutrition")
 	satiety = 0
 
 	// Trait removal if obese
 	if(HAS_TRAIT_FROM(src, TRAIT_FAT, OBESITY))
 		if(overeatduration >= (200 SECONDS))
-			to_chat(src, span_notice("Your transformation restores your body's natural fitness!"))
+			to_chat(src, SPAN_NOTICE("Your transformation restores your body's natural fitness!"))
 
 		REMOVE_TRAIT(src, TRAIT_FAT, OBESITY)
 		remove_movespeed_modifier(/datum/movespeed_modifier/obesity)
-		update_worn_undersuit()
-		update_worn_oversuit()
+		update_inv_w_uniform()
+		update_inv_wear_suit()
 
 	// Reset overeat duration.
 	overeatduration = 0
@@ -2133,8 +1780,6 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 /// Changes the value of the [living/body_position] variable.
 /mob/living/proc/set_body_position(new_value)
 	if(body_position == new_value)
-		return
-	if((new_value == LYING_DOWN) && !(mobility_flags & MOBILITY_LIEDOWN))
 		return
 	. = body_position
 	body_position = new_value
@@ -2218,105 +1863,74 @@ GLOBAL_LIST_EMPTY(fire_appearances)
 
 	return exp_list
 
-/**
- * A proc triggered by callback when someone gets slammed by the tram and lands somewhere.
- *
- * This proc is used to force people to fall through things like lattice and unplated flooring at the expense of some
- * extra damage, so jokers can't use half a stack of iron rods to make getting hit by the tram immediately lethal.
- */
-/mob/living/proc/tram_slam_land()
-	if(!istype(loc, /turf/open/openspace) && !isplatingturf(loc))
-		return
-
-	if(isplatingturf(loc))
-		var/turf/open/floor/smashed_plating = loc
-		visible_message(span_danger("[src] is thrown violently into [smashed_plating], smashing through it and punching straight through!"),
-				span_userdanger("You're thrown violently into [smashed_plating], smashing through it and punching straight through!"))
-		apply_damage(rand(5,20), BRUTE, BODY_ZONE_CHEST)
-		smashed_plating.ScrapeAway(1, CHANGETURF_INHERIT_AIR)
-
-	for(var/obj/structure/lattice/lattice in loc)
-		visible_message(span_danger("[src] is thrown violently into [lattice], smashing through it and punching straight through!"),
-			span_userdanger("You're thrown violently into [lattice], smashing through it and punching straight through!"))
-		apply_damage(rand(5,10), BRUTE, BODY_ZONE_CHEST)
-		lattice.deconstruct(FALSE)
-
-/**
- * Proc used by different station pets such as Ian and Poly so that some of their data can persist between rounds.
- * This base definition only contains a trait and comsig to stop memory from being (over)written.
- * Specific behavior is defined on subtypes that use it.
- */
-/mob/living/proc/Write_Memory(dead, gibbed)
-	SHOULD_CALL_PARENT(TRUE)
-	if(HAS_TRAIT(src, TRAIT_DONT_WRITE_MEMORY)) //always prevent data from being written.
-		return FALSE
-	// for selective behaviors that may or may not prevent data from being written.
-	if(SEND_SIGNAL(src, COMSIG_LIVING_WRITE_MEMORY, dead, gibbed) & COMPONENT_DONT_WRITE_MEMORY)
-		return FALSE
-	return TRUE
-
-/// Admin only proc for giving a certain speech impediment to this mob
-/mob/living/proc/admin_give_speech_impediment(mob/admin)
-	if(!admin || !check_rights(NONE))
-		return
-
-	var/list/impediments = list()
-	for(var/datum/status_effect/possible as anything in typesof(/datum/status_effect/speech))
-		if(!initial(possible.id))
-			continue
-
-		impediments[initial(possible.id)] = possible
-
-	var/chosen = tgui_input_list(admin, "What speech impediment?", "Impede Speech", impediments)
-	if(!chosen || !ispath(impediments[chosen], /datum/status_effect/speech) || QDELETED(src) || !check_rights(NONE))
-		return
-
-	var/duration = tgui_input_number(admin, "How long should it last (in seconds)? Max is infinite duration.", "Duration", 0, INFINITY, 0 SECONDS)
-	if(!isnum(duration) || duration <= 0 || QDELETED(src) || !check_rights(NONE))
-		return
-
-	adjust_timed_status_effect(duration SECONDS, impediments[chosen])
-
-/mob/living/proc/admin_add_mood_event(mob/admin)
-	if (!admin || !check_rights(NONE))
-		return
-
-	var/list/mood_events = typesof(/datum/mood_event)
-
-	var/chosen = tgui_input_list(admin, "What mood event?", "Add Mood Event", mood_events)
-	if (!chosen || QDELETED(src) || !check_rights(NONE))
-		return
-
-	mob_mood.add_mood_event("[rand(1, 50)]", chosen)
-
-/mob/living/proc/admin_remove_mood_event(mob/admin)
-	if (!admin || !check_rights(NONE))
-		return
-
-	var/list/mood_events = list()
-	for (var/category in mob_mood.mood_events)
-		var/datum/mood_event/event = mob_mood.mood_events[category]
-		mood_events[event] = category
-
-
-	var/datum/mood_event/chosen = tgui_input_list(admin, "What mood event?", "Remove Mood Event", mood_events)
-	if (!chosen || QDELETED(src) || !check_rights(NONE))
-		return
-
-	mob_mood.clear_mood_event(mood_events[chosen])
-
-/// Adds a mood event to the mob
-/mob/living/proc/add_mood_event(category, type, ...)
-	if(QDELETED(mob_mood))
-		return
-	mob_mood.add_mood_event(arglist(args))
-
-/// Clears a mood event from the mob
-/mob/living/proc/clear_mood_event(category)
-	if(QDELETED(mob_mood))
-		return
-	mob_mood.clear_mood_event(category)
-
-/mob/living/played_game()
+/mob/living/Topic(href, href_list)
 	. = ..()
-	add_mood_event("gaming", /datum/mood_event/gaming)
+	if(href_list["temporary_flavor"])
+		if(temporary_flavor_text)
+			var/datum/browser/popup = new(usr, "[name]'s temporary flavor text", "[name]'s Temporary Flavor Text", 500, 200)
+			popup.set_content(text("<HTML><HEAD><TITLE>[]</TITLE></HEAD><BODY><TT>[]</TT></BODY></HTML>", "[name]'s temporary flavor text", replacetext(temporary_flavor_text, "\n", "<BR>")))
+			popup.open()
+			return
+
+/mob/living/verb/set_temporary_flavor()
+	set category = "IC"
+	set name = "Set Temporary Flavor Text"
+	set desc = "Allows you to set a temporary flavor text."
+
+	if(stat != CONSCIOUS)
+		to_chat(usr, SPAN_WARNING("You can't set your temporary flavor text now..."))
+		return
+
+	var/msg = input(usr, "Set the temporary flavor text in your 'examine' verb. This is for describing what people can tell by looking at your character.", "Temporary Flavor Text", temporary_flavor_text) as message|null
+	if(msg)
+		if(msg == "")
+			temporary_flavor_text = null
+		else
+			temporary_flavor_text = strip_html_simple(msg, MAX_FLAVOR_LEN, TRUE)
+	return
+
+/mob/living/verb/toggle_hold_onto_things()
+	set category = "IC"
+	set name = "Toggle Holding in No Grav"
+	set desc = "Allows you to stop holding onto things in no gravity."
+
+	if(stat != CONSCIOUS)
+		to_chat(usr, SPAN_WARNING("You can't do that now..."))
+		return
+
+	hold_onto_things = !hold_onto_things
+	to_chat(usr, SPAN_NOTICE("You will [hold_onto_things ? "now" : "no longer"] hold onto things in no gravity."))
+
+/// Special key down handling of /living mobs, currently only used for typing indicator
+/mob/living/key_down(_key, client/user)
+	if(!typing_indicator && stat == CONSCIOUS)
+		for(var/kb_name in user.prefs.key_bindings[_key])
+			switch(kb_name)
+				if("Say")
+					set_typing_indicator(TRUE)
+					break
+				if("Me")
+					set_typing_indicator(TRUE, TRUE)
+					break
+	return ..()
+
+/// Used for setting typing indicator on/off. Checking the state should be done not on the proc to avoid overhead.
+/mob/living/set_typing_indicator(state, emote = FALSE)
+	typing_indicator = state
+	if(typing_indicator)
+		var/state_of_bubble
+		if(emote)
+			state_of_bubble = "default_emote"
+		else
+			state_of_bubble = bubble_icon? "[bubble_icon]0" : "default0"
+		typing_indicator_overlay = mutable_appearance('icons/mob/talk.dmi', state_of_bubble, layer = FLY_LAYER)
+		typing_indicator_overlay.appearance_flags = RESET_COLOR | RESET_TRANSFORM | TILE_BOUND | PIXEL_SCALE
+		add_overlay(typing_indicator_overlay)
+	else
+		cut_overlay(typing_indicator_overlay)
+		typing_indicator_overlay = null
+
+/// Used for making the mobs spend a stamina for certain actions. Returns TRUE if succeeded or FALSE if not.
+/// The threshold argument controls how much the user needs to have after spending the stamina for the proc to succeed
+/mob/living/proc/use_stamina(amount = 0, threshold = 0)
+	return TRUE

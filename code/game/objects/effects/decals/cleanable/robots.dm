@@ -13,35 +13,25 @@
 	beauty = -50
 	clean_type = CLEAN_TYPE_BLOOD
 
-/obj/effect/decal/cleanable/robot_debris/Initialize(mapload)
+/obj/effect/decal/cleanable/robot_debris/Initialize()
 	. = ..()
 	RegisterSignal(src, COMSIG_MOVABLE_PIPE_EJECTING, .proc/on_pipe_eject)
 
 /obj/effect/decal/cleanable/robot_debris/proc/streak(list/directions, mapload=FALSE)
+	set waitfor = FALSE
 	var/direction = pick(directions)
-	var/delay = 2
-	var/range = pick(1, 200; 2, 150; 3, 50; 4, 17; 50) //the 3% chance of 50 steps is intentional and played for laughs.
-	if(!step_to(src, get_step(src, direction), 0))
-		return
-	if(mapload)
-		for (var/i in 1 to range)
+	for (var/i = 0, i < pick(1, 200; 2, 150; 3, 50; 4, 17; 50), i++) //the 3% chance of 50 steps is intentional and played for laughs.
+		if (!mapload)
+			sleep(2)
+		if (i > 0)
 			if (prob(40))
 				new /obj/effect/decal/cleanable/oil/streak(src.loc)
-			if (!step_to(src, get_step(src, direction), 0))
-				break
-		return
-
-	var/datum/move_loop/loop = SSmove_manager.move_to_dir(src, get_step(src, direction), delay = delay, timeout = range * delay, priority = MOVEMENT_ABOVE_SPACE_PRIORITY)
-	RegisterSignal(loop, COMSIG_MOVELOOP_POSTPROCESS, .proc/spread_movement_effects)
-
-/obj/effect/decal/cleanable/robot_debris/proc/spread_movement_effects(datum/move_loop/has_target/source)
-	SIGNAL_HANDLER
-	if (prob(40))
-		new /obj/effect/decal/cleanable/oil/streak(src.loc)
-	else if (prob(10))
-		var/datum/effect_system/spark_spread/s = new /datum/effect_system/spark_spread
-		s.set_up(3, 1, src)
-		s.start()
+			else if (prob(10) && !mapload)
+				var/datum/effect_system/spark_spread/s = new /datum/effect_system/spark_spread
+				s.set_up(3, 1, src)
+				s.start()
+		if (!step_to(src, get_step(src, direction), 0))
+			break
 
 /obj/effect/decal/cleanable/robot_debris/proc/on_pipe_eject(atom/source, direction)
 	SIGNAL_HANDLER
@@ -79,13 +69,15 @@
 	bloodiness = BLOOD_AMOUNT_PER_DECAL
 	beauty = -100
 	clean_type = CLEAN_TYPE_BLOOD
-	decal_reagent = /datum/reagent/fuel/oil
-	reagent_amount = 30
+
+/obj/effect/decal/cleanable/oil/Initialize()
+	. = ..()
+	reagents.add_reagent(/datum/reagent/fuel/oil, 30)
 
 /obj/effect/decal/cleanable/oil/attackby(obj/item/I, mob/living/user)
 	var/attacked_by_hot_thing = I.get_temperature()
 	if(attacked_by_hot_thing)
-		visible_message(span_warning("[user] tries to ignite [src] with [I]!"), span_warning("You try to ignite [src] with [I]."))
+		visible_message(SPAN_WARNING("[user] tries to ignite [src] with [I]!"), SPAN_WARNING("You try to ignite [src] with [I]."))
 		log_combat(user, src, (attacked_by_hot_thing < 480) ? "tried to ignite" : "ignited", I)
 		fire_act(attacked_by_hot_thing)
 		return
@@ -94,7 +86,7 @@
 /obj/effect/decal/cleanable/oil/fire_act(exposed_temperature, exposed_volume)
 	if(exposed_temperature < 480)
 		return
-	visible_message(span_danger("[src] catches fire!"))
+	visible_message(SPAN_DANGER("[src] catches fire!"))
 	var/turf/T = get_turf(src)
 	qdel(src)
 	new /obj/effect/hotspot(T)
@@ -104,6 +96,6 @@
 	random_icon_states = list("streak1", "streak2", "streak3", "streak4", "streak5")
 	beauty = -50
 
-/obj/effect/decal/cleanable/oil/slippery/Initialize(mapload)
+/obj/effect/decal/cleanable/oil/slippery/ComponentInitialize()
 	. = ..()
 	AddComponent(/datum/component/slippery, 80, (NO_SLIP_WHEN_WALKING | SLIDE))

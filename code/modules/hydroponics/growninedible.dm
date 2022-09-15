@@ -13,9 +13,8 @@
 	. = ..()
 	create_reagents(100)
 
-	if(istype(new_seed))
+	if(new_seed)
 		seed = new_seed.Copy()
-
 	else if(ispath(seed))
 		// This is for adminspawn or map-placed growns. They get the default stats of their seed type.
 		seed = new seed()
@@ -34,18 +33,10 @@
 		transform *= TRANSFORM_USING_VARIABLE(seed.potency, 100) + 0.5
 		add_juice()
 
-/obj/item/grown/Destroy()
-	if(isatom(seed))
-		QDEL_NULL(seed)
-	return ..()
-
 /obj/item/grown/proc/add_juice()
 	if(reagents)
 		return TRUE
 	return FALSE
-
-/obj/item/grown/microwave_act(obj/machinery/microwave/M)
-	return
 
 /obj/item/grown/on_grind()
 	. = ..()

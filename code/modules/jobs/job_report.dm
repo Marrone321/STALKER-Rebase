@@ -39,7 +39,8 @@
 	data["jobPlaytimes"] = list()
 	data["specialPlaytimes"] = list()
 
-	for (var/job_name in SSjob.name_occupations)
+	for(var/datum/job/job as anything in SSjob.all_occupations)
+		var/job_name = job.title
 		var/playtime = play_records[job_name] ? text2num(play_records[job_name]) : 0
 		data["jobPlaytimes"][job_name] = playtime
 
@@ -65,7 +66,7 @@
 			if(!check_rights(R_ADMIN))
 				message_admins("[ADMIN_LOOKUPFLW(usr)] attempted to toggle job playtime exempt status without admin rights.")
 				log_admin("[ADMIN_LOOKUPFLW(usr)] attempted to toggle job playtime exempt status without admin rights.")
-				to_chat(usr, span_danger("ERROR: Insufficient admin rights."), confidential = TRUE)
+				to_chat(usr, SPAN_DANGER("ERROR: Insufficient admin rights."), confidential = TRUE)
 				return TRUE
 
 			var/datum/admins/viewer_admin_datum = GLOB.admin_datums[usr.ckey]
@@ -73,11 +74,11 @@
 			if(!viewer_admin_datum)
 				message_admins("[ADMIN_LOOKUPFLW(usr)] attempted to toggle job playtime exempt status without admin datum for their ckey.")
 				log_admin("[ADMIN_LOOKUPFLW(usr)] attempted to toggle job playtime exempt status without admin datum for their ckey.")
-				to_chat(usr, span_danger("ERROR: Insufficient admin rights."), confidential = TRUE)
+				to_chat(usr, SPAN_DANGER("ERROR: Insufficient admin rights."), confidential = TRUE)
 				return TRUE
 
 			if(QDELETED(owner))
-				to_chat(usr, span_danger("ERROR: Client not found."), confidential = TRUE)
+				to_chat(usr, SPAN_DANGER("ERROR: Client not found."), confidential = TRUE)
 				return TRUE
 
 			viewer_admin_datum.toggle_exempt_status(owner)

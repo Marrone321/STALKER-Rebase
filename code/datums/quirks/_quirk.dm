@@ -8,18 +8,12 @@
 	var/gain_text
 	var/lose_text
 	var/medical_record_text //This text will appear on medical records for the trait. Not yet implemented
-	var/mood_quirk = FALSE //if true, this quirk affects mood and is unavailable if moodlets are disabled
 	var/mob_trait //if applicable, apply and remove this mob trait
-	/// Amount of points this trait is worth towards the hardcore character mode; minus points implies a positive quirk, positive means its hard. This is used to pick the quirks assigned to a hardcore character. 0 means its not available to hardcore draws.
-	var/hardcore_value = 0
 	var/mob/living/quirk_holder
 	/// This quirk should START_PROCESSING when added and STOP_PROCESSING when removed.
 	var/processing_quirk = FALSE
 	/// When making an abstract quirk (in OOP terms), don't forget to set this var to the type path for that abstract quirk.
 	var/abstract_parent_type = /datum/quirk
-	/// The icon to show in the preferences menu.
-	/// This references a tgui icon, so it can be FontAwesome or a tgfont (with a tg- prefix).
-	var/icon
 
 /datum/quirk/Destroy()
 	if(quirk_holder)
@@ -66,8 +60,7 @@
 		START_PROCESSING(SSquirks, src)
 
 	if(!quirk_transfer)
-		if(gain_text)
-			to_chat(quirk_holder, gain_text)
+		to_chat(quirk_holder, gain_text)
 		add_unique()
 
 		if(quirk_holder.client)
@@ -88,11 +81,11 @@
 
 	quirk_holder.quirks -= src
 
-	if(!quirk_transfer && lose_text)
+	if(!quirk_transfer)
 		to_chat(quirk_holder, lose_text)
 
 	if(mob_trait)
-		REMOVE_TRAIT(quirk_holder, mob_trait, QUIRK_TRAIT)
+		REMOVE_TRAIT(quirk_holder, mob_trait, ROUNDSTART_TRAIT)
 
 	if(processing_quirk)
 		STOP_PROCESSING(SSquirks, src)
@@ -154,14 +147,14 @@
 		open_backpack = TRUE
 
 	if(notify_player)
-		LAZYADD(where_items_spawned, span_boldnotice("You have \a [quirk_item] [where]. [flavour_text]"))
+		LAZYADD(where_items_spawned, SPAN_BOLDNOTICE("You have \a [quirk_item] [where]. [flavour_text]"))
 
 /datum/quirk/item_quirk/post_add()
 	if(open_backpack)
 		var/mob/living/carbon/human/human_holder = quirk_holder
 		// post_add() can be called via delayed callback. Check they still have a backpack equipped before trying to open it.
 		if(human_holder.back)
-			human_holder.back.atom_storage.show_contents(human_holder)
+			SEND_SIGNAL(human_holder.back, COMSIG_TRY_STORAGE_SHOW, human_holder)
 
 	for(var/chat_string in where_items_spawned)
 		to_chat(quirk_holder, chat_string)

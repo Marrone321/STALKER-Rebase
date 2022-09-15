@@ -40,8 +40,6 @@
 		/obj/item/pen = 55)
 	repeatable = TRUE
 	time = 25
-	success_sound = 'sound/surgery/retractor2.ogg'
-	failure_sound = 'sound/surgery/organ2.ogg'
 	var/brutehealing = 0
 	var/burnhealing = 0
 	var/brute_multiplier = 0 //multiplies the damage that the patient has. if 0 the patient wont get any additional healing from the damage he has.
@@ -62,10 +60,9 @@
 	if(istype(surgery,/datum/surgery/healing))
 		var/datum/surgery/healing/the_surgery = surgery
 		if(!the_surgery.antispam)
-			display_results(user, target, span_notice("You attempt to patch some of [target]'s [woundtype]."),
-		span_notice("[user] attempts to patch some of [target]'s [woundtype]."),
-		span_notice("[user] attempts to patch some of [target]'s [woundtype]."))
-		display_pain(target, "Your [woundtype] sting like hell!")
+			display_results(user, target, SPAN_NOTICE("You attempt to patch some of [target]'s [woundtype]."),
+		SPAN_NOTICE("[user] attempts to patch some of [target]'s [woundtype]."),
+		SPAN_NOTICE("[user] attempts to patch some of [target]'s [woundtype]."))
 
 /datum/surgery_step/heal/initiate(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery, try_to_fail = FALSE)
 	if(!..())
@@ -94,7 +91,7 @@
 
 	user_msg += get_progress(user, target, brute_healed, burn_healed)
 
-	display_results(user, target, span_notice("[user_msg]."),
+	display_results(user, target, SPAN_NOTICE("[user_msg]."),
 		"[target_msg].",
 		"[target_msg].")
 	if(istype(surgery, /datum/surgery/healing))
@@ -103,9 +100,9 @@
 	return ..()
 
 /datum/surgery_step/heal/failure(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery)
-	display_results(user, target, span_warning("You screwed up!"),
-		span_warning("[user] screws up!"),
-		span_notice("[user] fixes some of [target]'s wounds."), TRUE)
+	display_results(user, target, SPAN_WARNING("You screwed up!"),
+		SPAN_WARNING("[user] screws up!"),
+		SPAN_NOTICE("[user] fixes some of [target]'s wounds."), TRUE)
 	var/brute_dealt = brutehealing * 0.8
 	var/burn_dealt = burnhealing * 0.8
 	brute_dealt += round((target.getBruteLoss() * (brute_multiplier * 0.5)),0.1)
@@ -145,24 +142,21 @@
 	var/estimated_remaining_steps = target.getBruteLoss() / brute_healed
 	var/progress_text
 
-	if(locate(/obj/item/healthanalyzer) in user.held_items)
-		progress_text = ". Remaining brute: <font color='#ff3333'>[target.getBruteLoss()]</font>"
-	else
-		switch(estimated_remaining_steps)
-			if(-INFINITY to 1)
-				return
-			if(1 to 3)
-				progress_text = ", stitching up the last few scrapes"
-			if(3 to 6)
-				progress_text = ", counting down the last few bruises left to treat"
-			if(6 to 9)
-				progress_text = ", continuing to plug away at [target.p_their()] extensive rupturing"
-			if(9 to 12)
-				progress_text = ", steadying yourself for the long surgery ahead"
-			if(12 to 15)
-				progress_text = ", though [target.p_they()] still look[target.p_s()] more like ground beef than a person"
-			if(15 to INFINITY)
-				progress_text = ", though you feel like you're barely making a dent in treating [target.p_their()] pulped body"
+	switch(estimated_remaining_steps)
+		if(-INFINITY to 1)
+			return
+		if(1 to 3)
+			progress_text = ", stitching up the last few scrapes"
+		if(3 to 6)
+			progress_text = ", counting down the last few bruises left to treat"
+		if(6 to 9)
+			progress_text = ", continuing to plug away at [target.p_their()] extensive rupturing"
+		if(9 to 12)
+			progress_text = ", steadying yourself for the long surgery ahead"
+		if(12 to 15)
+			progress_text = ", though [target.p_they()] still look[target.p_s()] more like ground beef than a person"
+		if(15 to INFINITY)
+			progress_text = ", though you feel like you're barely making a dent in treating [target.p_their()] pulped body"
 
 	return progress_text
 
@@ -210,24 +204,21 @@
 	var/estimated_remaining_steps = target.getFireLoss() / burn_healed
 	var/progress_text
 
-	if(locate(/obj/item/healthanalyzer) in user.held_items)
-		progress_text = ". Remaining burn: <font color='#ff9933'>[target.getFireLoss()]</font>"
-	else
-		switch(estimated_remaining_steps)
-			if(-INFINITY to 1)
-				return
-			if(1 to 3)
-				progress_text = ", finishing up the last few singe marks"
-			if(3 to 6)
-				progress_text = ", counting down the last few blisters left to treat"
-			if(6 to 9)
-				progress_text = ", continuing to plug away at [target.p_their()] thorough roasting"
-			if(9 to 12)
-				progress_text = ", steadying yourself for the long surgery ahead"
-			if(12 to 15)
-				progress_text = ", though [target.p_they()] still look[target.p_s()] more like burnt steak than a person"
-			if(15 to INFINITY)
-				progress_text = ", though you feel like you're barely making a dent in treating [target.p_their()] charred body"
+	switch(estimated_remaining_steps)
+		if(-INFINITY to 1)
+			return
+		if(1 to 3)
+			progress_text = ", finishing up the last few singe marks"
+		if(3 to 6)
+			progress_text = ", counting down the last few blisters left to treat"
+		if(6 to 9)
+			progress_text = ", continuing to plug away at [target.p_their()] thorough roasting"
+		if(9 to 12)
+			progress_text = ", steadying yourself for the long surgery ahead"
+		if(12 to 15)
+			progress_text = ", though [target.p_they()] still look[target.p_s()] more like burnt steak than a person"
+		if(15 to INFINITY)
+			progress_text = ", though you feel like you're barely making a dent in treating [target.p_their()] charred body"
 
 	return progress_text
 
@@ -278,27 +269,21 @@
 
 	var/progress_text
 
-	if(locate(/obj/item/healthanalyzer) in user.held_items)
-		if(target.getBruteLoss())
-			progress_text = ". Remaining brute: <font color='#ff3333'>[target.getBruteLoss()]</font>"
-		if(target.getFireLoss())
-			progress_text += ". Remaining burn: <font color='#ff9933'>[target.getFireLoss()]</font>"
-	else
-		switch(estimated_remaining_steps)
-			if(-INFINITY to 1)
-				return
-			if(1 to 3)
-				progress_text = ", finishing up the last few signs of damage"
-			if(3 to 6)
-				progress_text = ", counting down the last few patches of trauma"
-			if(6 to 9)
-				progress_text = ", continuing to plug away at [target.p_their()] extensive injuries"
-			if(9 to 12)
-				progress_text = ", steadying yourself for the long surgery ahead"
-			if(12 to 15)
-				progress_text = ", though [target.p_they()] still look[target.p_s()] more like smooshed baby food than a person"
-			if(15 to INFINITY)
-				progress_text = ", though you feel like you're barely making a dent in treating [target.p_their()] broken body"
+	switch(estimated_remaining_steps)
+		if(-INFINITY to 1)
+			return
+		if(1 to 3)
+			progress_text = ", finishing up the last few signs of damage"
+		if(3 to 6)
+			progress_text = ", counting down the last few patches of trauma"
+		if(6 to 9)
+			progress_text = ", continuing to plug away at [target.p_their()] extensive injuries"
+		if(9 to 12)
+			progress_text = ", steadying yourself for the long surgery ahead"
+		if(12 to 15)
+			progress_text = ", though [target.p_they()] still look[target.p_s()] more like smooshed baby food than a person"
+		if(15 to INFINITY)
+			progress_text = ", though you feel like you're barely making a dent in treating [target.p_their()] broken body"
 
 	return progress_text
 
@@ -323,7 +308,7 @@
 	burn_multiplier = 0.4
 
 /datum/surgery_step/heal/combo/upgraded/femto/failure(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, datum/surgery/surgery)
-	display_results(user, target, span_warning("You screwed up!"),
-		span_warning("[user] screws up!"),
-		span_notice("[user] fixes some of [target]'s wounds."), TRUE)
+	display_results(user, target, SPAN_WARNING("You screwed up!"),
+		SPAN_WARNING("[user] screws up!"),
+		SPAN_NOTICE("[user] fixes some of [target]'s wounds."), TRUE)
 	target.take_bodypart_damage(5,5)

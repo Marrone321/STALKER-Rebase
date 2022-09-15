@@ -7,29 +7,39 @@
 	var/list/default_map_traits = DEFAULT_MAP_TRAITS
 
 	if (default_map_traits.len != world.maxz)
-		log_mapping("More or less map attributes pre-defined ([default_map_traits.len]) than existent z-levels ([world.maxz]). Ignoring the larger.")
+		WARNING("More or less map attributes pre-defined ([default_map_traits.len]) than existent z-levels ([world.maxz]). Ignoring the larger.")
 		if (default_map_traits.len > world.maxz)
 			default_map_traits.Cut(world.maxz + 1)
 
-	for (var/I in 1 to default_map_traits.len)
-		var/list/features = default_map_traits[I]
-		var/datum/space_level/S = new(I, features[DL_NAME], features[DL_TRAITS])
-		z_list += S
+	// Load the "Start" zones
+	LoadGroup(
+		null,
+		"Start",
+		"map_files/generic",
+		"start.dmm",
+		default_map_traits,
+		default_map_traits,
+		silent = TRUE,
+	)
 
-/datum/controller/subsystem/mapping/proc/add_new_zlevel(name, traits = list(), z_type = /datum/space_level)
+/// Adds new physical space level. DO NOT USE THIS TO LOAD SOMETHING NEW. SSmapping.get_free_allocation() will create any levels nessecary and pass you coordinates to create a new virtual level
+/datum/controller/subsystem/mapping/proc/add_new_zlevel(name, allocation_type)
 	UNTIL(!adding_new_zlevel)
 	adding_new_zlevel = TRUE
+	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_NEW_Z, args)
 	var/new_z = z_list.len + 1
 	if (world.maxz < new_z)
 		world.incrementMaxZ()
 		CHECK_TICK
 	// TODO: sleep here if the Z level needs to be cleared
-	var/datum/space_level/S = new z_type(new_z, name, traits)
+	var/datum/space_level/S = new /datum/space_level(new_z, name, allocation_type)
 	z_list += S
-	generate_linkages_for_z_level(new_z)
-	calculate_z_level_gravity(new_z)
+
+	/// Initialize the turfs on the new space level
+	if(SSatoms.initialized != INITIALIZATION_INSSATOMS)
+		SSatoms.InitializeAtoms(block(locate(1,1,world.maxz), locate(world.maxx,world.maxy,world.maxz)))
+
 	adding_new_zlevel = FALSE
-	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_NEW_Z, S)
 	return S
 
 /datum/controller/subsystem/mapping/proc/get_level(z)

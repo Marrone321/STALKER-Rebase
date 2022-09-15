@@ -132,9 +132,8 @@
 	if(!cached_outfits)
 		cached_outfits = list()
 		cached_outfits += list(outfit_entry("General", /datum/outfit, "Naked", priority=TRUE))
-		cached_outfits += make_outfit_entries("General", subtypesof(/datum/outfit) - typesof(/datum/outfit/job) - typesof(/datum/outfit/plasmaman))
+		cached_outfits += make_outfit_entries("General", subtypesof(/datum/outfit) - typesof(/datum/outfit/job))
 		cached_outfits += make_outfit_entries("Jobs", typesof(/datum/outfit/job))
-		cached_outfits += make_outfit_entries("Plasmamen Outfits", typesof(/datum/outfit/plasmaman))
 
 	data["outfits"] = cached_outfits
 	return data
@@ -215,16 +214,12 @@
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "Select Equipment") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 	for(var/obj/item/item in human_target.get_equipped_items(delete_pocket))
 		qdel(item)
-
-	var/obj/item/organ/internal/brain/human_brain = human_target.getorganslot(BRAIN)
-	human_brain.destroy_all_skillchips() // get rid of skillchips to prevent runtimes
-
 	if(dresscode != "Naked")
 		human_target.equipOutfit(dresscode)
 
 	human_target.regenerate_icons()
 
 	log_admin("[key_name(usr)] changed the equipment of [key_name(human_target)] to [dresscode].")
-	message_admins(span_adminnotice("[key_name_admin(usr)] changed the equipment of [ADMIN_LOOKUPFLW(human_target)] to [dresscode]."))
+	message_admins(SPAN_ADMINNOTICE("[key_name_admin(usr)] changed the equipment of [ADMIN_LOOKUPFLW(human_target)] to [dresscode]."))
 
 	return dresscode

@@ -33,8 +33,6 @@
 	var/turf/closet_turf = get_turf(closet)
 
 	if(!closet.opened)
-		if(closet.locked)
-			closet.togglelock(scooby, silent = TRUE)
 		if(!closet.open(scooby))
 			// No message if unable to open, since this is on Bump, spammy potential
 			return
@@ -47,16 +45,14 @@
 	scooby.forceMove(closet_turf)
 
 	if(!closet.close(scooby))
-		to_chat(scooby, span_warning("You can't get [closet] to close!"))
+		to_chat(scooby, SPAN_WARNING("You can't get [closet] to close!"))
 		if(closet.horizontal)
 			scooby.set_resting(FALSE, silent = TRUE)
 		return
 
-	closet.togglelock(scooby, silent = TRUE)
-
 	if(closet.horizontal)
 		scooby.set_resting(FALSE, silent = TRUE)
 
-	closet_turf.visible_message(span_warning("[scooby] dives into [closet]!"))
+	closet_turf.visible_message(SPAN_WARNING("[scooby] dives into [closet]!"))
 	// If you run into a locker, you don't want to run out immediately
 	scooby.Immobilize(0.5 SECONDS)

@@ -1,17 +1,15 @@
-/// if autoadmin is enabled
-/datum/config_entry/flag/autoadmin
+/datum/config_entry/flag/autoadmin  // if autoadmin is enabled
 	protection = CONFIG_ENTRY_LOCKED
 
-/// the rank given to autoadmins
-/datum/config_entry/string/autoadmin_rank
-	default = "Game Master"
+/datum/config_entry/string/autoadmin_rank // the rank for autoadmins
+	config_entry_value = "Game Master"
 	protection = CONFIG_ENTRY_LOCKED
 
 /datum/config_entry/flag/auto_deadmin_players
 	protection = CONFIG_ENTRY_LOCKED
 
 /datum/config_entry/number/auto_deadmin_timegate
-	default = null
+	config_entry_value = null
 	protection = CONFIG_ENTRY_LOCKED
 
 /datum/config_entry/flag/auto_deadmin_antagonists
@@ -27,170 +25,108 @@
 	protection = CONFIG_ENTRY_LOCKED
 
 
-/// server name (the name of the game window)
-/datum/config_entry/string/servername
+/datum/config_entry/string/servername // server name (the name of the game window)
 
-/// short form server name used for the DB
-/datum/config_entry/string/serversqlname
+/datum/config_entry/string/serversqlname // short form server name used for the DB
 
-/// station name (the name of the station in-game)
-/datum/config_entry/string/stationname
+/datum/config_entry/string/stationname // station name (the name of the station in-game)
 
-/// Countdown between lobby and the round starting.
-/datum/config_entry/number/lobby_countdown
-	default = 120
+/datum/config_entry/number/lobby_countdown // In between round countdown.
+	config_entry_value = 120
 	integer = FALSE
 	min_val = 0
 
-/// Post round murder death kill countdown.
-/datum/config_entry/number/round_end_countdown
-	default = 25
+/datum/config_entry/number/round_end_countdown // Post round murder death kill countdown
+	config_entry_value = 25
 	integer = FALSE
 	min_val = 0
 
-/// if the game appears on the hub or not
-/datum/config_entry/flag/hub
+/datum/config_entry/flag/hub // if the game appears on the hub or not
 
-/// Pop requirement for the server to be removed from the hub
-/datum/config_entry/number/max_hub_pop
-	default = 0 //0 means disabled
+/datum/config_entry/number/max_hub_pop //At what pop to take hub off the server
+	config_entry_value = 0 //0 means disabled
 	integer = TRUE
 	min_val = 0
 
-/// log messages sent in OOC
-/datum/config_entry/flag/log_ooc
+/datum/config_entry/flag/log_ooc // log OOC channel
 
-/// log login/logout
-/datum/config_entry/flag/log_access
+/datum/config_entry/flag/log_access // log login/logout
 
-/// Config entry which special logging of failed logins under suspicious circumstances.
-/datum/config_entry/flag/log_suspicious_login
+/datum/config_entry/flag/log_say // log client say
 
-/// log client say
-/datum/config_entry/flag/log_say
-
-/// log admin actions
-/datum/config_entry/flag/log_admin
+/datum/config_entry/flag/log_admin // log admin actions
 	protection = CONFIG_ENTRY_LOCKED
 
-/// log prayers
-/datum/config_entry/flag/log_prayer
+/datum/config_entry/flag/log_prayer // log prayers
 
-/// log silicons
-/datum/config_entry/flag/log_silicon
+/datum/config_entry/flag/log_law // log lawchanges
 
-/datum/config_entry/flag/log_law
-	deprecated_by = /datum/config_entry/flag/log_silicon
+/datum/config_entry/flag/log_game // log game events
 
-/datum/config_entry/flag/log_law/DeprecationUpdate(value)
-	return value
+/datum/config_entry/flag/log_mecha // log mech data
 
-/// log usage of tools
-/datum/config_entry/flag/log_tools
+/datum/config_entry/flag/log_virus // log virology data
 
-/// log game events
-/datum/config_entry/flag/log_game
+/datum/config_entry/flag/log_cloning // log cloning actions.
 
-/// log mech data
-/datum/config_entry/flag/log_mecha
+/datum/config_entry/flag/log_vote // log voting
 
-/// log virology data
-/datum/config_entry/flag/log_virus
+/datum/config_entry/flag/log_whisper // log client whisper
 
-/// log assets
-/datum/config_entry/flag/log_asset
+/datum/config_entry/flag/log_attack // log attack messages
 
-/// log voting
-/datum/config_entry/flag/log_vote
+/datum/config_entry/flag/log_emote // log emotes
 
-/// log client whisper
-/datum/config_entry/flag/log_whisper
-
-/// log attack messages
-/datum/config_entry/flag/log_attack
-
-/// log emotes
-/datum/config_entry/flag/log_emote
-
-/// log economy actions
-/datum/config_entry/flag/log_econ
-
-/// log traitor objectives
-/datum/config_entry/flag/log_traitor
-
-/// log admin chat messages
-/datum/config_entry/flag/log_adminchat
+/datum/config_entry/flag/log_adminchat // log admin chat messages
 	protection = CONFIG_ENTRY_LOCKED
 
-/// log pda messages
-/datum/config_entry/flag/log_pda
+/datum/config_entry/flag/log_pda // log pda messages
 
-/// log uplink/spellbook/codex ciatrix purchases and refunds
-/datum/config_entry/flag/log_uplink
+/datum/config_entry/flag/log_uplink // log uplink/spellbook/codex ciatrix purchases and refunds
 
-/// log telecomms messages
-/datum/config_entry/flag/log_telecomms
+/datum/config_entry/flag/log_telecomms // log telecomms messages
 
-/// log speech indicators(started/stopped speaking)
-/datum/config_entry/flag/log_speech_indicators
+/datum/config_entry/flag/log_twitter // log certain expliotable parrots and other such fun things in a JSON file of twitter valid phrases.
 
-/// log certain expliotable parrots and other such fun things in a JSON file of twitter valid phrases.
-/datum/config_entry/flag/log_twitter
+/datum/config_entry/flag/log_world_topic // log all world.Topic() calls
 
-/// log all world.Topic() calls
-/datum/config_entry/flag/log_world_topic
+/datum/config_entry/flag/log_manifest // log crew manifest to seperate file
 
-/// log crew manifest to separate file
-/datum/config_entry/flag/log_manifest
+/datum/config_entry/flag/log_job_debug // log roundstart divide occupations debug information to a file
 
-/// log roundstart divide occupations debug information to a file
-/datum/config_entry/flag/log_job_debug
+/datum/config_entry/flag/log_shuttle // log shuttle related actions, ie shuttle computers, shuttle manipulator, emergency console
 
-/// log shuttle related actions, ie shuttle computers, shuttle manipulator, emergency console
-/datum/config_entry/flag/log_shuttle
+/datum/config_entry/flag/log_timers_on_bucket_reset // logs all timers in buckets on automatic bucket reset (Useful for timer debugging)
 
-/// logs all timers in buckets on automatic bucket reset (Useful for timer debugging)
-/datum/config_entry/flag/log_timers_on_bucket_reset
+/datum/config_entry/flag/allow_admin_ooccolor // Allows admins with relevant permissions to have their own ooc colour
 
-/// allows admins with relevant permissions to have their own ooc colour
-/datum/config_entry/flag/allow_admin_ooccolor
+/datum/config_entry/flag/allow_admin_asaycolor //Allows admins with relevant permissions to have a personalized asay color
 
-/// allows admins with relevant permissions to have a personalized asay color
-/datum/config_entry/flag/allow_admin_asaycolor
+/datum/config_entry/flag/allow_vote_restart // allow votes to restart
 
-/// allow votes to restart
-/datum/config_entry/flag/allow_vote_restart
+/datum/config_entry/flag/allow_vote_map // allow votes to change map
 
-/// allow votes to change map
-/datum/config_entry/flag/allow_vote_map
-
-/// minimum time between voting sessions (deciseconds, 10 minute default)
-/datum/config_entry/number/vote_delay
-	default = 6000
+/datum/config_entry/number/vote_delay // minimum time between voting sessions (deciseconds, 10 minute default)
+	config_entry_value = 6000
 	integer = FALSE
 	min_val = 0
 
-/// length of voting period (deciseconds, default 1 minute)
-/datum/config_entry/number/vote_period
-	default = 600
+/datum/config_entry/number/vote_period  // length of voting period (deciseconds, default 1 minute)
+	config_entry_value = 600
 	integer = FALSE
 	min_val = 0
 
-/// If disabled, no-voters will automatically have their votes added to certain vote options
-/// (For eample: restart votes will default to "no restart", map votes will default to their preferred map / default map)
-/datum/config_entry/flag/default_no_vote
+/datum/config_entry/flag/default_no_vote // vote does not default to nochange/norestart
 
-/// Prevents dead people from voting.
-/datum/config_entry/flag/no_dead_vote
+/datum/config_entry/flag/no_dead_vote // dead people can't vote
 
-/// Gives the ability to send players a maptext popup.
-/datum/config_entry/flag/popup_admin_pm
+/datum/config_entry/flag/popup_admin_pm // adminPMs to non-admins show in a pop-up 'reply' window when set
 
 /datum/config_entry/number/fps
-	default = 20
+	config_entry_value = 20
 	integer = FALSE
 	min_val = 1
-	max_val = 100 //byond will start crapping out at 50, so this is just ridic
+	max_val = 100   //byond will start crapping out at 50, so this is just ridic
 	var/sync_validate = FALSE
 
 /datum/config_entry/number/fps/ValidateAndSet(str_val)
@@ -208,7 +144,7 @@
 
 /datum/config_entry/number/ticklag/New() //ticklag weirdly just mirrors fps
 	var/datum/config_entry/CE = /datum/config_entry/number/fps
-	default = 10 / initial(CE.default)
+	config_entry_value = 10 / initial(CE.config_entry_value)
 	..()
 
 /datum/config_entry/number/ticklag/ValidateAndSet(str_val)
@@ -222,6 +158,10 @@
 
 /datum/config_entry/flag/allow_holidays
 
+/datum/config_entry/number/tick_limit_mc_init //SSinitialization throttling
+	config_entry_value = TICK_LIMIT_MC_INIT_DEFAULT
+	min_val = 0 //oranges warned us
+	integer = FALSE
 
 /datum/config_entry/flag/admin_legacy_system //Defines whether the server uses the legacy admin system with admins.txt or the SQL system
 	protection = CONFIG_ENTRY_LOCKED
@@ -254,7 +194,7 @@
 /datum/config_entry/flag/use_exp_restrictions_heads
 
 /datum/config_entry/number/use_exp_restrictions_heads_hours
-	default = 0
+	config_entry_value = 0
 	integer = FALSE
 	min_val = 0
 
@@ -268,7 +208,7 @@
 /datum/config_entry/flag/use_low_living_hour_intern
 
 /datum/config_entry/number/use_low_living_hour_intern_hours
-	default = 0
+	config_entry_value = 0
 	integer = FALSE
 	min_val = 0
 
@@ -277,19 +217,19 @@
 /datum/config_entry/string/banappeals
 
 /datum/config_entry/string/wikiurl
-	default = "http://www.tgstation13.org/wiki"
+	config_entry_value = "http://www.tgstation13.org/wiki"
 
 /datum/config_entry/string/forumurl
-	default = "http://tgstation13.org/phpBB/index.php"
+	config_entry_value = "http://tgstation13.org/phpBB/index.php"
 
 /datum/config_entry/string/rulesurl
-	default = "http://www.tgstation13.org/wiki/Rules"
+	config_entry_value = "http://www.tgstation13.org/wiki/Rules"
 
 /datum/config_entry/string/githuburl
-	default = "https://www.github.com/tgstation/tgstation"
+	config_entry_value = "https://www.github.com/tgstation/tgstation"
 
 /datum/config_entry/string/discordbotcommandprefix
-	default = "?"
+	config_entry_value = "?"
 
 /datum/config_entry/string/roundstatsurl
 
@@ -298,12 +238,12 @@
 /datum/config_entry/flag/guest_ban
 
 /datum/config_entry/number/id_console_jobslot_delay
-	default = 30
+	config_entry_value = 30
 	integer = FALSE
 	min_val = 0
 
 /datum/config_entry/number/inactivity_period //time in ds until a player is considered inactive
-	default = 3000
+	config_entry_value = 3000
 	integer = FALSE
 	min_val = 0
 
@@ -313,7 +253,7 @@
 		config_entry_value *= 10 //documented as seconds in config.txt
 
 /datum/config_entry/number/afk_period //time in ds until a player is considered inactive
-	default = 3000
+	config_entry_value = 3000
 	integer = FALSE
 	min_val = 0
 
@@ -323,8 +263,6 @@
 		config_entry_value *= 10 //documented as seconds in config.txt
 
 /datum/config_entry/flag/kick_inactive //force disconnect for inactive players
-
-/datum/config_entry/flag/load_jobs_from_txt
 
 /datum/config_entry/flag/forbid_singulo_possession
 
@@ -348,53 +286,58 @@
 /datum/config_entry/flag/see_own_notes //Can players see their own admin notes
 
 /datum/config_entry/number/note_fresh_days
-	default = null
+	config_entry_value = null
 	min_val = 0
 	integer = FALSE
 
 /datum/config_entry/number/note_stale_days
-	default = null
+	config_entry_value = null
 	min_val = 0
 	integer = FALSE
 
 /datum/config_entry/flag/maprotation
 
-/datum/config_entry/number/auto_lag_switch_pop //Number of clients at which drastic lag mitigation measures kick in
+/datum/config_entry/number/soft_popcap
 	config_entry_value = null
 	min_val = 0
 
-/datum/config_entry/number/soft_popcap
-	default = null
-	min_val = 0
-
 /datum/config_entry/number/hard_popcap
-	default = null
+	config_entry_value = null
 	min_val = 0
 
 /datum/config_entry/number/extreme_popcap
-	default = null
+	config_entry_value = null
 	min_val = 0
 
 /datum/config_entry/string/soft_popcap_message
-	default = "Be warned that the server is currently serving a high number of users, consider using alternative game servers."
+	config_entry_value = "Be warned that the server is currently serving a high number of users, consider using alternative game servers."
 
 /datum/config_entry/string/hard_popcap_message
-	default = "The server is currently serving a high number of users, You cannot currently join. You may wait for the number of living crew to decline, observe, or find alternative servers."
+	config_entry_value = "The server is currently serving a high number of users, You cannot currently join. You may wait for the number of living crew to decline, observe, or find alternative servers."
 
 /datum/config_entry/string/extreme_popcap_message
-	default = "The server is currently serving a high number of users, find alternative servers."
+	config_entry_value = "The server is currently serving a high number of users, find alternative servers."
 
 /datum/config_entry/flag/byond_member_bypass_popcap
 
 /datum/config_entry/flag/panic_bunker // prevents people the server hasn't seen before from connecting
 
 /datum/config_entry/number/panic_bunker_living // living time in minutes that a player needs to pass the panic bunker
+	min_val = -1
+	config_entry_value = -1
 
 /// Flag for requiring players who would otherwise be denied access by the panic bunker to complete a written interview
 /datum/config_entry/flag/panic_bunker_interview
 
+/// Flag to enable the whitelist, only allowing registered players to enter the server
+/datum/config_entry/flag/panic_bunker_discord_require
+
+/// String to show the user if they were denied access due to the WAS
+/datum/config_entry/string/panic_bunker_discord_register_message
+	config_entry_value = "Sorry but this server requires players to link their Discord account before playing! Please enter the following command, including the token, into this Server's Discord Guild."
+
 /datum/config_entry/string/panic_bunker_message
-	default = "Sorry but the server is currently not accepting connections from never before seen players."
+	config_entry_value = "Sorry but the server is currently not accepting connections from never before seen players."
 
 /datum/config_entry/number/notify_new_player_age // how long do we notify admins of a new player
 	min_val = -1
@@ -412,23 +355,23 @@
 	return str_val != "ch@nge.me" && ..()
 
 /datum/config_entry/number/ipintel_rating_bad
-	default = 1
+	config_entry_value = 1
 	integer = FALSE
 	min_val = 0
 	max_val = 1
 
 /datum/config_entry/number/ipintel_save_good
-	default = 12
+	config_entry_value = 12
 	integer = FALSE
 	min_val = 0
 
 /datum/config_entry/number/ipintel_save_bad
-	default = 1
+	config_entry_value = 1
 	integer = FALSE
 	min_val = 0
 
 /datum/config_entry/string/ipintel_domain
-	default = "check.getipintel.net"
+	config_entry_value = "check.getipintel.net"
 
 /datum/config_entry/flag/aggressive_changelog
 
@@ -452,55 +395,55 @@
 /datum/config_entry/flag/preference_map_voting
 
 /datum/config_entry/number/client_warn_version
-	default = null
+	config_entry_value = null
 	min_val = 500
 
 /datum/config_entry/string/client_warn_message
-	default = "Your version of byond may have issues or be blocked from accessing this server in the future."
+	config_entry_value = "Your version of byond may have issues or be blocked from accessing this server in the future."
 
 /datum/config_entry/flag/client_warn_popup
 
 /datum/config_entry/number/client_error_version
-	default = null
+	config_entry_value = null
 	min_val = 500
 
 /datum/config_entry/string/client_error_message
-	default = "Your version of byond is too old, may have issues, and is blocked from accessing this server."
+	config_entry_value = "Your version of byond is too old, may have issues, and is blocked from accessing this server."
 
 /datum/config_entry/number/client_error_build
-	default = null
+	config_entry_value = null
 	min_val = 0
 
 /datum/config_entry/number/minute_topic_limit
-	default = null
+	config_entry_value = null
 	min_val = 0
 
 /datum/config_entry/number/second_topic_limit
-	default = null
+	config_entry_value = null
 	min_val = 0
 
 /datum/config_entry/number/minute_click_limit
-	default = 400
+	config_entry_value = 400
 	min_val = 0
 
 /datum/config_entry/number/second_click_limit
-	default = 15
+	config_entry_value = 15
 	min_val = 0
 
 /datum/config_entry/number/error_cooldown // The "cooldown" time for each occurrence of a unique error
-	default = 600
+	config_entry_value = 600
 	integer = FALSE
 	min_val = 0
 
 /datum/config_entry/number/error_limit // How many occurrences before the next will silence them
-	default = 50
+	config_entry_value = 50
 
 /datum/config_entry/number/error_silence_time // How long a unique error will be silenced for
-	default = 6000
+	config_entry_value = 6000
 	integer = FALSE
 
 /datum/config_entry/number/error_msg_delay // How long to wait between messaging admins about occurrences of a unique error
-	default = 50
+	config_entry_value = 50
 	integer = FALSE
 
 /datum/config_entry/flag/irc_announce_new_game
@@ -510,26 +453,26 @@
 	return "" //default broadcast
 
 /datum/config_entry/string/chat_announce_new_game
-	default = null
+	config_entry_value = null
 
 /datum/config_entry/string/chat_new_game_notifications
-	default = null
+	config_entry_value = null
 
 /datum/config_entry/flag/debug_admin_hrefs
 
 /datum/config_entry/number/mc_tick_rate/base_mc_tick_rate
 	integer = FALSE
-	default = 1
+	config_entry_value = 1
 
 /datum/config_entry/number/mc_tick_rate/high_pop_mc_tick_rate
 	integer = FALSE
-	default = 1.1
+	config_entry_value = 1.1
 
 /datum/config_entry/number/mc_tick_rate/high_pop_mc_mode_amount
-	default = 65
+	config_entry_value = 65
 
 /datum/config_entry/number/mc_tick_rate/disable_high_pop_mc_mode_amount
-	default = 60
+	config_entry_value = 60
 
 /datum/config_entry/number/mc_tick_rate
 	abstract_type = /datum/config_entry/number/mc_tick_rate
@@ -543,18 +486,18 @@
 
 /datum/config_entry/flag/resume_after_initializations/ValidateAndSet(str_val)
 	. = ..()
-	if(. && MC_RUNNING())
+	if(. && Master.current_runlevel)
 		world.sleep_offline = !config_entry_value
 
 /datum/config_entry/number/rounds_until_hard_restart
-	default = -1
+	config_entry_value = -1
 	min_val = 0
 
 /datum/config_entry/string/default_view
-	default = "15x15"
+	config_entry_value = "15x15"
 
 /datum/config_entry/string/default_view_square
-	default = "15x15"
+	config_entry_value = "15x15"
 
 /datum/config_entry/flag/log_pictures
 
@@ -576,60 +519,14 @@
 
 /datum/config_entry/string/centcom_source_whitelist
 
+/datum/config_entry/flag/sql_game_log
+	protection = CONFIG_ENTRY_LOCKED
+
+/datum/config_entry/flag/file_game_log
+	protection = CONFIG_ENTRY_LOCKED
+
+/datum/config_entry/number/cryo_min_ssd_time
+	config_entry_value = 15
+
 /// URL for admins to be redirected to for 2FA
 /datum/config_entry/string/admin_2fa_url
-
-/datum/config_entry/number/hard_deletes_overrun_threshold
-	integer = FALSE
-	min_val = 0
-	default = 0.5
-
-/datum/config_entry/number/hard_deletes_overrun_limit
-	default = 0
-	min_val = 0
-
-/datum/config_entry/str_list/motd
-
-/datum/config_entry/number/urgent_ahelp_cooldown
-	default = 300
-
-/datum/config_entry/string/urgent_ahelp_message
-	default = "This ahelp is urgent!"
-
-/datum/config_entry/string/ahelp_message
-	default = ""
-
-/datum/config_entry/string/urgent_ahelp_user_prompt
-	default = "There are no admins currently on. Do not press the button below if your ahelp is a joke, a request or a question. Use it only for cases of obvious grief."
-
-/datum/config_entry/string/urgent_adminhelp_webhook_url
-
-/datum/config_entry/string/regular_adminhelp_webhook_url
-
-/datum/config_entry/string/adminhelp_webhook_pfp
-
-/datum/config_entry/string/adminhelp_webhook_name
-
-/datum/config_entry/string/adminhelp_ahelp_link
-
-/datum/config_entry/flag/cache_assets
-	default = TRUE
-
-/datum/config_entry/flag/station_name_in_hub_entry
-	default = FALSE
-
-/datum/config_entry/number/pr_announcements_per_round
-	default = 5
-	min_val = 0
-	integer = TRUE
-
-/datum/config_entry/flag/forbid_all_profiling
-
-/datum/config_entry/flag/forbid_admin_profiling
-
-
-/datum/config_entry/flag/morgue_cadaver_disable_nonhumans
-
-/datum/config_entry/number/morgue_cadaver_other_species_probability
-
-/datum/config_entry/string/morgue_cadaver_override_species

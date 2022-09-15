@@ -8,19 +8,26 @@
 /atom/MouseDrop(atom/over, src_location, over_location, src_control, over_control, params)
 	if(!usr || !over)
 		return
-	if(SEND_SIGNAL(src, COMSIG_MOUSEDROP_ONTO, over, usr) & COMPONENT_NO_MOUSEDROP) //Whatever is receiving will verify themselves for adjacency.
-		return
 	if(over == src)
 		return usr.client.Click(src, src_location, src_control, params)
+	if(mouse_drop_onto(over, usr, params))
+		return
+	// Checking this after `mouse_drop_onto` because `mouse_drop_onto` is used to interact with UI elements too, yes, this isnt ideal.
 	if(!Adjacent(usr) || !over.Adjacent(usr))
 		return // should stop you from dragging through windows
-
-	over.MouseDrop_T(src,usr, params)
+	if(over.mouse_dropped(src, usr, params))
+		return
 	return
 
-// receive a mousedrop
-/atom/proc/MouseDrop_T(atom/dropping, mob/user, params)
-	SEND_SIGNAL(src, COMSIG_MOUSEDROPPED_ONTO, dropping, user, params)
+/// Receive a mousedrop from another atom.
+/atom/proc/mouse_dropped(atom/dropping, mob/user, params)
+	if(SEND_SIGNAL(src, COMSIG_MOUSEDROPPED_ONTO, dropping, user) & COMPONENT_NO_MOUSEDROP)
+		return TRUE
+
+/// Be mousedropped onto another atom.
+/atom/proc/mouse_drop_onto(atom/dropped, mob/user, params)
+	if(SEND_SIGNAL(src, COMSIG_MOUSEDROP_ONTO, dropped, usr) & COMPONENT_NO_MOUSEDROP) //Whatever is receiving will verify themselves for adjacency.
+		return TRUE
 
 
 /client/MouseDown(datum/object, location, control, params)
@@ -92,26 +99,26 @@
 	if (LAZYACCESS(modifiers, MIDDLE_CLICK))
 		if (src_object && src_location != over_location)
 			middragtime = world.time
-			middle_drag_atom_ref = WEAKREF(src_object)
+			middragatom = src_object
 		else
 			middragtime = 0
-			middle_drag_atom_ref = null
+			middragatom = null
 	mouseParams = params
-	mouse_location_ref = WEAKREF(over_location)
-	mouse_object_ref = WEAKREF(over_object)
+	mouseLocation = over_location
+	mouseObject = over_object
 	if(selected_target[1] && over_object?.IsAutoclickable())
 		selected_target[1] = over_object
 		selected_target[2] = params
 	if(active_mousedown_item)
 		active_mousedown_item.onMouseDrag(src_object, over_object, src_location, over_location, params, mob)
 	SEND_SIGNAL(src, COMSIG_CLIENT_MOUSEDRAG, src_object, over_object, src_location, over_location, src_control, over_control, params)
-	return ..()
+
 
 /obj/item/proc/onMouseDrag(src_object, over_object, src_location, over_location, params, mob)
 	return
 
-/client/MouseDrop(atom/src_object, atom/over_object, atom/src_location, atom/over_location, src_control, over_control, params)
-	if (IS_WEAKREF_OF(src_object, middle_drag_atom_ref))
+/client/MouseDrop(src_object, over_object, src_location, over_location, src_control, over_control, params)
+	if (middragatom == src_object)
 		middragtime = 0
-		middle_drag_atom_ref = null
+		middragatom = null
 	..()

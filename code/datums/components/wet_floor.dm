@@ -51,7 +51,7 @@
 
 /datum/component/wet_floor/proc/update_overlay()
 	var/intended
-	if(!isfloorturf(parent))
+	if(!istype(parent, /turf/open/floor))
 		intended = generic_turf_overlay
 	else
 		switch(highest_strength)
@@ -67,11 +67,9 @@
 		T.add_overlay(intended)
 		current_overlay = intended
 
-/datum/component/wet_floor/proc/AfterSlip(mob/living/slipped)
-	if(highest_strength != TURF_WET_LUBE)
-		return
-
-	slipped.set_timed_status_effect(8 SECONDS, /datum/status_effect/confusion, only_if_higher = TRUE)
+/datum/component/wet_floor/proc/AfterSlip(mob/living/L)
+	if(highest_strength == TURF_WET_LUBE)
+		L.set_confusion(max(L.get_confusion(), 8))
 
 /datum/component/wet_floor/proc/update_flags()
 	var/intensity
@@ -116,18 +114,19 @@
 	var/turf/open/T = parent
 	var/diff = world.time - last_process
 	var/decrease = 0
-	var/t = T.GetTemperature()
+	var/t = T20C
 	switch(t)
 		if(-INFINITY to T0C)
 			add_wet(TURF_WET_ICE, max_time_left()) //Water freezes into ice!
 		if(T0C to T0C + 100)
-			decrease = ((T.air.temperature - T0C) / SSwet_floors.temperature_coeff) * (diff / SSwet_floors.time_ratio)
+			decrease = ((20) / SSwet_floors.temperature_coeff) * (diff / SSwet_floors.time_ratio)
 		if(T0C + 100 to INFINITY)
 			decrease = INFINITY
 	decrease = max(0, decrease)
 	if((is_wet() & TURF_WET_ICE) && t > T0C) //Ice melts into water!
 		for(var/obj/O in T.contents)
-			O.unfreeze()
+			if(O.obj_flags & FROZEN)
+				O.make_unfrozen()
 		add_wet(TURF_WET_WATER, max_time_left())
 		dry(null, TURF_WET_ICE)
 	dry(null, ALL, FALSE, decrease)

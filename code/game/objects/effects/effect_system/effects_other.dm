@@ -81,9 +81,6 @@
 /datum/effect_system/trail_follow/proc/set_dir(obj/effect/particle_effect/ion_trails/I)
 	I.setDir(holder.dir)
 
-/datum/effect_system/trail_follow/ion/grav_allowed
-	nograv_required = FALSE
-
 //Reagent-based explosion effect
 
 /datum/effect_system/reagents_explosion
@@ -103,12 +100,9 @@
 	flashing = flash
 	flashing_factor = flash_fact
 
-/// Starts the explosion. The explosion_source is as part of logging and identifying the source of the explosion for logs.
-/datum/effect_system/reagents_explosion/start(atom/explosion_source = null)
-	if(!explosion_source)
-		stack_trace("Reagent explosion triggered without a source atom. This explosion may have incomplete logging.")
-
+/datum/effect_system/reagents_explosion/start()
 	if(explosion_message)
-		location.visible_message(span_danger("The solution violently explodes!"), span_hear("You hear an explosion!"))
+		location.visible_message(SPAN_DANGER("The solution violently explodes!"), \
+								SPAN_HEAR("You hear an explosion!"))
 
-	dyn_explosion(location, amount, flash_range = flashing_factor, explosion_cause = explosion_source)
+	dyn_explosion(location, amount, flash_range = flashing_factor)

@@ -4,8 +4,6 @@
 	prefix = "_maps/RandomRuins/SpaceRuins/"
 	cost = 1
 	allow_duplicates = FALSE
-	ruin_type = ZTRAIT_SPACE_RUINS
-	default_area = /area/space
 
 /datum/map_template/ruin/space/zoo
 	id = "zoo"
@@ -46,12 +44,6 @@
 	name = "Asteroid 5"
 	description = "Oh my god, another giant rock!"
 
-/datum/map_template/ruin/space/asteroid6
-	id = "asteroid6"
-	suffix = "asteroid6.dmm"
-	name = "Asteroid 6"
-	description = "This asteroid has brittle bone disease, so it is fortunate asteroids dont have bones."
-
 /datum/map_template/ruin/space/deep_storage
 	id = "deep-storage"
 	suffix = "deepstorage.dmm"
@@ -66,12 +58,12 @@
 	description = "A once-bustling tradestation that handled imports and exports from nearby stations now lays eerily dormant. \
 	The last received message was a distress call from one of the on-board officers, but we had no success in making contact again."
 
-/datum/map_template/ruin/space/derelict_sulaco
-	id = "derelict_sulaco"
-	suffix = "derelict_sulaco.dmm"
-	name = "Derelict Sulaco"
-	description = "Nothing to see here citizen, move along, certainly no xeno outbreaks here. That purple stuff? It's uh... space nectar... but don't eat it! \
-	It's the bridge of a top secret military ship."
+/datum/map_template/ruin/space/derelict1
+	id = "derelict1"
+	suffix = "derelict1.dmm"
+	name = "Derelict 1"
+	description = "Nothing to see here citizen, move along, certainly no xeno outbreaks on this piece of station debris. That purple stuff? It's uh... station nectar. \
+	It's a top secret research installation."
 
 /datum/map_template/ruin/space/derelict2
 	id = "derelict2"
@@ -107,29 +99,17 @@
 	description = "The hush-hush of Nanotrasen when it comes to stations seemingly vanishing off the radar is an interesting topic, theories of nuclear destruction float about while Nanotrasen \
 	flat-out denies said stations ever existing."
 
-/datum/map_template/ruin/space/derelict7
-	id = "derelict7"
-	suffix = "derelict7.dmm"
-	name = "Derelict 7"
-	description = "The official report says there was a 'huge explosion' which was 'radical' and 'tubular'. Nothing is said about the explosion's cause."
-
-/datum/map_template/ruin/space/derelict8
-	id = "derelict8"
-	suffix = "derelict8.dmm"
-	name = "Derelict 8"
-	description = "An auxillary storage bay might be the least respected room on any functional station, but studies show they are the least likely to be hit in an artillery strike."
-
 /datum/map_template/ruin/space/empty_shell
 	id = "empty-shell"
 	suffix = "emptyshell.dmm"
 	name = "Empty Shell"
 	description = "Cosy, rural property available for young professional couple. Only twelve parsecs from the nearest hyperspace lane!"
 
-/datum/map_template/ruin/space/the_lizards_gas
-	id = "the-lizards-gas"
-	suffix = "thelizardsgas.dmm"
-	name = "The Lizard's Gas"
-	description = "A refueling station stocked with enough plasma for any space-worthy vessel. Well, maybe if it weren't 50 years ago."
+/datum/map_template/ruin/space/gas_the_lizards
+	id = "gas-the-lizards"
+	suffix = "gasthelizards.dmm"
+	name = "Disposal Facility 17"
+	description = "Gas efficiency at 95.6%, fluid elimination at 96.2%. Will require renewed supplies of 'carpet' before the end of the quarter."
 
 /datum/map_template/ruin/space/intact_empty_ship
 	id = "intact-empty-ship"
@@ -143,13 +123,6 @@
 	name = "Syndicate Ambush"
 	description = "A caravan route used by passing cargo freights has been ambushed by a salvage team manned by the syndicate. \
 	The caravan managed to send off a distress message before being surrounded, their video feed cutting off as the sound of gunfire and a parrot was heard."
-
-/datum/map_template/ruin/space/originalcontent
-	id = "paperwizard"
-	suffix = "originalcontent.dmm"
-	name = "A Giant Ball of Paper in Space"
-	description = "Sightings of a giant wad of paper hurling through the depths of space have been recently reported by multiple outposts near this sector. \
-	A giant wad of paper, really? Damn prank callers."
 
 /datum/map_template/ruin/space/mech_transport
 	id = "mech-transport"
@@ -175,12 +148,6 @@
 	suffix = "turretedoutpost.dmm"
 	name = "Unnamed Turreted Outpost"
 	description = "We'd ask them to stop blaring that ruskiepop music, but none of us are brave enough to go near those death turrets they have."
-
-/datum/map_template/ruin/space/oldshuttle
-	id = "spaceman-origins"
-	suffix = "shuttlerelic.dmm"
-	name = "Strange Ship"
-	description = "A ship seemingly lost, drifting along the stars. This thing looks like it belongs in ancient times."
 
 /datum/map_template/ruin/space/way_home
 	id = "way-home"
@@ -219,8 +186,8 @@
 	id = "crashedship"
 	suffix = "crashedship.dmm"
 	name = "Crashed Ship"
-	description = "The SSCV Atrus was chartered to survey over 600 planets in its maiden voyage. \
-	Hopefully the SSC is content with an indepth analysis of just this asteroid."
+	description = "Among civilian vessels the most common cause of tragedy is lack of food. \
+	This ship was outfitted with a multitude of food-generating features, then summarily ran into an asteroid shortly after takeoff."
 
 /datum/map_template/ruin/space/listeningstation
 	id = "listeningstation"
@@ -290,18 +257,6 @@
 	description = "With heated debates over the legality of the catperson and their status in the workforce, there's always a place for the blackmarket to slip in for some cash. Whether the results \
 	are morally sound or not is another issue entirely."
 
-/datum/map_template/ruin/space/hilbertresearchfacility
-	id = "hilbert_facility"
-	suffix = "hilbertresearchfacility.dmm"
-	name = "Hilbert Research Facility"
-	description = "A research facility of great bluespace discoveries. Long since abandoned, willingly or not..."
-
-/datum/map_template/ruin/space/clownplanet
-	id = "clownplanet"
-	suffix = "clownplanet.dmm"
-	name = "Clown Planet"
-	description = "Thought lost in 2552, this minor planet has recently been rediscovered."
-
 /datum/map_template/ruin/space/clericden
 	id = "clericden"
 	suffix = "clericden.dmm"
@@ -320,14 +275,23 @@
 	name = "Heck Brewery"
 	description = "An abandoned warehouse and brewing facility, which has been recently rediscovered. Reports claim that the security system entered an ultra-hard lockdown, but these reports are inconclusive."
 
-/datum/map_template/ruin/space/space_billboard
-	id = "space_billboard"
-	suffix = "space_billboard.dmm"
-	name = "Space Billboard"
-	description = "Frequently found alongside well-traversed sublight routes, space billboards have fallen out of favour in recent years as advertisers finally realised that people are incapable of reading billboards going by at over 2/3rds the speed of light."
+/datum/map_template/ruin/space/syndicatewreck01
+	id = "syndicatewreck01"
+	suffix = "syndicatewreck01.dmm"
+	name = "Syndicate Wreckage"
+	description = "A hulking plastitanium wreck of a once larger structure - Probably best this way."
 
-/datum/map_template/ruin/space/spinwardsmoothies
-	id = "spinwardsmoothies"
-	suffix = "spinwardsmoothies.dmm"
-	name = "Spinward Smoothies"
-	description = "A branch of the beloved Spinward Smoothies chain of smoothie bars."
+/datum/map_template/ruin/space/tinybox
+	id = "tinybox"
+	suffix = "tinybox.dmm"
+	name = "Nanotrasen Wreckage"
+	description = "Some scattered metal and wood debris of some station gone horribly awry."
+
+/datum/map_template/ruin/space/outpost_engineering
+	id = "outpost-engineering"
+	suffix = "oustpost_engineering.dmm"
+	name = "Service Outpost"
+	description = "A small little outpost that's mostly self-sufficient. It's a good place to dock for repairs when in the middle of nowhere.\
+	Apart from the neeed for occassional maintenance, this structure acts as a telecommunications relay link to put those lost back into contact with civilisation."
+
+

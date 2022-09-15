@@ -2,7 +2,7 @@ SUBSYSTEM_DEF(assets)
 	name = "Assets"
 	init_order = INIT_ORDER_ASSETS
 	flags = SS_NO_FIRE
-	var/list/datum/asset_cache_item/cache = list()
+	var/list/cache = list()
 	var/list/preload = list()
 	var/datum/asset_transport/transport = new()
 
@@ -24,14 +24,10 @@ SUBSYSTEM_DEF(assets)
 
 /datum/controller/subsystem/assets/Initialize(timeofday)
 	for(var/type in typesof(/datum/asset))
-		var/datum/asset/A = type
-		if (type != initial(A._abstract))
-			get_asset_datum(type)
+		if(is_abstract(type))
+			continue
+		get_asset_datum(type)
 
 	transport.Initialize(cache)
 
 	..()
-
-/datum/controller/subsystem/assets/Recover()
-	cache = SSassets.cache
-	preload = SSassets.preload

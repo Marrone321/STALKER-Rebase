@@ -1,28 +1,33 @@
 /obj/item/clothing/suit
-	icon = 'icons/obj/clothing/suits/default.dmi'
+	icon = 'icons/obj/clothing/suit/suit.dmi'
+	worn_icon = 'icons/mob/clothing/suit/suit.dmi'
 	name = "suit"
 	var/fire_resist = T0C+100
-	allowed = list(/obj/item/tank/internals/emergency_oxygen, /obj/item/tank/internals/plasmaman)
-	armor = list(MELEE = 0, BULLET = 0, LASER = 0,ENERGY = 0, BOMB = 0, BIO = 0, FIRE = 0, ACID = 0)
+	armor = list(MELEE = 0, BULLET = 0, LASER = 0,ENERGY = 0, BOMB = 0, BIO = 0, RAD = 0, FIRE = 0, ACID = 0)
 	drop_sound = 'sound/items/handling/cloth_drop.ogg'
-	pickup_sound = 'sound/items/handling/cloth_pickup.ogg'
+	pickup_sound =  'sound/items/handling/cloth_pickup.ogg'
 	slot_flags = ITEM_SLOT_OCLOTHING
+	fitted_bodytypes = BODYTYPE_DIGITIGRADE
+	worn_template_bodytypes = BODYTYPE_TESHARI
+	greyscale_config_worn_template = /datum/greyscale_config/worn_template_coat
+	worn_template_greyscale_color = "#AAAAAA"
 	var/blood_overlay_type = "suit"
+	var/togglename = null
+	var/suittoggled = FALSE
 	limb_integrity = 0 // disabled for most exo-suits
 
-/obj/item/clothing/suit/Initialize(mapload)
-	. = ..()
-	setup_shielding()
 
-/obj/item/clothing/suit/worn_overlays(mutable_appearance/standing, isinhands = FALSE)
+/obj/item/clothing/suit/worn_overlays(mutable_appearance/standing, isinhands = FALSE, file2use, bodytype = BODYTYPE_HUMANOID)
 	. = ..()
 	if(isinhands)
 		return
 
 	if(damaged_clothes)
-		. += mutable_appearance('icons/effects/item_damage.dmi', "damaged[blood_overlay_type]")
-	if(GET_ATOM_BLOOD_DNA_LENGTH(src))
-		. += mutable_appearance('icons/effects/blood.dmi', "[blood_overlay_type]blood")
+		var/damagefile2use = (bodytype & BODYTYPE_TAUR_ALL) ? 'icons/horizon/mob/64x32_item_damage.dmi' : 'icons/effects/item_damage.dmi'
+		. += mutable_appearance(damagefile2use, "damaged[blood_overlay_type]")
+	if(HAS_BLOOD_DNA(src))
+		var/bloodfile2use = (bodytype & BODYTYPE_TAUR_ALL) ? 'icons/horizon/mob/64x32_blood.dmi' : 'icons/effects/blood.dmi'
+		. += mutable_appearance(bloodfile2use, "[blood_overlay_type]blood")
 
 	var/mob/living/carbon/human/M = loc
 	if(!ishuman(M) || !M.w_uniform)
@@ -37,13 +42,4 @@
 	..()
 	if(ismob(loc))
 		var/mob/M = loc
-		M.update_worn_oversuit()
-
-/**
- * Wrapper proc to apply shielding through AddComponent().
- * Called in /obj/item/clothing/Initialize().
- * Override with an AddComponent(/datum/component/shielded, args) call containing the desired shield statistics.
- * See /datum/component/shielded documentation for a description of the arguments
- **/
-/obj/item/clothing/suit/proc/setup_shielding()
-	return
+		M.update_inv_wear_suit()

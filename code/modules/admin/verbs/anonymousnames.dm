@@ -15,7 +15,7 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
 		var/response = tgui_alert(usr, "Anon mode is currently enabled. Disable?", "cold feet", list("Disable Anon Names", "Keep it Enabled"))
 		if(response != "Disable Anon Names")
 			return
-		message_admins(span_adminnotice("[key_name_admin(usr)] has disabled anonymous names."))
+		message_admins(SPAN_ADMINNOTICE("[key_name_admin(usr)] has disabled anonymous names."))
 		QDEL_NULL(GLOB.current_anonymous_theme)
 		return
 	var/list/input_list = list("Cancel")
@@ -36,7 +36,7 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
 	extras_enabled = extras_enabled == "Yes"
 	alert_players = alert_players == "Yes"
 	GLOB.current_anonymous_theme = new chosen_theme(extras_enabled, alert_players)
-	message_admins(span_adminnotice("[key_name_admin(usr)] has enabled anonymous names. THEME: [GLOB.current_anonymous_theme]."))
+	message_admins(SPAN_ADMINNOTICE("[key_name_admin(usr)] has enabled anonymous names. THEME: [GLOB.current_anonymous_theme]."))
 
 /* Datum singleton initialized by the client proc to hold the naming generation */
 /datum/anonymous_theme
@@ -86,19 +86,15 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
  * called when the anonymous theme is created regardless of extra theming
  */
 /datum/anonymous_theme/proc/anonymous_all_players()
+	var/datum/anonymous_theme/theme = GLOB.current_anonymous_theme
 	for(var/mob/living/player in GLOB.player_list)
-		if(!player.mind || (!ishuman(player) && !issilicon(player)) || player.mind.assigned_role.faction != FACTION_STATION)
+		if(!player.mind || (!ishuman(player)) || player.mind.assigned_role.faction != FACTION_STATION)
 			continue
-		if(issilicon(player))
-			player.fully_replace_character_name(player.real_name, anonymous_ai_name(isAI(player)))
-			return
-		var/mob/living/carbon/human/human_mob = player
 		var/original_name = player.real_name //id will not be changed if you do not do this
 		randomize_human(player) //do this first so the special name can be given
-		player.fully_replace_character_name(original_name, anonymous_name(player))
+		player.fully_replace_character_name(original_name, theme.anonymous_name(player))
 		if(extras_enabled)
 			player_extras(player)
-		human_mob.dna.update_dna_identity()
 
 /**
  * restore_all_players: sets all crewmembers on station back to their preference name.
@@ -108,14 +104,12 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
 /datum/anonymous_theme/proc/restore_all_players()
 	priority_announce("Names and Identities have been restored.", "Identity Restoration", SSstation.announcer.get_rand_alert_sound())
 	for(var/mob/living/player in GLOB.player_list)
-		if(!player.mind || (!ishuman(player) && !issilicon(player)) || player.mind.assigned_role.faction != FACTION_STATION)
+		if(!player.mind || (!ishuman(player)) || player.mind.assigned_role.faction != FACTION_STATION)
 			continue
 		var/old_name = player.real_name //before restoration
-		if(issilicon(player))
-			INVOKE_ASYNC(player, /mob/proc/apply_pref_name, "[isAI(player) ? /datum/preference/name/ai : /datum/preference/name/cyborg]", player.client)
-		else
-			player.client.prefs.apply_prefs_to(player) // This is not sound logic, as the prefs may have changed since then.
-			player.fully_replace_character_name(old_name, player.real_name) //this changes IDs and PDAs and whatnot
+		player.client.prefs.sanitize_chosen_prefs() // Just in case they changed unlawfully.
+		player.client.prefs.apply_prefs_to(player) // This is not sound logic, as the prefs may have changed since then.
+		player.fully_replace_character_name(old_name, player.real_name) //this changes IDs and PDAs and whatnot
 
 /**
  * anonymous_name: generates a random name, based off of whatever the round's anonymousnames is set to.
@@ -129,10 +123,7 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
  * * target - mob for preferences and gender
  */
 /datum/anonymous_theme/proc/anonymous_name(mob/target)
-	var/datum/client_interface/client = GET_CLIENT(target)
-	var/species_type = client.prefs.read_preference(/datum/preference/choiced/species)
-	var/datum/species/species = new species_type
-	return species.random_name(target.gender,1)
+	return target.client.prefs.pref_species.random_name(target.gender,1)
 
 /**
  * anonymous_ai_name: generates a random name, based off of whatever the round's anonymousnames is set to (but for sillycones).
@@ -143,7 +134,7 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
  * Spider Clan = "'Leaping Viper' MSO"
  * Stations? = "System Port 10"
  * Arguments:
- * * is_ai - boolean to decide whether the name has "Core" (AI) or JOB_ASSISTANT (Cyborg)
+ * * is_ai - boolean to decide whether the name has "Core" (AI) or "Assistant" (Cyborg)
  */
 /datum/anonymous_theme/proc/anonymous_ai_name(is_ai = FALSE)
 	return pick(GLOB.ai_names)
@@ -167,81 +158,7 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
 /datum/anonymous_theme/employees/anonymous_ai_name(is_ai = FALSE)
 	var/verbs = capitalize(pick(GLOB.ing_verbs))
 	var/phonetic = pick(GLOB.phonetic_alphabet)
-	return "Employee [is_ai ? "Core" : JOB_ASSISTANT] [verbs] [phonetic]"
-
-/datum/anonymous_theme/wizards
-	name = "Wizard Academy"
-	extras_prompt = "Give everyone random robes too?"
-
-/datum/anonymous_theme/wizards/player_extras(mob/living/player)
-	var/random_path = pick(
-		/obj/item/storage/box/wizard_kit,
-		/obj/item/storage/box/wizard_kit/red,
-		/obj/item/storage/box/wizard_kit/yellow,
-		/obj/item/storage/box/wizard_kit/magusred,
-		/obj/item/storage/box/wizard_kit/magusblue,
-		/obj/item/storage/box/wizard_kit/black,
-	)
-	player.put_in_hands(new random_path())
-
-/datum/anonymous_theme/wizards/announce_to_all_players()
-	priority_announce("Your station has been caught by a Wizard Federation Memetic Hazard. You are not y0urself, and yo% a2E 34!NOT4--- Welcome to the Academy, apprentices!", "Memetic Hazard", SSstation.announcer.get_rand_alert_sound())
-
-/datum/anonymous_theme/wizards/anonymous_name(mob/target)
-	var/wizard_name_first = pick(GLOB.wizard_first)
-	var/wizard_name_second = pick(GLOB.wizard_second)
-	return "[wizard_name_first] [wizard_name_second]"
-
-/datum/anonymous_theme/wizards/anonymous_ai_name(is_ai = FALSE)
-	return "Crystallized Knowledge [is_ai ? "Nexus" : "Sliver"] +[rand(1,99)]" //Could two people roll the same number? Yeah, probably. Do I CARE? Nawww
-
-/obj/item/storage/box/wizard_kit
-	name = "Generic Wizard Cosplay Kit"
-
-/obj/item/storage/box/wizard_kit/PopulateContents()
-	new /obj/item/clothing/head/wizard(src)
-	new /obj/item/clothing/suit/wizrobe(src)
-	new /obj/item/clothing/shoes/sandal(src)
-
-/obj/item/storage/box/wizard_kit/red
-	name = "Evocation Wizard Cosplay Kit"
-
-/obj/item/storage/box/wizard_kit/red/PopulateContents()
-	new /obj/item/clothing/head/wizard/red(src)
-	new /obj/item/clothing/suit/wizrobe/red(src)
-	new /obj/item/clothing/shoes/sandal(src)
-
-/obj/item/storage/box/wizard_kit/yellow
-	name = "Translocation Wizard Cosplay Kit"
-
-/obj/item/storage/box/wizard_kit/yellow/PopulateContents()
-	new /obj/item/clothing/head/wizard/yellow(src)
-	new /obj/item/clothing/suit/wizrobe/yellow(src)
-	new /obj/item/clothing/shoes/sandal(src)
-
-/obj/item/storage/box/wizard_kit/magusred
-	name = "Conjuration Wizard Cosplay Kit"
-
-/obj/item/storage/box/wizard_kit/yellow/PopulateContents()
-	new /obj/item/clothing/head/wizard/magus(src)
-	new /obj/item/clothing/suit/wizrobe/magusred(src)
-	new /obj/item/clothing/shoes/sandal(src)
-
-/obj/item/storage/box/wizard_kit/magusblue
-	name = "Transmutation Wizard Cosplay Kit"
-
-/obj/item/storage/box/wizard_kit/yellow/PopulateContents()
-	new /obj/item/clothing/head/wizard/magus(src)
-	new /obj/item/clothing/suit/wizrobe/magusblue(src)
-	new /obj/item/clothing/shoes/sandal(src)
-
-/obj/item/storage/box/wizard_kit/black
-	name = "Necromancy Wizard Cosplay Kit"
-
-/obj/item/storage/box/wizard_kit/black/PopulateContents()
-	new /obj/item/clothing/head/wizard/black(src)
-	new /obj/item/clothing/suit/wizrobe/black(src)
-	new /obj/item/clothing/shoes/sandal(src)
+	return "Employee [is_ai ? "Core" : "Assistant"] [verbs] [phonetic]"
 
 /datum/anonymous_theme/spider_clan
 	name = "Spider Clan"
@@ -263,7 +180,7 @@ GLOBAL_DATUM(current_anonymous_theme, /datum/anonymous_theme)
 
 /datum/anonymous_theme/station
 	name = "Stations?"
-	extras_prompt = "Also set station name to be a random human name?"
+	extras_prompt = "Also flip station name?"
 
 /datum/anonymous_theme/station/theme_extras()
 	set_station_name("[pick(GLOB.first_names)] [pick(GLOB.last_names)]")

@@ -101,7 +101,7 @@
 			"contents" = list_contents)
 
 	// JATUM is really only meant for PoD types
-	if(!isdatum(value)\
+	if(!istype(value, /datum)\
 		|| istype(value, /image)\
 		|| istype(value, /icon)\
 		|| istype(value, /sound)\
@@ -133,7 +133,7 @@
 	return json_structure
 
 /**
- * Attempt to create a value from a JATUM JSON.
+ * Attempt to create a value from a JATUN JSON.
  *
  * * json - The JSON to deserialize.
  */
